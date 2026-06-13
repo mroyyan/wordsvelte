@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "workspaces": ["shared", "web", "scripts"],
+  "scripts": {
+    "dev": "npm run dev -w web",
+    "build": "npm run build -w web",
+    "deploy": "npm run build -w web && npm run deploy -w web"
+  }
+}

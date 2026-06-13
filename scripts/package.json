@@ -1,0 +1,10 @@
+{
+  "name": "@kubus/scripts",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@kubus/shared": "*",
+    "fast-xml-parser": "^5.8.0",
+    "node-fetch": "^3.3.0"
+  }
+}

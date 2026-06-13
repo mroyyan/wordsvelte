@@ -1,0 +1,15 @@
+name = "kubus-web"
+compatibility_date = "2025-01-09"
+pages_build_output_dir = ".svelte-kit/cloudflare"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kubus-db"
+database_id = "local-dev"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "kubus-media"
+
+[vars]
+JWT_SECRET = "change-me-in-production"
