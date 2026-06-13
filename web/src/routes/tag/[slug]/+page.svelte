@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatDate, formatExcerpt } from '$lib/utils'
-  import { Clock } from 'lucide-svelte'
+  import { Clock } from '@lucide/svelte'
 
   let { data } = $props()
   let { tag, posts } = $derived(data)

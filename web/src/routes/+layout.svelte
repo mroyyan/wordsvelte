@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores'
   import '../app.css'
-  import { Search, Menu, X, ChevronDown } from 'lucide-svelte'
+  import { Search, Menu, X, ChevronDown } from '@lucide/svelte'
 
   let { children } = $props()
 

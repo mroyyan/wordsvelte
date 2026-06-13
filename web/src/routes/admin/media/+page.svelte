@@ -4,7 +4,7 @@
   import { Input } from '$lib/components/ui/input'
   import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '$lib/components/ui/alert-dialog'
   import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog'
-  import { Upload, Trash2, Search, X, Loader2, Download, Clock } from 'lucide-svelte'
+  import { Upload, Trash2, Search, X, Loader2, Download, Clock } from '@lucide/svelte'
   import MediaLibrary from '$lib/components/admin/media/MediaLibrary.svelte'
 
   let items = $state<any[]>([])

@@ -13,7 +13,7 @@
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuSeparator, DropdownMenuTrigger
   } from '$lib/components/ui/dropdown-menu'
-  import { Plus, Pencil, Trash2, Check, CirclePlus, X as XIcon, Ellipsis, FileText, Send } from 'lucide-svelte'
+  import { Plus, Pencil, Trash2, Check, CirclePlus, X as XIcon, Ellipsis, FileText, Send } from '@lucide/svelte'
   import ChevronLeft from '@lucide/svelte/icons/chevron-left'
   import ChevronRight from '@lucide/svelte/icons/chevron-right'
   import ChevronsLeft from '@lucide/svelte/icons/chevrons-left'

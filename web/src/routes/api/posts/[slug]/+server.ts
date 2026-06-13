@@ -1,7 +1,6 @@
 import { json } from '@sveltejs/kit'
 import { eq, desc } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
-import { verifyAuth } from '$lib/server/auth'
 import { posts, postCategories, postTags, categories, tags, comments } from '@kubus/shared/src/db-schema'
 
 export async function GET(event) {
@@ -22,35 +21,4 @@ export async function GET(event) {
   return json({ success: true, data: { ...post, categories: catRows, tags: tagRows, comments: commentRows } })
 }
 
-export async function PUT(event) {
-  try {
-    const user = await verifyAuth(event as any)
-    const id = parseInt(event.params.slug)
-    if (isNaN(id)) return json({ success: false, error: 'Invalid ID' }, 400)
 
-    const db = getDb(event as any)
-    const body = await event.request.json()
-    const updateData: any = {}
-    if (body.title) updateData.title = body.title
-    if (body.content !== undefined) updateData.content = body.content
-    if (body.excerpt !== undefined) updateData.excerpt = body.excerpt
-    if (body.status) { updateData.status = body.status; if (body.status === 'publish') updateData.publishedAt = new Date().toISOString() }
-    if (body.featuredImageUrl !== undefined) updateData.featuredImageUrl = body.featuredImageUrl
-    updateData.updatedAt = new Date().toISOString()
-
-    await db.update(posts).set(updateData).where(eq(posts.id, id))
-    const [post] = await db.select().from(posts).where(eq(posts.id, id)).limit(1)
-    return json({ success: true, data: post })
-  } catch (e: any) { return json({ success: false, error: e.message }, 401) }
-}
-
-export async function DELETE(event) {
-  try {
-    await verifyAuth(event as any)
-    const id = parseInt(event.params.slug)
-    if (isNaN(id)) return json({ success: false, error: 'Invalid ID' }, 400)
-    const db = getDb(event as any)
-    await db.delete(posts).where(eq(posts.id, id))
-    return json({ success: true })
-  } catch (e: any) { return json({ success: false, error: e.message }, 401) }
-}

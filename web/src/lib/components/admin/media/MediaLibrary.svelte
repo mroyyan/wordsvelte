@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Dialog from '$lib/components/ui/dialog'
-  import { Loader2, Search, X, UploadCloud } from 'lucide-svelte'
+  import { Loader2, Search, X, UploadCloud } from '@lucide/svelte'
   import { Input } from '$lib/components/ui/input'
 
   let { open = $bindable(false), onSelect } = $props()

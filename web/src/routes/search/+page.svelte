@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatDate, formatExcerpt } from '$lib/utils'
-  import { Search } from 'lucide-svelte'
+  import { Search } from '@lucide/svelte'
 
   let { data } = $props()
   let { query, results } = $derived(data)

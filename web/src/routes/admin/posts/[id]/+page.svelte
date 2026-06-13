@@ -8,7 +8,7 @@
   import { Label } from '$lib/components/ui/label'
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card'
   import { Checkbox } from '$lib/components/ui/checkbox'
-  import { Save, Loader2, Edit2, Check, Globe, UploadCloud, X, Plus, Link, Image } from 'lucide-svelte'
+  import { Save, Loader2, Edit2, Check, Globe, UploadCloud, X, Plus, Link, Image } from '@lucide/svelte'
   import * as Select from '$lib/components/ui/select'
   import MediaLibrary from '$lib/components/admin/media/MediaLibrary.svelte'
 

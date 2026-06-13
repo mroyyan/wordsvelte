@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte'
   import 'ckeditor5/dist/ckeditor5.css'
   import MediaLibrary from './media/MediaLibrary.svelte'
-  import { Image } from 'lucide-svelte'
+  import { Image } from '@lucide/svelte'
   import { Button } from '$lib/components/ui/button'
 
   let { value = $bindable('') } = $props()

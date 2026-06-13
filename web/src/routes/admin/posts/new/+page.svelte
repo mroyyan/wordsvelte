@@ -10,7 +10,7 @@
   import { Checkbox } from '$lib/components/ui/checkbox'
   import { Separator } from '$lib/components/ui/separator'
   import { Badge } from '$lib/components/ui/badge'
-  import { Save, Loader2, Edit2, Check, Globe, UploadCloud, X, Link, Plus, Image } from 'lucide-svelte'
+  import { Save, Loader2, Edit2, Check, Globe, UploadCloud, X, Link, Plus, Image } from '@lucide/svelte'
   import * as Select from '$lib/components/ui/select'
   import MediaLibrary from '$lib/components/admin/media/MediaLibrary.svelte'
 

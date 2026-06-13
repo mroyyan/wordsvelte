@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatDate, formatExcerpt } from '$lib/utils'
-  import { Clock, Eye, ChevronRight, Megaphone } from 'lucide-svelte'
+  import { Clock, Eye, ChevronRight, Megaphone } from '@lucide/svelte'
 
   let { data } = $props()
   let posts = $derived(data.posts)

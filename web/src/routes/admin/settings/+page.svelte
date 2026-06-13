@@ -1,11 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { PUBLIC_API_URL } from '$env/static/public'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
   import { Textarea } from '$lib/components/ui/textarea'
   import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card'
-  import { Save } from 'lucide-svelte'
+  import { Save } from '@lucide/svelte'
 
   let settings = $state<Record<string, string>>({})
   let loading = $state(true)

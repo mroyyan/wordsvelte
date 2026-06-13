@@ -8,7 +8,7 @@
   import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover'
   import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '$lib/components/ui/command'
   import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '$lib/components/ui/alert-dialog'
-  import { Check, PlusCircle } from 'lucide-svelte'
+  import { Check, PlusCircle } from '@lucide/svelte'
   import XIcon from '@lucide/svelte/icons/x'
   import ChevronLeft from '@lucide/svelte/icons/chevron-left'
   import ChevronRight from '@lucide/svelte/icons/chevron-right'
