@@ -8,6 +8,11 @@
   import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover'
   import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '$lib/components/ui/command'
   import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '$lib/components/ui/alert-dialog'
+  import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog'
+  import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuSeparator, DropdownMenuTrigger
+  } from '$lib/components/ui/dropdown-menu'
   import { Check, PlusCircle } from '@lucide/svelte'
   import XIcon from '@lucide/svelte/icons/x'
   import ChevronLeft from '@lucide/svelte/icons/chevron-left'
@@ -17,6 +22,8 @@
   import Trash2 from '@lucide/svelte/icons/trash-2'
   import ShieldCheck from '@lucide/svelte/icons/shield-check'
   import Ban from '@lucide/svelte/icons/ban'
+  import Ellipsis from '@lucide/svelte/icons/ellipsis'
+  import Eye from '@lucide/svelte/icons/eye'
 
   let mounted = $state(false)
   onMount(() => { mounted = true })
@@ -26,6 +33,7 @@
   let statusFilter = $state<string[]>([])
   let page = $state(1); let pageSize = $state(10)
   let deleteId = $state<number | null>(null)
+  let viewComment = $state<any | null>(null)
   let rowSelection = $state<Set<number>>(new Set())
 
   function t() { return localStorage.getItem('kubus_token') }
@@ -129,13 +137,41 @@
               <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted"><Checkbox checked={rowSelection.has(c.id)} onCheckedChange={() => toggle(c.id)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
               <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted"><div class="font-medium">{c.authorName}</div><div class="text-xs text-muted-foreground">{c.authorEmail}</div></TableCell>
               <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted max-w-xs truncate text-sm">{c.content}</TableCell>
-              <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted"><Badge variant="outline" class={statusColors[c.status] || ''}>{c.status}</Badge></TableCell>
+              <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted"><Badge variant="outline" class={statusColors[c.status] || ''}>{c.status.charAt(0).toUpperCase() + c.status.slice(1)}</Badge></TableCell>
               <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted text-sm text-muted-foreground">{new Date(c.createdAt).toLocaleDateString('id-ID')}</TableCell>
-              <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted"><div class="flex gap-1">
-                {#if c.status !== 'approved'}<Button variant="ghost" size="icon" class="size-8" onclick={() => moderate(c.id, 'approved')}><ShieldCheck class="h-4 w-4 text-green-500" /></Button>{/if}
-                {#if c.status !== 'spam'}<Button variant="ghost" size="icon" class="size-8" onclick={() => moderate(c.id, 'spam')}><Ban class="h-4 w-4 text-orange-500" /></Button>{/if}
-                <Button variant="ghost" size="icon" class="size-8" onclick={() => deleteId = c.id}><Trash2 class="h-4 w-4 text-red-500" /></Button>
-              </div></TableCell>
+              <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted">
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <Button variant="ghost" class="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
+                      <Ellipsis class="h-4 w-4" />
+                      <span class="sr-only">Actions</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" class="w-40">
+                    {#if c.status !== 'approved'}
+                      <DropdownMenuItem onclick={() => moderate(c.id, 'approved')}>
+                        Approve
+                        <span class="ml-auto"><ShieldCheck size={16} class="text-green-500" /></span>
+                      </DropdownMenuItem>
+                    {/if}
+                    {#if c.status !== 'spam'}
+                      <DropdownMenuItem onclick={() => moderate(c.id, 'spam')}>
+                        Mark Spam
+                        <span class="ml-auto"><Ban size={16} class="text-orange-500" /></span>
+                      </DropdownMenuItem>
+                    {/if}
+                    <DropdownMenuItem onclick={() => viewComment = c}>
+                      View
+                      <span class="ml-auto"><Eye size={16} /></span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem class="text-red-500!" onclick={() => deleteId = c.id}>
+                      Delete
+                      <span class="ml-auto"><Trash2 size={16} /></span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
           {/each}
         {/if}
@@ -166,11 +202,24 @@
   </div>
 </div>
 
+<Dialog open={viewComment !== null} onOpenChange={(o) => { if (!o) viewComment = null }}>
+  <DialogContent class="sm:max-w-lg"><DialogHeader><DialogTitle>Comment by {viewComment?.authorName || ''}</DialogTitle></DialogHeader>
+    <div class="space-y-3">
+      <div class="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>{viewComment?.authorEmail}</span>
+        <span>·</span>
+        <span>{viewComment ? new Date(viewComment.createdAt).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+      </div>
+      <div class="text-sm leading-relaxed whitespace-pre-wrap bg-muted rounded-lg p-4 max-h-60 overflow-y-auto">
+        {viewComment?.content || ''}
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
+
 <AlertDialog open={deleteId !== null} onOpenChange={(o) => { if (!o) deleteId = null }}>
   <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete comment?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onclick={handleDelete}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
 </AlertDialog>
 {:else}
   <div class="flex flex-1 flex-col gap-4"><div class="flex items-center justify-center h-24 text-muted-foreground">Loading...</div></div>
 {/if}
-
-

@@ -114,6 +114,45 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Widgets
+CREATE TABLE IF NOT EXISTS widgets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  widget_type TEXT NOT NULL,
+  title TEXT,
+  content TEXT,
+  settings TEXT,
+  sidebar_area TEXT NOT NULL DEFAULT 'sidebar-1',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Menus
+CREATE TABLE IF NOT EXISTS menus (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  location TEXT NOT NULL DEFAULT 'header',
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Menu Items
+CREATE TABLE IF NOT EXISTS menu_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  menu_id INTEGER NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
+  parent_id INTEGER REFERENCES menu_items(id),
+  item_type TEXT NOT NULL DEFAULT 'custom',
+  label TEXT NOT NULL,
+  url TEXT,
+  target TEXT NOT NULL DEFAULT '_self',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- =====================
 -- Indexes
 -- =====================

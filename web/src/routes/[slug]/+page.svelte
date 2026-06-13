@@ -1,10 +1,13 @@
 <script lang="ts">
   import { formatDate, formatExcerpt } from '$lib/utils'
+  import { page } from '$app/stores'
   import { Clock, Eye, MessageSquare, Share2, Tag, ChevronRight } from '@lucide/svelte'
+  import WidgetRenderer from '$lib/components/widgets/WidgetRenderer.svelte'
 
   let { data } = $props()
   let { post, comments } = $derived(data)
   let tags: { id: number; name: string; slug: string }[] = $derived((data.tags || []) as any)
+  let sidebarWidgets = $derived($page.data.widgets?.filter((w: any) => w.sidebarArea === 'sidebar-1') || [])
 
   let commentText = $state('')
   let commentName = $state('')
@@ -158,20 +161,11 @@
     </section>
   </div>
   <aside class="space-y-6">
-    <div class="bg-white rounded-lg border">
-      <h3 class="font-bold text-sm uppercase text-gray-900 px-4 pt-4 pb-2">Berita Populer</h3>
-      <div class="divide-y">
-        {#each data.popular || [] as pop, i}
-          <a href="/{pop.slug}" class="flex gap-3 px-4 py-3 hover:bg-gray-50">
-            <span class="text-2xl font-bold text-gray-200 shrink-0 w-8">{i + 1}</span>
-            <div class="min-w-0">
-              <h4 class="text-sm font-medium leading-snug line-clamp-2 hover:text-red-600">{pop.title}</h4>
-              <span class="text-xs text-gray-500 mt-1 block">{formatDate(pop.publishedAt || pop.createdAt)}</span>
-            </div>
-          </a>
-        {/each}
+    {#each sidebarWidgets as widget (widget.id)}
+      <div class="bg-white rounded-lg border p-4">
+        <WidgetRenderer {widget} posts={data.popular || []} categories={data.categories || []} tags={data.tags || []} />
       </div>
-    </div>
+    {/each}
   </aside>
 </div>
 

@@ -3,9 +3,10 @@
   import { Search } from '@lucide/svelte'
 
   let { data } = $props()
-  let { query, results } = $derived(data)
+  let results = $derived(data.results)
+  let query = $derived(data.query)
 
-  let searchInput = $state(query)
+  let searchInput = $state(data.query || '')
 </script>
 
 <div class="max-w-3xl mx-auto">

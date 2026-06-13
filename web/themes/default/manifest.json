@@ -1,0 +1,9 @@
+{
+  "name": "Kubus Default",
+  "slug": "default",
+  "version": "1.0.0",
+  "author": "Kubus",
+  "description": "Default theme for Kubus News portal",
+  "layouts": ["single", "archive", "search"],
+  "supports": ["widgets", "menus", "featured_image"]
+}

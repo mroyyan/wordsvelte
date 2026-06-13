@@ -22,6 +22,10 @@
   import MessageSquareIcon from '@lucide/svelte/icons/message-square'
   import UsersIcon from '@lucide/svelte/icons/users'
   import SettingsIcon from '@lucide/svelte/icons/settings'
+  import PaintbrushIcon from '@lucide/svelte/icons/paintbrush'
+  import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template'
+  import MenuIcon from '@lucide/svelte/icons/menu'
+  import PaletteIcon from '@lucide/svelte/icons/palette'
 
   let { children } = $props()
   let mounted = $state(false)
@@ -36,7 +40,7 @@
   onMount(() => {
     mounted = true
     if (!localStorage.getItem('kubus_token')) {
-      goto('/admin/login', { replace: true })
+      goto('/admin/login', { replaceState: true })
     }
   })
 
@@ -103,28 +107,28 @@
                     <SidebarMenuSub>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton isActive={$page.url.pathname === '/admin/posts'}>
-                          {#snippet child({ props })}
+                          {#snippet child({ props }: { props: any })}
                             <a href="/admin/posts" {...props}>All Posts</a>
                           {/snippet}
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton isActive={$page.url.pathname === '/admin/posts/new'}>
-                          {#snippet child({ props })}
+                          {#snippet child({ props }: { props: any })}
                             <a href="/admin/posts/new" {...props}>New Post</a>
                           {/snippet}
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton isActive={$page.url.pathname.startsWith('/admin/categories')}>
-                          {#snippet child({ props })}
+                          {#snippet child({ props }: { props: any })}
                             <a href="/admin/categories" {...props}>Categories</a>
                           {/snippet}
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton isActive={$page.url.pathname.startsWith('/admin/tags')}>
-                          {#snippet child({ props })}
+                          {#snippet child({ props }: { props: any })}
                             <a href="/admin/tags" {...props}>Tags</a>
                           {/snippet}
                         </SidebarMenuSubButton>
@@ -133,7 +137,7 @@
                   {/if}
                 {:else}
                   <SidebarMenuButton isActive={isActive(href)}>
-                    {#snippet child({ props })}
+                    {#snippet child({ props }: { props: any })}
                       <a {href} {...props}><Icon class="size-4 shrink-0" />{label}</a>
                     {/snippet}
                   </SidebarMenuButton>
@@ -143,12 +147,38 @@
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
+          <SidebarGroupLabel>Appearance</SidebarGroupLabel>
+          <SidebarMenu class="gap-0.5">
+            <SidebarMenuItem>
+              <SidebarMenuButton isActive={$page.url.pathname.startsWith('/admin/appearance/themes')}>
+                {#snippet child({ props }: { props: any })}
+                  <a href="/admin/appearance/themes" {...props}><PaletteIcon class="size-4 shrink-0" />Themes</a>
+                {/snippet}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton isActive={$page.url.pathname.startsWith('/admin/appearance/widgets')}>
+                {#snippet child({ props }: { props: any })}
+                  <a href="/admin/appearance/widgets" {...props}><LayoutTemplateIcon class="size-4 shrink-0" />Widgets</a>
+                {/snippet}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton isActive={$page.url.pathname.startsWith('/admin/appearance/menus')}>
+                {#snippet child({ props }: { props: any })}
+                  <a href="/admin/appearance/menus" {...props}><MenuIcon class="size-4 shrink-0" />Menus</a>
+                {/snippet}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
           <SidebarGroupLabel>Other</SidebarGroupLabel>
           <SidebarMenu class="gap-0.5">
             {#each navItems.slice(5) as { href, label, icon: Icon }}
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={isActive(href)}>
-                  {#snippet child({ props })}
+                  {#snippet child({ props }: { props: any })}
                     <a {href} {...props}><Icon class="size-4 shrink-0" />{label}</a>
                   {/snippet}
                 </SidebarMenuButton>

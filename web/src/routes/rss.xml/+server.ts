@@ -1,9 +1,9 @@
 import { eq, desc } from 'drizzle-orm'
-import { getDb } from '$lib/db'
+import { getDb } from '$lib/server/db'
 import { posts } from '@kubus/shared/src/db-schema'
 
-export async function GET({ platform }) {
-  const db = getDb(platform)
+export async function GET(event) {
+  const db = getDb(event as any)
   const list = await db.select()
     .from(posts)
     .where(eq(posts.status, 'publish'))

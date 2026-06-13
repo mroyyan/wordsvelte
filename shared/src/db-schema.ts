@@ -102,3 +102,39 @@ export const sessions = sqliteTable('sessions', {
   expiresAt: text('expires_at').notNull(),
   createdAt: text('created_at').notNull().default('datetime(\'now\')'),
 })
+
+export const widgets = sqliteTable('widgets', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  widgetType: text('widget_type').notNull(),
+  title: text('title'),
+  content: text('content'),
+  settings: text('settings'),
+  sidebarArea: text('sidebar_area').notNull().default('sidebar-1'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  status: text('status').notNull().default('active'),
+  createdAt: text('created_at').notNull().default('datetime(\'now\')'),
+  updatedAt: text('updated_at').notNull().default('datetime(\'now\')'),
+})
+
+export const menus = sqliteTable('menus', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  location: text('location').notNull().default('header'),
+  status: text('status').notNull().default('active'),
+  createdAt: text('created_at').notNull().default('datetime(\'now\')'),
+  updatedAt: text('updated_at').notNull().default('datetime(\'now\')'),
+})
+
+export const menuItems = sqliteTable('menu_items', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  menuId: integer('menu_id').notNull().references(() => menus.id, { onDelete: 'cascade' }),
+  parentId: integer('parent_id').references(() => menuItems.id),
+  itemType: text('item_type').notNull().default('custom'),
+  label: text('label').notNull(),
+  url: text('url'),
+  target: text('target').notNull().default('_self'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  status: text('status').notNull().default('active'),
+  createdAt: text('created_at').notNull().default('datetime(\'now\')'),
+})

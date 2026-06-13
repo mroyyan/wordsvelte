@@ -1,0 +1,109 @@
+{{#if posts.length}}
+  <!-- News Ticker -->
+  <div class="flex items-center gap-3 mb-6 bg-gray-50 border rounded-lg px-4 py-2.5">
+    <span class="text-xs font-bold uppercase text-red-600 shrink-0 tracking-wider flex items-center gap-1.5">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M2 12.5C2 9.46 4.46 7 7.5 7H18c2.21 0 4 1.79 4 4s-1.79 4-4 4H9.5C8.12 15 7 13.88 7 12.5S8.12 10 9.5 10H17v2H9.41c-.1 0-.1.5 0 .5H18c1.1 0 2-.9 2-2s-.9-2-2-2H7.5C5.57 8 4 9.57 4 11.5S5.57 15 7.5 15H17v2H7.5C4.46 17 2 14.54 2 11.5z"/></svg>
+      Terkini
+    </span>
+    <div class="h-4 w-px bg-gray-300 shrink-0"></div>
+    <div class="flex-1 overflow-hidden relative h-5">
+      <div class="absolute inset-0 flex items-center overflow-hidden">
+        <div class="whitespace-nowrap animate-scroll inline-flex gap-8 text-sm text-gray-600">
+          {{#each posts}}<a href="/{{slug}}" class="hover:text-red-600">{{title}}</a><span class="text-gray-300">•</span>{{/each}}
+          {{#each posts}}<a href="/{{slug}}" class="hover:text-red-600">{{title}}</a><span class="text-gray-300">•</span>{{/each}}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Featured -->
+  {{#with posts.[0] as |f|}}
+  <section class="mb-10">
+    <div class="grid lg:grid-cols-5 gap-3">
+      <a href="/{{f.slug}}" class="lg:col-span-3 group relative overflow-hidden rounded-xl aspect-video lg:aspect-auto lg:min-h-[420px] shadow-md">
+        {{#if f.featuredImageUrl}}<img src="{{f.featuredImageUrl}}" alt="{{f.title}}" class="w-full h-full object-cover absolute inset-0 group-hover:scale-105 transition-transform duration-700" />{{else}}<div class="w-full h-full absolute inset-0 bg-gray-800"></div>{{/if}}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+          <span class="inline-block bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 mb-3 uppercase tracking-wider rounded-sm">Breaking News</span>
+          <h2 class="text-white text-2xl md:text-3xl font-bold leading-tight mb-3 line-clamp-2">{{f.title}}</h2>
+          <p class="text-gray-300 text-sm line-clamp-2 mb-3 hidden md:block">{{f.excerpt}}</p>
+          <div class="flex items-center gap-4 text-xs text-gray-400">
+            <span>{{f.publishedAt}}</span>
+            <span>{{f.viewCount}} dilihat</span>
+          </div>
+        </div>
+      </a>
+      {{#if posts.[1]}}
+      <div class="lg:col-span-2 grid grid-cols-2 gap-3 min-h-[420px]">
+        {{#each (slice posts 1 5) as |p|}}
+        <a href="/{{p.slug}}" class="group relative overflow-hidden rounded-xl shadow-sm h-full">
+          <div class="absolute inset-0">{{#if p.featuredImageUrl}}<img src="{{p.featuredImageUrl}}" alt="{{p.title}}" class="w-full h-full object-cover group-hover:scale-105" />{{else}}<div class="w-full h-full bg-gray-300"></div>{{/if}}</div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+          <div class="absolute bottom-0 left-0 right-0 p-3">
+            <h3 class="text-white text-sm font-bold leading-snug line-clamp-2">{{p.title}}</h3>
+            <span class="text-gray-300 text-[10px] mt-1 block">{{p.publishedAt}}</span>
+          </div>
+        </a>
+        {{/each}}
+      </div>
+      {{/if}}
+    </div>
+  </section>
+  {{/with}}
+
+  <!-- Content + Sidebar -->
+  <div class="grid lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2">
+      <section class="bg-white rounded-lg border overflow-hidden">
+        <div class="px-5 pt-5 pb-3">
+          <div class="flex items-center gap-2">
+            <div class="h-4 w-1 bg-red-600 rounded-full"></div>
+            <h2 class="font-bold uppercase text-sm tracking-wider text-gray-900">Berita Terbaru</h2>
+          </div>
+        </div>
+        <div class="divide-y px-5">
+          {{#each posts as |post|}}
+          <article class="flex gap-5 py-5">
+            <a href="/{{post.slug}}" class="shrink-0 w-28 md:w-44 self-start aspect-[3/2] overflow-hidden rounded-md bg-gray-100 flex items-center justify-center text-gray-400">
+              {{#if post.featuredImageUrl}}<img src="{{post.featuredImageUrl}}" alt="{{post.title}}" class="w-full h-full object-cover hover:scale-105" />{{else}}<svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"/></svg>{{/if}}
+            </a>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-bold text-base leading-snug mb-1.5"><a href="/{{post.slug}}" class="hover:text-red-600 line-clamp-2">{{post.title}}</a></h3>
+              <div class="flex items-center gap-2 text-xs text-gray-400 mb-2"><span>{{post.publishedAt}}</span></div>
+              <p class="text-sm text-gray-600 leading-relaxed line-clamp-2">{{post.excerpt}}</p>
+            </div>
+          </article>
+          {{/each}}
+        </div>
+      </section>
+    </div>
+    <aside class="space-y-6">
+      {{#each sidebar_widgets}}
+      <div class="bg-white rounded-lg border p-4">
+        {{#if title}}<div class="flex items-center gap-2 mb-3"><div class="h-4 w-1 bg-red-600 rounded-full"></div><h3 class="font-bold uppercase text-sm tracking-wider text-gray-900">{{title}}</h3></div>{{/if}}
+        {{#if (eq widgetType "html")}}{{{content}}}{{/if}}
+        {{#if (eq widgetType "popular_posts")}}
+        <div class="divide-y">
+          {{#each (sortByViewCount posts 5) as |p i|}}
+          <a href="/{{p.slug}}" class="flex gap-3 px-4 py-3 hover:bg-gray-50"><span class="text-2xl font-bold text-gray-200 shrink-0 w-8">{{add i 1}}</span><div><h4 class="text-sm font-medium line-clamp-2">{{p.title}}</h4><span class="text-xs text-gray-500">{{p.publishedAt}}</span></div></a>
+          {{/each}}
+        </div>
+        {{/if}}
+        {{#if (eq widgetType "recent_posts")}}
+        <div class="divide-y">
+          {{#each (sortByDate posts 5) as |p|}}
+          <a href="/{{p.slug}}" class="flex gap-3 px-4 py-3 hover:bg-gray-50">{{#if p.featuredImageUrl}}<img src="{{p.featuredImageUrl}}" class="w-14 h-14 object-cover rounded shrink-0" />{{/if}}<div><h4 class="text-sm font-medium line-clamp-2">{{p.title}}</h4><span class="text-xs text-gray-500">{{p.publishedAt}}</span></div></a>
+          {{/each}}
+        </div>
+        {{/if}}
+        {{#if (eq widgetType "categories")}}
+        <div class="space-y-2 text-sm">{{#each categories}}<a href="/kategori/{{slug}}" class="flex justify-between py-1 hover:text-red-600"><span>{{name}}</span></a>{{/each}}</div>
+        {{/if}}
+        {{#if (eq widgetType "tag_cloud")}}
+        <div class="flex flex-wrap gap-2">{{#each tags}}<a href="/tag/{{slug}}" class="inline-block px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full hover:bg-red-600 hover:text-white">{{name}}</a>{{/each}}</div>
+        {{/if}}
+      </div>
+      {{/each}}
+    </aside>
+  </div>
+{{/if}}

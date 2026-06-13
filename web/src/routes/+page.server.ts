@@ -1,6 +1,6 @@
-import { eq, desc, sql } from 'drizzle-orm'
+import { eq, desc, asc, sql } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
-import { posts } from '@kubus/shared/src/db-schema'
+import { posts, categories, tags } from '@kubus/shared/src/db-schema'
 
 export async function load(event) {
   const db = getDb(event)
@@ -10,5 +10,8 @@ export async function load(event) {
     .orderBy(desc(sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`))
     .limit(20)
 
-  return { posts: latest }
+  const allCategories = await db.select().from(categories).orderBy(asc(categories.name))
+  const allTags = await db.select().from(tags).orderBy(asc(tags.name))
+
+  return { posts: latest, categories: allCategories, tags: allTags }
 }

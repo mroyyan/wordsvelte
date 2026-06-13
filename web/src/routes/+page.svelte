@@ -1,12 +1,18 @@
 <script lang="ts">
   import { formatDate, formatExcerpt } from '$lib/utils'
+  import { page } from '$app/stores'
   import { Clock, Eye, ChevronRight, Megaphone } from '@lucide/svelte'
+  import WidgetRenderer from '$lib/components/widgets/WidgetRenderer.svelte'
 
   let { data } = $props()
   let posts = $derived(data.posts)
   let featured = $derived(posts[0])
   let subFeatured = $derived(posts.slice(1, 5))
   let rest = $derived(posts.slice(0))
+
+  let sidebarWidgets = $derived($page.data.widgets?.filter((w: any) => w.sidebarArea === 'sidebar-1') || [])
+  let categories = $derived(data.categories || [])
+  let tags = $derived(data.tags || [])
 </script>
 
 <!-- News Ticker -->
@@ -117,66 +123,16 @@
 
   <!-- Sidebar -->
   <aside class="space-y-6">
-    <!-- Radio Player -->
-    <div class="bg-white rounded-lg border p-4">
-      <div class="flex items-center gap-2 mb-3">
-        <div class="h-4 w-1 bg-red-600 rounded-full"></div>
-        <h3 class="font-bold uppercase text-sm tracking-wider text-gray-900">Dengar Radio ANDIKA</h3>
+    {#each sidebarWidgets as widget (widget.id)}
+      <div class="bg-white rounded-lg border p-4">
+        <WidgetRenderer {widget} {posts} {categories} {tags} />
       </div>
-      <audio controls class="w-full h-10">
-        <source src="https://r5.siar.us:1057/andikafm" type="audio/mpeg" />
-      </audio>
-    </div>
-
-    <!-- Popular Posts -->
-    <div class="bg-white rounded-lg border">
-      <div class="flex items-center gap-2 px-4 pt-4 pb-2">
-        <div class="h-4 w-1 bg-red-600 rounded-full"></div>
-        <h3 class="font-bold uppercase text-sm tracking-wider text-gray-900">Berita Populer</h3>
+    {/each}
+    {#if sidebarWidgets.length === 0}
+      <div class="bg-white rounded-lg border p-4 text-center text-sm text-muted-foreground">
+        No widgets configured. Add widgets in admin Appearance &rarr; Widgets.
       </div>
-      <div class="divide-y">
-        {#each rest.slice(0, 5) as post, i}
-          <a href="/{post.slug}" class="flex gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
-            <span class="text-2xl font-bold text-gray-200 shrink-0 w-8">{i + 1}</span>
-            <div class="min-w-0">
-              <h4 class="text-sm font-medium leading-snug line-clamp-2 hover:text-red-600 transition-colors">{post.title}</h4>
-              <span class="text-xs text-gray-500 mt-1 block">{formatDate(post.publishedAt || post.createdAt)}</span>
-            </div>
-          </a>
-        {/each}
-      </div>
-    </div>
-
-    <!-- Facebook Widget -->
-    <div class="bg-white rounded-lg border overflow-hidden">
-      <div class="p-4 text-center text-sm text-gray-500">Facebook Widget</div>
-    </div>
-
-    <!-- Categories -->
-    <div class="bg-white rounded-lg border">
-      <div class="flex items-center gap-2 px-4 pt-4 pb-2">
-        <div class="h-4 w-1 bg-red-600 rounded-full"></div>
-        <h3 class="font-bold uppercase text-sm tracking-wider text-gray-900">Kategori Populer</h3>
-      </div>
-      <div class="px-4 pb-4 space-y-2 text-sm">
-        <a href="/kategori/kediri-raya" class="flex justify-between items-center py-1 hover:text-red-600"><span>Kediri Raya</span><span class="text-xs text-gray-400">4653</span></a>
-        <a href="/kategori/jawa-timur" class="flex justify-between items-center py-1 hover:text-red-600"><span>Jawa Timur</span><span class="text-xs text-gray-400">2795</span></a>
-        <a href="/kategori/gaya-hidup" class="flex justify-between items-center py-1 hover:text-red-600"><span>Gaya Hidup</span><span class="text-xs text-gray-400">1602</span></a>
-        <a href="/kategori/nasional" class="flex justify-between items-center py-1 hover:text-red-600"><span>Nasional</span><span class="text-xs text-gray-400">999</span></a>
-        <a href="/kategori/olahraga" class="flex justify-between items-center py-1 hover:text-red-600"><span>Olah Raga</span><span class="text-xs text-gray-400">220</span></a>
-      </div>
-    </div>
-
-    <!-- YouTube Widget -->
-    <div class="bg-white rounded-lg border overflow-hidden">
-      <div class="flex items-center gap-2 px-4 pt-4 pb-2">
-        <div class="h-4 w-1 bg-red-600 rounded-full"></div>
-        <h3 class="font-bold uppercase text-sm tracking-wider text-gray-900">ANDIKA TV</h3>
-      </div>
-      <div class="aspect-video bg-gray-100 flex items-center justify-center">
-        <iframe width="100%" height="100%" src="https://www.youtube.com/embed/Q1vC3rbF4C0" frameborder="0" allowfullscreen title="ANDIKA TV Video"></iframe>
-      </div>
-    </div>
+    {/if}
   </aside>
 </div>
 
