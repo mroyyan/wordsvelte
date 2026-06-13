@@ -1,5 +1,5 @@
 import { getDb } from '$lib/server/db'
-import { widgets, menus, menuItems, settings } from '@kubus/shared/src/db-schema'
+import { widgets, menus, menuItems, settings } from '@wordsvelte/shared'
 import { and, asc, eq } from 'drizzle-orm'
 import { scanThemes, setActiveTheme } from '$lib/server/themes'
 
@@ -28,8 +28,8 @@ export async function load(event) {
 
   // Set active theme
   const themeSlug = settingsMap['theme'] || 'default'
-  scanThemes()
-  setActiveTheme(themeSlug)
+  await scanThemes((event as any).platform)
+  await setActiveTheme(themeSlug, (event as any).platform)
 
   return {
     settings: settingsMap,
@@ -38,3 +38,4 @@ export async function load(event) {
     theme: themeSlug,
   }
 }
+

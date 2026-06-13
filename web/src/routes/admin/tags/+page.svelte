@@ -30,7 +30,7 @@
   let deleteId = $state<number | null>(null)
   let name = $state('')
 
-  function t() { return localStorage.getItem('kubus_token') }
+  function t() { return localStorage.getItem('wordsvelte_token') }
 
   onMount(async () => { const tok = t(); if (!tok) return; try { const r = await fetch('/api/tags', { headers: { Authorization: `Bearer ${tok}` } }); const j = await r.json(); items = j.data ?? [] } catch {} finally { loading = false } })
 
@@ -152,7 +152,7 @@
 </div>
 
 <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) dialogOpen = false }}>
-  <DialogContent><DialogHeader><DialogTitle>{editItem ? 'Edit' : 'New'} Tag</DialogTitle></DialogHeader><div class="py-4"><Input bind:value={name} placeholder="Tag name" /></div><DialogFooter><Button variant="outline" onclick={() => dialogOpen = false}>Cancel</Button><Button onclick={handleSave}>Save</Button></DialogFooter></DialogContent>
+  <DialogContent class="sm:max-w-sm"><DialogHeader><DialogTitle>{editItem ? 'Edit' : 'New'} Tag</DialogTitle></DialogHeader><div class="py-4"><Input bind:value={name} placeholder="Tag name" /></div><DialogFooter><Button variant="outline" onclick={() => dialogOpen = false}>Cancel</Button><Button onclick={handleSave}>Save</Button></DialogFooter></DialogContent>
 </Dialog>
 
 <AlertDialog open={deleteId !== null} onOpenChange={(o) => { if (!o) deleteId = null }}>

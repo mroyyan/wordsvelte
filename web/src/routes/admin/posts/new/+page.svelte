@@ -12,7 +12,8 @@
   import { Badge } from '$lib/components/ui/badge'
   import { Save, Loader2, Edit2, Check, Globe, UploadCloud, X, Link, Plus, Image } from '@lucide/svelte'
   import * as Select from '$lib/components/ui/select'
-  import MediaLibrary from '$lib/components/admin/media/MediaLibrary.svelte'
+  import MediaLibrary from '$lib/components/admin/media/media-library.svelte'
+  import { toSlug } from '@wordsvelte/shared'
 
   let mounted = $state(false)
   onMount(() => { mounted = true })
@@ -89,7 +90,7 @@
     }
   }
 
-  function t() { return localStorage.getItem('kubus_token') }
+  function t() { return localStorage.getItem('wordsvelte_token') }
 
   onMount(() => {
     if (typeof window !== 'undefined') {
@@ -112,7 +113,7 @@
   })
 
   function autoSlug(val: string) {
-    slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    slug = toSlug(val)
   }
 
   $effect(() => {

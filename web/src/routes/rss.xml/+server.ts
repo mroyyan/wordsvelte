@@ -1,6 +1,6 @@
 import { eq, desc } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
-import { posts } from '@kubus/shared/src/db-schema'
+import { posts, settings } from '@wordsvelte/shared'
 
 export async function GET(event) {
   const db = getDb(event as any)
@@ -10,22 +10,27 @@ export async function GET(event) {
     .orderBy(desc(posts.publishedAt))
     .limit(50)
 
+  const siteUrlRows = await db.select().from(settings).where(eq(settings.key, 'site_url')).limit(1)
+  const siteUrl = siteUrlRows[0]?.value || 'https://wordsvelte.id'
+  const siteNameRows = await db.select().from(settings).where(eq(settings.key, 'site_name')).limit(1)
+  const siteName = siteNameRows[0]?.value || 'WordSvelte'
+
   const items = list.map(post => `
     <item>
       <title><![CDATA[${post.title}]]></title>
-      <link>https://kubus.id/post/${post.slug}</link>
+      <link>${siteUrl}/${post.slug}</link>
       <description><![CDATA[${post.excerpt || ''}]]></description>
       <pubDate>${new Date(post.publishedAt || post.createdAt).toUTCString()}</pubDate>
-      <guid>https://kubus.id/post/${post.slug}</guid>
+      <guid>${siteUrl}/${post.slug}</guid>
     </item>
   `).join('\n')
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title>Kubus News</title>
-    <link>https://kubus.id</link>
-    <description>Portal Berita Kubus</description>
+    <title>${siteName}</title>
+    <link>${siteUrl}</link>
+    <description>${siteName}</description>
     ${items}
   </channel>
 </rss>`

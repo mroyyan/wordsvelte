@@ -28,7 +28,7 @@
   let name = $state(''); let desc = $state('')
   let rowSelection = $state<Set<number>>(new Set())
 
-  function t() { return localStorage.getItem('kubus_token') }
+  function t() { return localStorage.getItem('wordsvelte_token') }
   onMount(async () => { const tok = t(); if (!tok) return; try { const r = await fetch('/api/categories', { headers: { Authorization: `Bearer ${tok}` } }); const j = await r.json(); items = j.data ?? [] } catch {} finally { loading = false } })
 
   let filtered = $derived(search ? items.filter((i: any) => i.name?.toLowerCase().includes(search.toLowerCase())) : items)
@@ -151,7 +151,7 @@
 </div>
 
 <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) dialogOpen = false }}>
-  <DialogContent><DialogHeader><DialogTitle>{editItem ? 'Edit' : 'New'} Category</DialogTitle></DialogHeader><div class="space-y-4 py-4"><Input bind:value={name} placeholder="Category name" /><Textarea bind:value={desc} placeholder="Description (optional)" /></div><DialogFooter><Button variant="outline" onclick={() => dialogOpen = false}>Cancel</Button><Button onclick={handleSave}>Save</Button></DialogFooter></DialogContent>
+  <DialogContent class="sm:max-w-sm"><DialogHeader><DialogTitle>{editItem ? 'Edit' : 'New'} Category</DialogTitle></DialogHeader><div class="space-y-4 py-4"><Input bind:value={name} placeholder="Category name" /><Textarea bind:value={desc} placeholder="Description (optional)" /></div><DialogFooter><Button variant="outline" onclick={() => dialogOpen = false}>Cancel</Button><Button onclick={handleSave}>Save</Button></DialogFooter></DialogContent>
 </Dialog>
 
 <AlertDialog open={deleteId !== null} onOpenChange={(o) => { if (!o) deleteId = null }}>

@@ -1,9 +1,9 @@
 {
-  "name": "Kubus Default",
+  "name": "WordSvelte Default",
   "slug": "default",
   "version": "1.0.0",
-  "author": "Kubus",
-  "description": "Default theme for Kubus News portal",
+  "author": "WordSvelte",
+  "description": "Default theme for WordSvelte CMS",
   "layouts": ["single", "archive", "search"],
   "supports": ["widgets", "menus", "featured_image"]
 }

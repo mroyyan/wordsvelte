@@ -1,6 +1,6 @@
 import { eq, desc, asc, sql } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
-import { posts, categories, tags } from '@kubus/shared/src/db-schema'
+import { posts, categories, tags } from '@wordsvelte/shared'
 
 export async function load(event) {
   const db = getDb(event)
@@ -15,3 +15,4 @@ export async function load(event) {
 
   return { posts: latest, categories: allCategories, tags: allTags }
 }
+

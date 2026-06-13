@@ -18,6 +18,8 @@
     Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator
   } from '$lib/components/ui/command'
   import { Separator } from '$lib/components/ui/separator'
+  import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '$lib/components/ui/dialog'
+  import { Label } from '$lib/components/ui/label'
   import Shield from '@lucide/svelte/icons/shield'
   import UserCheck from '@lucide/svelte/icons/user-check'
   import Edit3 from '@lucide/svelte/icons/edit-3'
@@ -31,9 +33,9 @@
   import Trash2 from '@lucide/svelte/icons/trash-2'
   import UserPen from '@lucide/svelte/icons/user-pen'
   import UserPlus from '@lucide/svelte/icons/user-plus'
-  import MailPlus from '@lucide/svelte/icons/mail-plus'
   import Ellipsis from '@lucide/svelte/icons/ellipsis'
   import XIcon from '@lucide/svelte/icons/x'
+  import ChevronDown from '@lucide/svelte/icons/chevron-down'
   import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down'
   import ArrowUp from '@lucide/svelte/icons/arrow-up'
   import ArrowDown from '@lucide/svelte/icons/arrow-down'
@@ -57,8 +59,21 @@
   let rowSelection = $state<Set<number>>(new Set())
   let sorting = $state<{ id: string; desc: boolean }[]>([])
   let columnVisibility = $state<Record<string, boolean>>({})
+  let createOpen = $state(false); let roleOpen = $state(false)
+  let newEmail = $state(''); let newUsername = $state(''); let newPassword = $state(''); let newDisplayName = $state(''); let newRole = $state('author')
+  let saving = $state(false); let createError = $state('')
 
-  function t() { return localStorage.getItem('kubus_token') }
+  let editOpen = $state(false); let editRoleOpen = $state(false)
+  let editUser = $state<any | null>(null)
+  let editDisplayName = $state(''); let editEmail = $state(''); let editRole = $state('')
+  let editError = $state('')
+
+  const selectedRoleLabel = $derived(roleOptions.find(r => r.value === newRole)?.label || 'Author')
+  const editRoleLabel = $derived(roleOptions.find(r => r.value === editRole)?.label || 'Author')
+
+  function isProtected(u: any) { return u.id === 1 }
+
+  function t() { return localStorage.getItem('wordsvelte_token') }
 
   onMount(async () => {
     const tok = t()
@@ -126,6 +141,48 @@
 
   const totalRows = $derived(rowSelection.size)
 
+  function openCreate() { newEmail = ''; newUsername = ''; newPassword = ''; newDisplayName = ''; newRole = 'author'; createError = ''; createOpen = true }
+
+  async function handleCreate() {
+    if (!newEmail || !newUsername || !newPassword || !newDisplayName) { createError = 'All fields required'; return }
+    const tok = t(); if (!tok) return
+    saving = true; createError = ''
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newEmail, username: newUsername, password: newPassword, displayName: newDisplayName, role: newRole }),
+      })
+      const json = await res.json()
+      if (!json.success) { createError = json.error || 'Failed'; return }
+      data = [...data, json.data.user]
+      createOpen = false
+    } catch (e: any) { createError = e.message }
+    finally { saving = false }
+  }
+
+  function openEdit(u: any) {
+    editUser = u; editDisplayName = u.displayName; editEmail = u.email; editRole = u.role; editError = ''; editOpen = true
+  }
+
+  async function handleEdit() {
+    if (!editDisplayName || !editEmail) { editError = 'Display name and email required'; return }
+    const tok = t(); if (!tok) return
+    saving = true; editError = ''
+    try {
+      const res = await fetch(`/api/users/${editUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+        body: JSON.stringify({ displayName: editDisplayName, email: editEmail, role: editRole }),
+      })
+      const json = await res.json()
+      if (!json.success) { editError = json.error || 'Failed'; return }
+      data = data.map((u: any) => u.id === editUser.id ? { ...u, ...json.data } : u)
+      editOpen = false
+    } catch (e: any) { editError = e.message }
+    finally { saving = false }
+  }
+
   function getPageNumbers(): (number | '...')[] {
     const total = totalPages
     const current = page
@@ -143,10 +200,7 @@
       <h2 class="text-2xl font-bold tracking-tight">User List</h2>
       <p class="text-muted-foreground">Manage your users and their roles here.</p>
     </div>
-    <div class="flex gap-2">
-      <Button variant="outline" size="lg" class="gap-2 px-4"><span>Invite User</span> <MailPlus size={18} /></Button>
-      <Button size="lg" class="gap-2 px-4"><span>Add User</span> <UserPlus size={18} /></Button>
-    </div>
+    <Button size="lg" class="gap-2 px-4" onclick={openCreate}><span>Add User</span> <UserPlus size={18} /></Button>
   </div>
 
   <div class="flex items-center justify-between">
@@ -302,12 +356,12 @@
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" class="w-40">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => openEdit(user)} disabled={isProtected(user)}>
                       Edit
                       <span class="ml-auto"><UserPen size={16} /></span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem class="text-red-500!">
+                    <DropdownMenuItem class="text-red-500!" disabled={isProtected(user)}>
                       Delete
                       <span class="ml-auto"><Trash2 size={16} /></span>
                     </DropdownMenuItem>
@@ -360,6 +414,94 @@
     </div>
   {/if}
 </div>
+
+<Dialog open={createOpen} onOpenChange={(o) => { if (!o) createOpen = false }}>
+  <DialogContent class="sm:max-w-sm">
+    <DialogHeader><DialogTitle>Add User</DialogTitle></DialogHeader>
+    <div class="space-y-4 py-4">
+      <div class="space-y-2"><Label for="nu-email">Email</Label><Input id="nu-email" type="email" bind:value={newEmail} placeholder="user@example.com" /></div>
+      <div class="space-y-2"><Label for="nu-username">Username</Label><Input id="nu-username" bind:value={newUsername} placeholder="username" /></div>
+      <div class="space-y-2"><Label for="nu-display">Display Name</Label><Input id="nu-display" bind:value={newDisplayName} placeholder="Display Name" /></div>
+      <div class="space-y-2"><Label for="nu-password">Password</Label><Input id="nu-password" type="password" bind:value={newPassword} placeholder="********" /></div>
+      <div class="space-y-2">
+        <Label>Role</Label>
+        <Popover open={roleOpen} onOpenChange={(o) => roleOpen = o}>
+          <PopoverTrigger>
+            <Button variant="outline" class="w-full justify-start font-normal">
+              {#if newRole === 'admin'}<Shield class="mr-2 h-4 w-4 text-muted-foreground" />{:else if newRole === 'editor'}<UserCheck class="mr-2 h-4 w-4 text-muted-foreground" />{:else}<Edit3 class="mr-2 h-4 w-4 text-muted-foreground" />{/if}
+              {selectedRoleLabel}
+              <ChevronDown class="ml-auto h-4 w-4 text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-48 p-0" align="start">
+            <div class="p-1">
+              {#each roleOptions as opt}
+                <button
+                  class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                  onclick={() => { newRole = opt.value; roleOpen = false }}
+                >
+                  <opt.icon class="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span>{opt.label}</span>
+                  {#if newRole === opt.value}<Check class="ml-auto h-4 w-4 shrink-0" />{/if}
+                </button>
+              {/each}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+      {#if createError}<p class="text-sm text-destructive">{createError}</p>{/if}
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onclick={() => createOpen = false}>Cancel</Button>
+      <Button onclick={handleCreate} disabled={saving}>{saving ? 'Creating...' : 'Create'}</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+<Dialog open={editOpen} onOpenChange={(o) => { if (!o) editOpen = false }}>
+  <DialogContent class="sm:max-w-sm">
+    <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
+    <div class="space-y-4 py-4">
+      {#if editUser}
+        <div class="space-y-2"><Label>Username</Label><Input value={editUser.username} disabled class="opacity-60" /></div>
+      {/if}
+      <div class="space-y-2"><Label for="ed-email">Email</Label><Input id="ed-email" type="email" bind:value={editEmail} placeholder="user@example.com" /></div>
+      <div class="space-y-2"><Label for="ed-display">Display Name</Label><Input id="ed-display" bind:value={editDisplayName} placeholder="Display Name" /></div>
+      <div class="space-y-2">
+        <Label>Role</Label>
+        <Popover open={editRoleOpen} onOpenChange={(o) => editRoleOpen = o}>
+          <PopoverTrigger>
+            <Button variant="outline" class="w-full justify-start font-normal">
+              {#if editRole === 'admin'}<Shield class="mr-2 h-4 w-4 text-muted-foreground" />{:else if editRole === 'editor'}<UserCheck class="mr-2 h-4 w-4 text-muted-foreground" />{:else}<Edit3 class="mr-2 h-4 w-4 text-muted-foreground" />{/if}
+              {editRoleLabel}
+              <ChevronDown class="ml-auto h-4 w-4 text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-48 p-0" align="start">
+            <div class="p-1">
+              {#each roleOptions as opt}
+                <button
+                  class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                  onclick={() => { editRole = opt.value; editRoleOpen = false }}
+                >
+                  <opt.icon class="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span>{opt.label}</span>
+                  {#if editRole === opt.value}<Check class="ml-auto h-4 w-4 shrink-0" />{/if}
+                </button>
+              {/each}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+      {#if editError}<p class="text-sm text-destructive">{editError}</p>{/if}
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onclick={() => editOpen = false}>Cancel</Button>
+      <Button onclick={handleEdit} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
 {:else}
   <div class="flex flex-1 flex-col gap-4"><div class="flex items-center justify-center h-24 text-muted-foreground">Loading...</div></div>
 {/if}

@@ -1,19 +1,19 @@
 {
-  "name": "@kubus/web",
+  "name": "@wordsvelte/web",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "vite dev",
-    "dev:cf": "vite build && wrangler pages dev .svelte-kit/cloudflare --d1 DB=kubus-db --r2 R2=kubus-media --binding JWT_SECRET=change-me-in-production",
+    "dev:cf": "vite build && wrangler pages dev .svelte-kit/cloudflare --d1 DB=wordsvelte-db --r2 R2=wordsvelte-media",
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "vite build && wrangler pages deploy .svelte-kit/cloudflare"
   },
   "dependencies": {
-    "@kubus/shared": "*",
     "@lucide/svelte": "^1.17.0",
     "@tailwindcss/vite": "^4.3.0",
     "@types/better-sqlite3": "^7.6.13",
+    "@wordsvelte/shared": "*",
     "adm-zip": "^0.5.17",
     "better-sqlite3": "^12.10.0",
     "ckeditor5": "^48.2.0",
@@ -32,6 +32,7 @@
     "@sveltejs/kit": "^2.64.0",
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "bits-ui": "^2.18.1",
+    "drizzle-kit": "^0.31.10",
     "svelte": "^5.17.0",
     "tailwind-variants": "^3.2.2",
     "typescript": "^5.7.0",

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte'
   import 'ckeditor5/dist/ckeditor5.css'
-  import MediaLibrary from './media/MediaLibrary.svelte'
+  import MediaLibrary from './media/media-library.svelte'
   import { Image } from '@lucide/svelte'
   import { Button } from '$lib/components/ui/button'
 
@@ -15,7 +15,7 @@
     constructor(loader: any) { this.loader = loader; }
     async upload() {
       const file = await this.loader.file;
-      const tok = localStorage.getItem('kubus_token');
+      const tok = localStorage.getItem('wordsvelte_token');
       const formData = new FormData();
       formData.append('file', file);
 

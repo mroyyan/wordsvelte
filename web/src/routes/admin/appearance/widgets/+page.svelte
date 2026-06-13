@@ -51,7 +51,7 @@
     'footer-3': 'Footer Kanan',
   }
 
-  function t() { return localStorage.getItem('kubus_token') }
+  function t() { return localStorage.getItem('wordsvelte_token') }
 
   async function load() {
     const tok = t(); if (!tok) return
@@ -292,7 +292,7 @@
               <p class="text-xs text-muted-foreground">Header widgets appear above the main content.</p>
               {#if !usedTypes.has('html')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'html', title: 'Header Banner', content: '<div class=&quot;bg-blue-100 p-4 text-center&quot;>Header Banner</div>', sidebarArea: activeTab }) }); load() }}>+ Header Banner</Button>{/if}
             {:else if activeTab.startsWith('footer-')}
-              {#if !usedTypes.has('html')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'html', title: 'Tentang Kami', content: '<p class=&quot;text-sm&quot;>KUBUS.ID adalah portal berita bagian dari ANDIKA MediaNet.</p>', sidebarArea: activeTab }) }); load() }}>+ Tentang Kami</Button>{/if}
+              {#if !usedTypes.has('html')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'html', title: 'Tentang Kami', content: '<p class=&quot;text-sm&quot;>WordSvelte adalah sebuah blog yang dibuat dengan SvelteKit.</p>', sidebarArea: activeTab }) }); load() }}>+ Tentang Kami</Button>{/if}
               {#if !usedTypes.has('categories')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'categories', title: 'Kategori', sidebarArea: activeTab }) }); load() }}>+ Kategori</Button>{/if}
               {#if !usedTypes.has('tag_cloud')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'tag_cloud', title: 'Tag', sidebarArea: activeTab }) }); load() }}>+ Tag Cloud</Button>{/if}
               {#if !usedTypes.has('popular_posts')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'popular_posts', title: 'Berita Populer', settings: '{"limit":3}', sidebarArea: activeTab }) }); load() }}>+ Berita Populer</Button>{/if}

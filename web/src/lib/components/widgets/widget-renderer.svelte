@@ -1,9 +1,9 @@
 <script lang="ts">
-  import PopularPosts from './PopularPosts.svelte'
-  import RecentPosts from './RecentPosts.svelte'
-  import TagCloud from './TagCloud.svelte'
-  import Categories from './Categories.svelte'
-  import HtmlWidget from './HtmlWidget.svelte'
+  import PopularPosts from './popular-posts.svelte'
+  import RecentPosts from './recent-posts.svelte'
+  import TagCloud from './tag-cloud.svelte'
+  import Categories from './categories.svelte'
+  import HtmlWidget from './html-widget.svelte'
 
   let { widget, posts, categories, tags, context = 'sidebar' }: { widget: any, posts: any[], categories: any[], tags: any[], context?: string } = $props()
 

@@ -1,15 +1,23 @@
 import { json } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
 import { verifyAuth } from '$lib/server/auth'
-import { comments } from '@kubus/shared/src/db-schema'
+import { ok, catchError } from '$lib/server/response'
+import { getComment, deleteComment } from '$lib/server/services/comment.service'
+
+export async function GET(event) {
+  try {
+    await verifyAuth(event as any)
+    const db = getDb(event as any)
+    const data = await getComment(db, parseInt(event.params.id))
+    return ok(data)
+  } catch (e) { return catchError(e) }
+}
 
 export async function DELETE(event) {
   try {
     await verifyAuth(event as any)
-    const id = parseInt(event.params.id)
     const db = getDb(event as any)
-    await db.delete(comments).where(eq(comments.id, id))
-    return json({ success: true })
-  } catch (e: any) { return json({ success: false, error: e.message }, 401) }
+    await deleteComment(db, parseInt(event.params.id))
+    return ok({})
+  } catch (e) { return catchError(e) }
 }

@@ -10,7 +10,7 @@
   import { Checkbox } from '$lib/components/ui/checkbox'
   import { Save, Loader2, Edit2, Check, Globe, UploadCloud, X, Plus, Link, Image } from '@lucide/svelte'
   import * as Select from '$lib/components/ui/select'
-  import MediaLibrary from '$lib/components/admin/media/MediaLibrary.svelte'
+  import MediaLibrary from '$lib/components/admin/media/media-library.svelte'
 
   let mounted = $state(false)
   onMount(() => { mounted = true })
@@ -39,7 +39,7 @@
   let visibleCategoriesCount = $state(10)
   let visibleTagsCount = $state(10)
 
-  function t() { return localStorage.getItem('kubus_token') }
+  function t() { return localStorage.getItem('wordsvelte_token') }
 
   onMount(async () => {
     if (typeof window !== 'undefined') baseUrl = window.location.origin

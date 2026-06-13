@@ -1,6 +1,6 @@
 import { eq, desc, like, and } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
-import { posts } from '@kubus/shared/src/db-schema'
+import { posts } from '@wordsvelte/shared'
 
 export async function load(event) {
   const url = new URL(event.request.url)
@@ -16,3 +16,4 @@ export async function load(event) {
 
   return { query, results }
 }
+

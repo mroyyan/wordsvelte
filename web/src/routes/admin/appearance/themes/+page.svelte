@@ -16,7 +16,7 @@
   let uploading = $state(false)
   let uploadError = $state('')
 
-  function t() { return localStorage.getItem('kubus_token') }
+  function t() { return localStorage.getItem('wordsvelte_token') }
 
   async function load() {
     const tok = t(); if (!tok) return

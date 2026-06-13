@@ -1,15 +1,15 @@
-name = "kubus-web"
+name = "wordsvelte-web"
 compatibility_date = "2025-01-09"
 pages_build_output_dir = ".svelte-kit/cloudflare"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "kubus-db"
+database_name = "wordsvelte-db"
 database_id = "local-dev"
 
 [[r2_buckets]]
 binding = "R2"
-bucket_name = "kubus-media"
+bucket_name = "wordsvelte-media"
 
-[vars]
-JWT_SECRET = "change-me-in-production"
+# For production, set JWT_SECRET via: wrangler secret put JWT_SECRET
+# In local dev, a random secret will be auto-generated and persisted in the DB.

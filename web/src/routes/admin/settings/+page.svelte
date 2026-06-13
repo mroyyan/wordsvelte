@@ -8,7 +8,7 @@
   let settings = $state<Record<string, string>>({})
   let loading = $state(true)
   let activeTab = $state(0)
-  function t() { return localStorage.getItem('kubus_token') }
+  function t() { return localStorage.getItem('wordsvelte_token') }
 
   const sections = [
     { title: 'General', desc: 'Site title, tagline, and basic settings', keys: ['site_name', 'site_description', 'admin_email', 'timezone', 'date_format', 'language'] },

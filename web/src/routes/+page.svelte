@@ -2,7 +2,7 @@
   import { formatDate, formatExcerpt } from '$lib/utils'
   import { page } from '$app/stores'
   import { Clock, Eye, ChevronRight, Megaphone } from '@lucide/svelte'
-  import WidgetRenderer from '$lib/components/widgets/WidgetRenderer.svelte'
+  import WidgetRenderer from '$lib/components/widgets/widget-renderer.svelte'
 
   let { data } = $props()
   let posts = $derived(data.posts)

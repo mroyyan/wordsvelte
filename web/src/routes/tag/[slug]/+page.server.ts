@@ -1,6 +1,6 @@
-import { eq, desc, and } from 'drizzle-orm'
+import { eq, desc, and, asc } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
-import { posts, tags, postTags } from '@kubus/shared/src/db-schema'
+import { posts, tags, postTags, categories } from '@wordsvelte/shared'
 
 export async function load(event) {
   const { params } = event
@@ -18,5 +18,13 @@ export async function load(event) {
     .where(and(eq(postTags.tagId, tag.id), eq(posts.status, 'publish')))
     .orderBy(desc(posts.publishedAt))
 
-  return { tag, posts: tagPosts.map(r => r.posts) }
+  const allCategories = await db.select().from(categories).orderBy(asc(categories.name))
+  const allTags = await db.select().from(tags).orderBy(asc(tags.name))
+
+  return { 
+    tag, 
+    posts: tagPosts.map(r => r.posts),
+    categories: allCategories,
+    tags: allTags
+  }
 }

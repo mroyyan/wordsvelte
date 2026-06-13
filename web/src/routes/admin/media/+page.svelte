@@ -5,7 +5,7 @@
   import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '$lib/components/ui/alert-dialog'
   import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog'
   import { Upload, Trash2, Search, X, Loader2, Download, Clock } from '@lucide/svelte'
-  import MediaLibrary from '$lib/components/admin/media/MediaLibrary.svelte'
+  import MediaLibrary from '$lib/components/admin/media/media-library.svelte'
 
   let items = $state<any[]>([])
   let loading = $state(true)
@@ -15,7 +15,7 @@
   let previewItem = $state<any | null>(null)
   let showMediaLibrary = $state(false)
 
-  function t() { return localStorage.getItem('kubus_token') }
+  function t() { return localStorage.getItem('wordsvelte_token') }
 
   async function fetchMedia() {
     const tok = t(); if (!tok) return

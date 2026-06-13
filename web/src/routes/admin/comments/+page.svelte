@@ -36,7 +36,7 @@
   let viewComment = $state<any | null>(null)
   let rowSelection = $state<Set<number>>(new Set())
 
-  function t() { return localStorage.getItem('kubus_token') }
+  function t() { return localStorage.getItem('wordsvelte_token') }
 
   onMount(async () => { const tok = t(); if (!tok) return; try { const r = await fetch('/api/comments/admin', { headers: { Authorization: `Bearer ${tok}` } }); const j = await r.json(); items = j.data ?? [] } catch {} finally { loading = false } })
 

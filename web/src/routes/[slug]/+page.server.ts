@@ -1,7 +1,7 @@
-﻿import { error } from '@sveltejs/kit'
+import { error } from '@sveltejs/kit'
 import { and, asc, eq, desc, sql } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
-import { posts, comments, postTags, tags, categories } from '@kubus/shared/src/db-schema'
+import { posts, comments, postTags, tags, categories } from '@wordsvelte/shared'
 
 export async function load(event) {
   const { params } = event
@@ -14,6 +14,6 @@ export async function load(event) {
   const postTagsList = await db.select({ id: tags.id, name: tags.name, slug: tags.slug })
     .from(postTags).innerJoin(tags, eq(postTags.tagId, tags.id)).where(eq(postTags.postId, post.id))
   const allCategories = await db.select().from(categories).orderBy(asc(categories.name))
-  await db.update(posts).set({ viewCount: post.viewCount + 1 }).where(eq(posts.id, post.id))
+  await db.update(posts).set({ viewCount: sql`view_count + 1` }).where(eq(posts.id, post.id))
   return { post, comments: postComments, related, popular, tags: postTagsList, categories: allCategories }
 }

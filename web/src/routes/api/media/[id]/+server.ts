@@ -1,18 +1,23 @@
-import { json } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
 import { verifyAuth } from '$lib/server/auth'
-import { media } from '@kubus/shared/src/db-schema'
+import { getMedia, deleteMedia } from '$lib/server/services/media.service'
+import { ok, catchError } from '$lib/server/response'
 
-export async function DELETE(event) {
-  try {
-    await verifyAuth(event as any)
-    const id = parseInt(event.params.id)
-    const db = getDb(event as any)
-    const [record] = await db.select().from(media).where(eq(media.id, id)).limit(1)
-    if (!record) return json({ success: false, error: 'Not found' }, 404)
-    await (event.platform as any).env.R2.delete(record.r2Key)
-    await db.delete(media).where(eq(media.id, id))
-    return json({ success: true })
-  } catch (e: any) { return json({ success: false, error: e.message }, 401) }
+export async function GET(event: any) {
+	try {
+		await verifyAuth(event)
+		const db = getDb(event)
+		const record = await getMedia(db, parseInt(event.params.id))
+		return ok(record)
+	} catch (e) { return catchError(e) }
+}
+
+export async function DELETE(event: any) {
+	try {
+		await verifyAuth(event)
+		const db = getDb(event)
+		const r2Key = await deleteMedia(db, parseInt(event.params.id))
+		await event.platform.env.R2.delete(r2Key)
+		return ok({})
+	} catch (e) { return catchError(e) }
 }

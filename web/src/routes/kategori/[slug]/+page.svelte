@@ -104,7 +104,7 @@
               <div class="text-xs text-gray-500 mb-2">
                 <span>{formatDate(post.publishedAt || post.createdAt)}</span>
                 <span class="mx-1">-</span>
-                <span class="text-red-600">Redaksi Kubus</span>
+                <span class="text-red-600">WordSvelte</span>
               </div>
               <p class="text-xs text-gray-600 line-clamp-3">{formatExcerpt(post.excerpt || post.content, 120)}</p>
             </div>

@@ -22,8 +22,8 @@
       })
       const json = await res.json()
       if (!json.success) { error = json.error || 'Login failed'; return }
-      localStorage.setItem('kubus_token', json.data.token)
-      localStorage.setItem('kubus_user', JSON.stringify(json.data.user))
+      localStorage.setItem('wordsvelte_token', json.data.token)
+      localStorage.setItem('wordsvelte_user', JSON.stringify(json.data.user))
       goto('/admin')
     } catch (e: any) { error = e.message }
     finally { loading = false }
@@ -33,10 +33,10 @@
 <div class="container grid h-svh max-w-none items-center justify-center">
   <div class="mx-auto flex w-full flex-col justify-center space-y-2 py-8 sm:p-8">
     <div class="mb-4 flex items-center justify-center gap-2">
-      <svg id="kubus-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" height="24" width="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+      <svg id="wordsvelte-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" height="24" width="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
         <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
       </svg>
-      <h1 class="text-xl font-medium">Kubus Admin</h1>
+      <h1 class="text-xl font-medium">WordSvelte Admin</h1>
     </div>
 
     <Card class="max-w-sm gap-4">
@@ -78,4 +78,3 @@
     </Card>
   </div>
 </div>
-

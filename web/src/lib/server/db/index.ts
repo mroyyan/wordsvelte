@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/d1'
 import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3'
 import Database from 'better-sqlite3'
-import * as schema from '@kubus/shared/src/db-schema'
+import * as schema from '@wordsvelte/shared'
 import type { RequestEvent } from '@sveltejs/kit'
 import type { DrizzleD1Database } from 'drizzle-orm/d1'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
@@ -15,7 +15,7 @@ let localDb: BetterSQLite3Database<typeof schema> | null = null
 
 function initLocalDb(): BetterSQLite3Database<typeof schema> {
   const __dirname = dirname(fileURLToPath(import.meta.url))
-  const dbDir = join(__dirname, '..', '..', '..', '.local.db')
+  const dbDir = join(__dirname, '..', '..', '..', '..', '.local.db')
   if (!existsSync(dbDir)) mkdirSync(dbDir, { recursive: true })
 
   const dbPath = join(dbDir, 'portal.db')
@@ -26,10 +26,9 @@ function initLocalDb(): BetterSQLite3Database<typeof schema> {
   // Apply schema if tables don't exist
   const tableCount = sqlite.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='users'").get() as { 'count(*)': number }
   if (tableCount['count(*)'] === 0) {
-    const schemaPath = join(__dirname, '..', '..', '..', '..', 'schema.sql')
+    const schemaPath = join(__dirname, '..', '..', '..', '..', 'drizzle', '0000_far_pandemic.sql')
     if (existsSync(schemaPath)) {
       const sql = readFileSync(schemaPath, 'utf-8')
-      // Remove comment lines and split into statements
       const cleaned = sql.replace(/^\s*--.*$/gm, '').trim()
       sqlite.exec(cleaned)
     }
@@ -43,15 +42,6 @@ function initLocalDb(): BetterSQLite3Database<typeof schema> {
       CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT UNIQUE NOT NULL, location TEXT NOT NULL DEFAULT 'header', status TEXT NOT NULL DEFAULT 'active', created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));
       CREATE TABLE IF NOT EXISTS menu_items (id INTEGER PRIMARY KEY AUTOINCREMENT, menu_id INTEGER NOT NULL REFERENCES menus(id) ON DELETE CASCADE, parent_id INTEGER REFERENCES menu_items(id), item_type TEXT NOT NULL DEFAULT 'custom', label TEXT NOT NULL, url TEXT, target TEXT NOT NULL DEFAULT '_self', sort_order INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'active', created_at TEXT NOT NULL DEFAULT (datetime('now')));
     `)
-  }
-
-  // Seed admin if not exists
-  const adminExists = sqlite.prepare("SELECT id FROM users WHERE email = ?").get('admin@kubus.id')
-  if (!adminExists) {
-    sqlite.prepare(`
-      INSERT INTO users (email, username, password_hash, display_name, role)
-      VALUES ('admin@kubus.id', 'admin', '07bc706237efe27969d0112d741fc71e:4ec4a3fdd5d6ce98694d480b98a270e0a2bc11e6cb5bc97ee5daa79c504c5f4e', 'Admin', 'admin')
-    `).run()
   }
 
   // Seed default widgets if none exist
@@ -80,11 +70,6 @@ function initLocalDb(): BetterSQLite3Database<typeof schema> {
     sqlite.prepare("INSERT INTO menu_items (menu_id, parent_id, item_type, label, url, sort_order, status) VALUES (1, 10, 'custom', 'Event', '/kategori/event', 1, 'active')").run()
     sqlite.prepare("INSERT INTO menu_items (menu_id, parent_id, item_type, label, url, sort_order, status) VALUES (1, 10, 'custom', 'Hiburan', '/kategori/hiburan', 2, 'active')").run()
     sqlite.prepare("INSERT INTO menu_items (menu_id, parent_id, item_type, label, url, sort_order, status) VALUES (1, 10, 'custom', 'Opini', '/kategori/opini', 3, 'active')").run()
-    // Footer menu
-    sqlite.prepare("INSERT INTO menus (name, slug, location, status) VALUES ('Footer Menu', 'footer-menu', 'footer', 'active')").run()
-    sqlite.prepare("INSERT INTO menu_items (menu_id, item_type, label, url, sort_order, status) VALUES (2, 'custom', 'Tentang Kami', '/about', 1, 'active')").run()
-    sqlite.prepare("INSERT INTO menu_items (menu_id, item_type, label, url, sort_order, status) VALUES (2, 'custom', 'Redaksi', '/redaksi', 2, 'active')").run()
-    sqlite.prepare("INSERT INTO menu_items (menu_id, item_type, label, url, sort_order, status) VALUES (2, 'custom', 'Kontak', '/contact', 3, 'active')").run()
   }
 
   // Seed default settings if not exist

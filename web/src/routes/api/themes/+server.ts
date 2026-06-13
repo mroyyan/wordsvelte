@@ -1,10 +1,12 @@
-import { json } from '@sveltejs/kit'
-import { listThemes, scanThemes } from '$lib/server/themes'
 import { verifyAuth } from '$lib/server/auth'
+import { ok, catchError } from '$lib/server/response'
+import { listThemes, scanThemes } from '$lib/server/services/theme.service'
 
 export async function GET(event) {
-  const data = listThemes()
-  return json({ success: true, data })
+  try {
+    const data = await listThemes((event as any).platform)
+    return ok(data)
+  } catch (e) { return catchError(e) }
 }
 
 export async function POST(event) {
@@ -12,9 +14,10 @@ export async function POST(event) {
     await verifyAuth(event as any)
     const body = await event.request.json()
     if (body.action === 'scan') {
-      scanThemes()
-      return json({ success: true, data: listThemes() })
+      await scanThemes((event as any).platform)
+      const data = await listThemes((event as any).platform)
+      return ok(data)
     }
-    return json({ success: false, error: 'Invalid action' }, 400)
-  } catch (e: any) { return json({ success: false, error: e.message }, 401) }
+    return ok({ error: 'Invalid action' })
+  } catch (e) { return catchError(e) }
 }

@@ -1,32 +1,40 @@
-import { json } from '@sveltejs/kit'
-import { desc } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
 import { verifyAuth } from '$lib/server/auth'
-import { media } from '@kubus/shared/src/db-schema'
+import { listMedia, createMedia } from '$lib/server/services/media.service'
+import { ok, created, catchError } from '$lib/server/response'
+import { ValidationError } from '$lib/server/errors'
 
-export async function GET(event) {
-  try {
-    await verifyAuth(event as any)
-    const db = getDb(event as any)
-    const data = await db.select().from(media).orderBy(desc(media.createdAt))
-    return json({ success: true, data })
-  } catch (e: any) { return json({ success: false, error: e.message }, 401) }
+export async function GET(event: any) {
+	try {
+		await verifyAuth(event)
+		const db = getDb(event)
+		const data = await listMedia(db)
+		return ok(data)
+	} catch (e) { return catchError(e) }
 }
 
-export async function POST(event) {
-  try {
-    const user = await verifyAuth(event as any)
-    const formData = await event.request.formData()
-    const file = formData.get('file') as File | null
-    if (!file) return json({ success: false, error: 'No file' }, 400)
+export async function POST(event: any) {
+	try {
+		const user = await verifyAuth(event)
+		const formData = await event.request.formData()
+		const file = formData.get('file') as File | null
+		if (!file) throw new ValidationError('No file')
+		if (file.size > 20 * 1024 * 1024) throw new ValidationError('File too large (max 20MB)')
 
-    const now = new Date()
-    const r2Key = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${crypto.randomUUID()}.${file.name.split('.').pop()}`
-    const buffer = await file.arrayBuffer()
-    await (event.platform as any).env.R2.put(r2Key, buffer, { httpMetadata: { contentType: file.type } })
+		const now = new Date()
+		const ext = file.name.split('.').pop()
+		const r2Key = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${crypto.randomUUID()}.${ext}`
+		const buffer = await file.arrayBuffer()
+		await event.platform.env.R2.put(r2Key, buffer, { httpMetadata: { contentType: file.type } })
 
-    const db = getDb(event as any)
-    const [record] = await db.insert(media).values({ r2Key, originalName: file.name, mimeType: file.type, size: file.size, uploadedBy: user.userId }).returning()
-    return json({ success: true, data: record }, 201)
-  } catch (e: any) { return json({ success: false, error: e.message }, 401) }
+		const db = getDb(event)
+		const record = await createMedia(db, {
+			r2Key,
+			originalName: file.name,
+			mimeType: file.type,
+			size: file.size,
+			uploadedBy: user.userId,
+		})
+		return created(record)
+	} catch (e) { return catchError(e) }
 }

@@ -30,6 +30,7 @@
   let { children } = $props()
   let mounted = $state(false)
   let postsOpen = $state(false)
+  let currentUser = $state<{ displayName?: string; email?: string }>({})
 
   $effect(() => {
     if ($page.url.pathname.startsWith('/admin/posts') ||
@@ -39,9 +40,7 @@
 
   onMount(() => {
     mounted = true
-    if (!localStorage.getItem('kubus_token')) {
-      goto('/admin/login', { replaceState: true })
-    }
+    try { currentUser = JSON.parse(localStorage.getItem('wordsvelte_user') || '{}') } catch {}
   })
 
   const navItems = [
@@ -59,7 +58,7 @@
   }
 </script>
 
-{#if $page.url.pathname === '/admin/login'}
+{#if $page.url.pathname === '/admin/login' || $page.url.pathname === '/admin/setup'}
   {@render children()}
 {:else if !mounted}
   <div class="flex min-h-screen bg-muted/30">
@@ -82,7 +81,7 @@
                 </svg>
               </div>
               <div class="grid flex-1 text-start text-sm leading-tight">
-                <span class="truncate font-semibold">Kubus News</span>
+                <span class="truncate font-semibold">WordSvelte</span>
                 <span class="truncate text-xs">Admin Panel</span>
               </div>
               <a href="/" target="_blank" class="pointer-events-auto ml-auto p-1 rounded hover:bg-sidebar-accent transition-colors" aria-label="Open website">
@@ -193,21 +192,21 @@
             <DropdownMenu>
               <DropdownMenuTrigger class="w-full">
                 <SidebarMenuButton size="lg" class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground w-full">
-                  <Avatar class="h-8 w-8 rounded-lg"><AvatarFallback class="rounded-lg">A</AvatarFallback></Avatar>
-                  <div class="grid flex-1 text-start text-sm leading-tight">
-                    <span class="truncate font-semibold">Admin</span>
-                    <span class="truncate text-xs text-sidebar-foreground/60">admin@kubus.id</span>
-                  </div>
+                  <Avatar class="h-8 w-8 rounded-lg"><AvatarFallback class="rounded-lg">{currentUser.displayName?.[0] || 'A'}</AvatarFallback></Avatar>
+              <div class="grid flex-1 text-start text-sm leading-tight">
+                <span class="truncate font-semibold">{currentUser.displayName || 'Admin'}</span>
+                <span class="truncate text-xs">{currentUser.email || ''}</span>
+              </div>
                   <ChevronsUpDown class="ms-auto size-4 text-sidebar-foreground/60" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent class="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg" side="right" align="end" sideOffset={4}>
                 <DropdownMenuLabel class="p-0 font-normal">
                   <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
-                    <Avatar class="h-8 w-8 rounded-lg"><AvatarFallback class="rounded-lg">A</AvatarFallback></Avatar>
+                    <Avatar class="h-8 w-8 rounded-lg"><AvatarFallback class="rounded-lg">{currentUser.displayName?.[0] || 'A'}</AvatarFallback></Avatar>
                     <div class="grid flex-1 text-start text-sm leading-tight">
-                      <span class="truncate font-semibold">Admin</span>
-                      <span class="truncate text-xs text-muted-foreground">admin@kubus.id</span>
+                      <span class="truncate font-semibold">{currentUser.displayName || 'WordSvelte'}</span>
+                      <span class="truncate text-xs text-muted-foreground">{currentUser.email || ''}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
@@ -222,7 +221,7 @@
                   <DropdownMenuItem><Bell class="mr-2 h-4 w-4" /> Notifications</DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onclick={() => { localStorage.removeItem('kubus_token'); localStorage.removeItem('kubus_user'); window.location.href = '/admin/login' }}>
+                <DropdownMenuItem variant="destructive" onclick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); localStorage.removeItem('wordsvelte_token'); localStorage.removeItem('wordsvelte_user'); window.location.href = '/admin/login' }}>
                   <LogOut class="mr-2 h-4 w-4" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>

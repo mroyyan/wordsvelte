@@ -2,7 +2,7 @@
   import { page } from '$app/stores'
   import '../app.css'
   import { Search, Menu, X, ChevronDown } from '@lucide/svelte'
-  import WidgetRenderer from '$lib/components/widgets/WidgetRenderer.svelte'
+  import WidgetRenderer from '$lib/components/widgets/widget-renderer.svelte'
 
   let { children, data }: { children: any, data: any } = $props()
 
@@ -78,8 +78,8 @@
   <header class="bg-white border-b sticky top-0 z-50 shadow-sm">
     <div class="max-w-6xl mx-auto px-4">
       <div class="flex items-center justify-between h-14">
-        <a href="/" class="text-2xl font-bold text-red-600 tracking-tight">Kubus</a>
-        
+        <a href="/" class="text-2xl font-bold text-red-600 tracking-tight">WordSvelte</a>
+
         <nav class="hidden lg:flex items-center gap-1">
           {#each navItems as item}
             {#if item.children?.length}
@@ -163,7 +163,7 @@
     </div>
     <div class="border-t border-gray-800">
       <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between text-xs">
-        <p>{data?.settings?.footer_copyright_text || '© 2026 Kubus.ID - All Rights Reserved'}</p>
+        <p>{data?.settings?.footer_copyright_text || '© 2026 WordSvelte - All Rights Reserved'}</p>
         <div class="flex gap-4 mt-2 sm:mt-0">
           {#each footerMenus as fmenu}
             {#each fmenu.items?.filter((i: any) => !i.parentId && i.status === 'active') as item}

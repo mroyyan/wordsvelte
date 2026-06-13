@@ -16,7 +16,7 @@
     loading = true
     try {
       const res = await fetch('/api/media', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('kubus_token')}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem('wordsvelte_token')}` }
       })
       const json = await res.json()
       items = json.data ?? []
@@ -34,7 +34,7 @@
       formData.append('file', file)
       const res = await fetch('/api/media', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('kubus_token')}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem('wordsvelte_token')}` },
         body: formData
       })
       const json = await res.json()

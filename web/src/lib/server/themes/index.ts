@@ -1,13 +1,8 @@
 import Handlebars from 'handlebars'
 import DOMPurify from 'isomorphic-dompurify'
-import { readFileSync, existsSync, readdirSync, statSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { getThemeStorage } from './storage'
 
 const RENDER_TIMEOUT_MS = 1000
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const THEMES_DIR = join(__dirname, '..', '..', '..', 'themes')
 
 type ThemeCache = {
   manifest: any
@@ -19,7 +14,6 @@ type ThemeCache = {
 const cache = new Map<string, ThemeCache>()
 let activeTheme: string | null = null
 
-// Register Handlebars helpers
 Handlebars.registerHelper('eq', (a: any, b: any) => a === b)
 Handlebars.registerHelper('add', (a: number, b: number) => a + b)
 Handlebars.registerHelper('slice', (arr: any[], start: number, end: number) => arr?.slice(start, end) || [])
@@ -39,36 +33,32 @@ Handlebars.registerHelper('formatDate', (date: string) => {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 })
 
-function loadTheme(slug: string): ThemeCache | null {
-  const themeDir = join(THEMES_DIR, slug)
-  if (!existsSync(themeDir)) return null
+async function loadTheme(slug: string, platform?: App.Platform): Promise<ThemeCache | null> {
+  const store = getThemeStorage(platform)
+  if (!(await store.exists(slug))) return null
 
-  const manifestPath = join(themeDir, 'manifest.json')
-  if (!existsSync(manifestPath)) return null
+  const manifestRaw = await store.readFile(slug, 'manifest.json')
+  if (!manifestRaw) return null
+  const manifest = JSON.parse(manifestRaw)
 
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
-  const templatesDir = join(themeDir, 'templates')
+  const layoutSource = await store.readFile(slug, 'templates/layout.hbs')
+  if (!layoutSource) return null
 
-  const layoutPath = join(templatesDir, 'layout.hbs')
-  if (!existsSync(layoutPath)) return null
-
-  const layoutSource = readFileSync(layoutPath, 'utf-8')
   const layout = Handlebars.compile(layoutSource)
 
   const templates: Record<string, HandlebarsTemplateDelegate> = {}
-  if (existsSync(templatesDir)) {
-    const files = readdirSync(templatesDir)
-    for (const file of files) {
-      if (file.endsWith('.hbs') && file !== 'layout.hbs') {
-        const name = file.replace('.hbs', '')
-        const source = readFileSync(join(templatesDir, file), 'utf-8')
-        templates[name] = Handlebars.compile(source)
+  const slugs = await store.listSlugs()
+  if (slugs.includes(slug)) {
+    const templateFiles = ['index.hbs']
+    for (const file of templateFiles) {
+      const source = await store.readFile(slug, `templates/${file}`)
+      if (source) {
+        templates[file.replace('.hbs', '')] = Handlebars.compile(source)
       }
     }
   }
 
-  const cssPath = join(themeDir, 'assets', 'style.css')
-  const css = existsSync(cssPath) ? readFileSync(cssPath, 'utf-8') : ''
+  const css = (await store.readFile(slug, 'assets/style.css')) || ''
 
   const result: ThemeCache = { manifest, layout, templates, css }
   cache.set(slug, result)
@@ -79,35 +69,32 @@ export function getActiveTheme(): string | null {
   return activeTheme
 }
 
-export function setActiveTheme(slug: string) {
+export async function setActiveTheme(slug: string, platform?: App.Platform) {
   activeTheme = slug
-  if (!cache.has(slug)) loadTheme(slug)
+  if (!cache.has(slug)) await loadTheme(slug, platform)
 }
 
-export function listThemes(): any[] {
-  if (!existsSync(THEMES_DIR)) return []
-  const entries = readdirSync(THEMES_DIR)
+export async function listThemes(platform?: App.Platform): Promise<any[]> {
+  const store = getThemeStorage(platform)
+  const slugs = await store.listSlugs()
   const result: any[] = []
-  for (const entry of entries) {
-    const dir = join(THEMES_DIR, entry)
-    if (!statSync(dir).isDirectory()) continue
-    const manifestPath = join(dir, 'manifest.json')
-    if (!existsSync(manifestPath)) continue
+  for (const slug of slugs) {
+    const manifestRaw = await store.readFile(slug, 'manifest.json')
+    if (!manifestRaw) continue
     try {
-      const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
-      result.push({ ...manifest, slug: entry, active: entry === activeTheme })
+      const manifest = JSON.parse(manifestRaw)
+      result.push({ ...manifest, slug, active: slug === activeTheme })
     } catch {}
   }
   return result
 }
 
-export function scanThemes() {
+export async function scanThemes(platform?: App.Platform) {
   cache.clear()
-  if (!existsSync(THEMES_DIR)) return
-  const entries = readdirSync(THEMES_DIR)
-  for (const entry of entries) {
-    const dir = join(THEMES_DIR, entry)
-    if (statSync(dir).isDirectory()) loadTheme(entry)
+  const store = getThemeStorage(platform)
+  const slugs = await store.listSlugs()
+  for (const slug of slugs) {
+    await loadTheme(slug, platform)
   }
 }
 
@@ -120,9 +107,9 @@ function renderWithTimeout(fn: () => string, timeoutMs: number): string {
   return result
 }
 
-export function renderPage(templateName: string, data: Record<string, any>): string | null {
+export async function renderPage(templateName: string, data: Record<string, any>, platform?: App.Platform): Promise<string | null> {
   const slug = activeTheme || 'default'
-  if (!cache.has(slug)) loadTheme(slug)
+  if (!cache.has(slug)) await loadTheme(slug, platform)
   const theme = cache.get(slug)
   if (!theme) return null
 
@@ -134,17 +121,16 @@ export function renderPage(templateName: string, data: Record<string, any>): str
     bodyHtml = renderWithTimeout(() => tmpl(data), RENDER_TIMEOUT_MS)
   } catch (e: any) {
     console.error('Theme render error:', e.message)
-    bodyHtml = `<div class="p-8 text-center text-red-500 text-sm">Render error: ${e.message}</div>`
+    bodyHtml = `<div class="p-8 text-center text-red-500 text-sm">Render error</div>`
   }
   try {
-    return theme.layout({ ...data, body: bodyHtml })
+    return theme.layout({ ...data, body: bodyHtml, theme_css: theme.css })
   } catch (e: any) {
     console.error('Layout render error:', e.message)
-    return `<!DOCTYPE html><html><body><div class="p-8 text-center text-red-500">Layout error: ${e.message}</div></body></html>`
+    return `<!DOCTYPE html><html><body><div class="p-8 text-center text-red-500">Layout error</div></body></html>`
   }
 }
 
-// Static helper: prepare common data for templates
 export function prepareThemeData(layoutData: any, pageData: any = {}): Record<string, any> {
   const menus = layoutData.menus || []
   const headerMenu = menus.find((m: any) => m.location === 'header')
@@ -154,7 +140,7 @@ export function prepareThemeData(layoutData: any, pageData: any = {}): Record<st
   const settings = layoutData.settings || {}
 
   return {
-    site_name: settings.site_name || 'Kubus News',
+    site_name: settings.site_name || 'WordSvelte',
     meta_description: settings.default_meta_description || '',
     settings,
     today: new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
@@ -176,16 +162,6 @@ export function prepareThemeData(layoutData: any, pageData: any = {}): Record<st
 }
 
 function buildTree(items: any[]) {
-  const roots = items.filter((i: any) => !i.parentId && i.status === 'active').map(i => ({
-    label: i.label,
-    url: i.url || '#',
-    children: [] as any[]
-  }))
-  for (const root of roots) {
-    root.children = items.filter((i: any) => i.parentId && i.status === 'active' && items.find((x: any) => x.id === i.parentId)?.label === root.label)
-      .map(c => ({ label: c.label, url: c.url || '#' }))
-  }
-  // Alternative: match by parentId properly
   const itemMap = new Map<number, any>()
   for (const item of items) {
     if (item.status !== 'active') continue

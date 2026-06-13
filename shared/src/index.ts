@@ -1,1 +1,2 @@
-export * from './db-schema'
+export * from './schema'
+export { toSlug } from './utils/slug'
