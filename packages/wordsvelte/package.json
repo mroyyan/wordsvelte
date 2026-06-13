@@ -1,0 +1,14 @@
+{
+  "name": "wordsvelte",
+  "version": "0.0.1",
+  "description": "Scaffold a WordSvelte news CMS and deploy to Cloudflare",
+  "type": "module",
+  "bin": {
+    "wordsvelte": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["cms", "sveltekit", "cloudflare", "news", "blog"],
+  "license": "MIT"
+}

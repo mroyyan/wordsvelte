@@ -1,6 +1,6 @@
 {
   "private": true,
-  "workspaces": ["shared", "web"],
+  "workspaces": ["shared", "web", "packages/*"],
   "scripts": {
     "dev": "npm run dev -w web",
     "build": "npm run build -w web",
