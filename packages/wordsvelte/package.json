@@ -1,6 +1,6 @@
 {
   "name": "wordsvelte",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Scaffold a WordSvelte news CMS and deploy to Cloudflare",
   "type": "module",
   "bin": {

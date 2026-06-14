@@ -44,20 +44,18 @@ function hasCmd(cmd) {
 
 console.clear()
 console.log(c(C.bold + C.cyan, `
-  ┌────────────────────────────────────────┐
-  │                                        │
-  │   ██╗    ██╗ ██████╗ ██████╗ ██████╗   │
-  │   ██║    ██║██╔═══██╗██╔══██╗██╔══██╗  │
-  │   ██║ █╗ ██║██║   ██║██████╔╝██║  ██║  │
-  │   ██║███╗██║██║   ██║██╔══██╗██║  ██║  │
-  │   ╚███╔███╔╝╚██████╔╝██║  ██║██████╔╝  │
-  │    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝   │
-  │                                        │
-  │              News CMS                  │
-  └────────────────────────────────────────┘
+ __      __                .____________            .__   __          
+/  \\    /  \\___________  __| _/   _____/__  __ ____ |  |_/  |_  ____  
+\\   \\/\\/   /  _ \\_  __ \\/ __ |\\_____  \\\\  \\/ // __ \\|  |\\   __\\/ __ \\ 
+ \\        (  <_> )  | \\/ /_/ |/        \\\\   /\\  ___/|  |_|  | \\  ___/ 
+  \\__/\\  / \\____/|__|  \\____ /_______  / \\_/  \\___  >____/__|  \\___  >
+       \\/                   \\/       \\/           \\/               \\/ 
+
+  A modern CMS for news, blogs & magazines.
+  Deploy to Cloudflare in one command. Free Forever.
 `))
 
-console.log(c(C.dim, '  Deploy a full-featured news CMS to Cloudflare in minutes.\n'))
+console.log(c(C.dim, '  Build a news site, blog, or magazine — deploy to Cloudflare in minutes.\n'))
 
 // ---- Step 1: Project name ----
 
@@ -191,7 +189,7 @@ if (authChoice === '1' || authChoice === '2') {
 
 console.log(c(C.bold + C.green, `
   ╔══════════════════════════════════════════╗
-  ║          Setup Complete! 🎉              ║
+  ║     Build something awesome 🚀              ║
   ╚══════════════════════════════════════════╝
 `))
 

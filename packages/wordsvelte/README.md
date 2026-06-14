@@ -29,9 +29,7 @@ A modern, full-featured News CMS. Deploy to Cloudflare with one command.
 ## Quick Start
 
 ```bash
-npx create-wordsvelte my-news
-cd my-news
-npm run dev -w web
+npx wordsvelte
 ```
 
 CLI akan memandu setup Cloudflare (OAuth login, D1, R2, migration) otomatis. Buka `http://localhost:5173/admin` — setup wizard bikin admin pertama.
@@ -51,7 +49,7 @@ npm run dev -w web
 
 ## Deploy to Cloudflare
 
-Jika sudah login via `npx create-wordsvelte` atau `wrangler login`:
+Jika sudah login via `npx wordsvelte` atau `wrangler login`:
 
 ```bash
 npm run deploy -w web
