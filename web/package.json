@@ -19,6 +19,7 @@
     "ckeditor5": "^48.2.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
+    "fast-xml-parser": "^4.5.0",
     "handlebars": "^4.7.9",
     "isomorphic-dompurify": "^3.16.0",
     "jose": "^6.2.3",

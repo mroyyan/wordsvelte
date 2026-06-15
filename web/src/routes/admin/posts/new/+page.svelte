@@ -23,6 +23,7 @@
   let content = $state('')
   let excerpt = $state('')
   let status = $state('draft')
+  let isFeatured = $state(false)
   let featuredImageUrl = $state('')
   let categoryIds = $state<number[]>([])
   let tagIds = $state<number[]>([])
@@ -149,6 +150,7 @@
           excerpt: excerpt || undefined,
           status: 'draft',
           featuredImageUrl: featuredImageUrl || undefined,
+          isFeatured,
           categoryIds: categoryIds.length ? categoryIds : undefined,
           tagIds: tagIds.length ? tagIds : undefined,
           createdAt: new Date().toISOString(),
@@ -187,6 +189,7 @@
           excerpt: excerpt || undefined,
           status,
           featuredImageUrl: featuredImageUrl || undefined,
+          isFeatured,
           categoryIds: categoryIds.length ? categoryIds : undefined,
           tagIds: tagIds.length ? tagIds : undefined,
           createdAt: new Date().toISOString(),
@@ -292,6 +295,13 @@
                   <Select.Item value="publish" label="Publish" />
                 </Select.Content>
               </Select.Root>
+            </div>
+            <div class="space-y-2 mt-3">
+              <label class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors">
+                <Checkbox checked={isFeatured} onCheckedChange={() => isFeatured = !isFeatured} />
+                <span class="text-sm font-medium leading-none">Featured on Homepage</span>
+              </label>
+              <p class="text-xs text-muted-foreground px-2">Max 5 featured posts. Oldest will be replaced.</p>
             </div>
           </CardContent>
         </Card>

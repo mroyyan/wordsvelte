@@ -26,6 +26,7 @@
   import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template'
   import MenuIcon from '@lucide/svelte/icons/menu'
   import PaletteIcon from '@lucide/svelte/icons/palette'
+  import WrenchIcon from '@lucide/svelte/icons/wrench'
 
   let { children } = $props()
   let mounted = $state(false)
@@ -166,6 +167,18 @@
               <SidebarMenuButton isActive={$page.url.pathname.startsWith('/admin/appearance/menus')}>
                 {#snippet child({ props }: { props: any })}
                   <a href="/admin/appearance/menus" {...props}><MenuIcon class="size-4 shrink-0" />Menus</a>
+                {/snippet}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarMenu class="gap-0.5">
+            <SidebarMenuItem>
+              <SidebarMenuButton isActive={$page.url.pathname.startsWith('/admin/tools/migrate')}>
+                {#snippet child({ props }: { props: any })}
+                  <a href="/admin/tools/migrate" {...props}><WrenchIcon class="size-4 shrink-0" />Migrate</a>
                 {/snippet}
               </SidebarMenuButton>
             </SidebarMenuItem>

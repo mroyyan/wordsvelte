@@ -1,4 +1,4 @@
-import { eq, desc, and, sql } from 'drizzle-orm'
+import { eq, desc, asc, and, sql } from 'drizzle-orm'
 import { posts, postCategories, postTags, categories, tags, comments } from '@wordsvelte/shared'
 import { toSlug } from '@wordsvelte/shared'
 import { ValidationError, NotFoundError, AppError } from '$lib/server/errors'
@@ -18,6 +18,7 @@ interface CreatePostData {
   excerpt?: string
   status?: string
   featuredImageUrl?: string
+  isFeatured?: boolean
   categoryIds?: number[]
   tagIds?: number[]
   authorId: number
@@ -30,6 +31,7 @@ interface UpdatePostData {
   excerpt?: string
   status?: string
   featuredImageUrl?: string
+  isFeatured?: boolean
   categoryIds?: number[]
   tagIds?: number[]
 }
@@ -91,6 +93,7 @@ export async function createPost(db: any, data: CreatePostData) {
     content: data.content,
     status: data.status || 'draft',
     featuredImageUrl: data.featuredImageUrl || null,
+    isFeatured: data.isFeatured || false,
     publishedAt: data.status === 'publish' ? new Date().toISOString() : null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -109,8 +112,14 @@ export async function updatePost(db: any, id: number, data: UpdatePostData) {
   const updateData: any = { ...data, updatedAt: new Date().toISOString() }
   delete updateData.categoryIds
   delete updateData.tagIds
+  delete updateData.isFeatured
 
   await db.update(posts).set(updateData).where(eq(posts.id, id))
+
+  // Handle featured toggle with max-5 enforcement
+  if (data.isFeatured !== undefined && data.isFeatured !== existing.isFeatured) {
+    await setFeaturedPosts(db, id, data.isFeatured)
+  }
 
   if (data.categoryIds) {
     await db.delete(postCategories).where(eq(postCategories.postId, id))
@@ -152,4 +161,34 @@ export async function getPopularPosts(db: any, limit: number = 5) {
     .where(eq(posts.status, 'publish'))
     .orderBy(desc(posts.viewCount))
     .limit(limit)
+}
+
+export async function getFeaturedPosts(db: any, limit: number = 5) {
+  return db.select().from(posts)
+    .where(eq(posts.isFeatured, true))
+    .orderBy(desc(posts.publishedAt))
+    .limit(limit)
+}
+
+export async function setFeaturedPosts(db: any, postId: number, isFeatured: boolean) {
+  if (isFeatured) {
+    // Count current featured posts
+    const [{ count }] = await db.select({ count: sql<number>`count(*)` })
+      .from(posts)
+      .where(eq(posts.isFeatured, true))
+
+    // If already 5, unmark the oldest
+    if (count >= 5) {
+      const oldest = await db.select({ id: posts.id })
+        .from(posts)
+        .where(eq(posts.isFeatured, true))
+        .orderBy(asc(posts.publishedAt))
+        .limit(1)
+      if (oldest.length) {
+        await db.update(posts).set({ isFeatured: false }).where(eq(posts.id, oldest[0].id))
+      }
+    }
+  }
+
+  await db.update(posts).set({ isFeatured, updatedAt: new Date().toISOString() }).where(eq(posts.id, postId))
 }

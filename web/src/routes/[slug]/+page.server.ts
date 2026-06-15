@@ -14,6 +14,7 @@ export async function load(event) {
   const postTagsList = await db.select({ id: tags.id, name: tags.name, slug: tags.slug })
     .from(postTags).innerJoin(tags, eq(postTags.tagId, tags.id)).where(eq(postTags.postId, post.id))
   const allCategories = await db.select().from(categories).orderBy(asc(categories.name))
+  const allTags = await db.select().from(tags).orderBy(asc(tags.name))
   await db.update(posts).set({ viewCount: sql`view_count + 1` }).where(eq(posts.id, post.id))
-  return { post, comments: postComments, related, popular, tags: postTagsList, categories: allCategories }
+  return { post, comments: postComments, related, popular, tags: allTags, postTags: postTagsList, categories: allCategories }
 }

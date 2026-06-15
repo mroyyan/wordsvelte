@@ -20,7 +20,7 @@
 {#if sorted.length > 0}
   <div class="divide-y {isFooter ? 'divide-gray-700' : ''}">
     {#each sorted as post}
-      <a href="/{post.slug}" class="flex gap-3 {isFooter ? 'px-4 py-3 hover:bg-white/5' : 'px-4 py-3 hover:bg-gray-50'} transition-colors">
+      <a href="/{post.slug}" class="flex gap-3 {isFooter ? 'py-3 hover:bg-white/5' : 'py-3 hover:bg-gray-50'} transition-colors">
         {#if post.featuredImageUrl}
           <img src={post.featuredImageUrl} alt={post.title} class="w-14 h-14 object-cover rounded shrink-0" />
         {/if}

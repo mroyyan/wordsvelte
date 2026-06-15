@@ -72,6 +72,9 @@ function initLocalDb(): BetterSQLite3Database<typeof schema> {
     sqlite.prepare("INSERT INTO menu_items (menu_id, parent_id, item_type, label, url, sort_order, status) VALUES (1, 10, 'custom', 'Opini', '/kategori/opini', 3, 'active')").run()
   }
 
+  // Add is_featured column to posts if missing
+  try { sqlite.prepare('SELECT is_featured FROM posts LIMIT 1').get() } catch { sqlite.exec('ALTER TABLE posts ADD COLUMN is_featured INTEGER NOT NULL DEFAULT 0') }
+
   // Seed default settings if not exist
   const siteNameExists = sqlite.prepare("SELECT count(*) FROM settings WHERE key = 'site_name'").get() as { 'count(*)': number }
   if (siteNameExists['count(*)'] === 0) {
@@ -82,6 +85,7 @@ function initLocalDb(): BetterSQLite3Database<typeof schema> {
     sqlite.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('date_format', 'd F Y')").run()
     sqlite.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('language', 'id')").run()
     sqlite.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('posts_per_page', '20')").run()
+    sqlite.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('sticky_sidebar', 'false')").run()
     sqlite.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('search_engine_visible', 'true')").run()
     sqlite.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('comments_enabled', 'true')").run()
     sqlite.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('comments_auto_approve', 'false')").run()

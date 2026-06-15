@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import { formatDate, formatExcerpt } from '$lib/utils'
   import { page } from '$app/stores'
   import { Clock, Eye, MessageSquare, Share2, Tag, ChevronRight } from '@lucide/svelte'
@@ -6,12 +7,30 @@
 
   let { data } = $props()
   let { post, comments } = $derived(data)
-  let tags: { id: number; name: string; slug: string }[] = $derived((data.tags || []) as any)
+  let postTags: { id: number; name: string; slug: string }[] = $derived((data.postTags || []) as any)
+  let allTags = $derived(data.tags || [])
   let sidebarWidgets = $derived($page.data.widgets?.filter((w: any) => w.sidebarArea === 'sidebar-1') || [])
+  let stickySidebar = $derived($page.data.settings?.sticky_sidebar === 'true')
 
   let commentText = $state('')
   let commentName = $state('')
   let commentEmail = $state('')
+
+  onMount(() => {
+    document.querySelectorAll('.post-content pre').forEach((pre) => {
+      const btn = document.createElement('button')
+      btn.className = 'copy-btn'
+      btn.textContent = 'Copy'
+      btn.onclick = () => {
+        const code = pre.querySelector('code')
+        navigator.clipboard.writeText(code?.textContent || pre.textContent || '')
+        btn.textContent = 'Copied!'
+        setTimeout(() => { btn.textContent = 'Copy' }, 2000)
+      }
+      pre.style.position = 'relative'
+      pre.appendChild(btn)
+    })
+  })
   let submitting = $state(false)
   let commentError = $state('')
   let commentSuccess = $state(false)
@@ -66,7 +85,7 @@
           <Tag class="h-3.5 w-3.5 text-gray-400" />
           <span class="text-xs font-bold text-gray-600 uppercase">Topik</span>
           <div class="flex flex-wrap gap-1">
-            {#each tags as tag}
+            {#each postTags as tag}
               <a href="/tag/{tag.slug}" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded transition-colors">{tag.name}</a>
             {/each}
           </div>
@@ -160,7 +179,7 @@
       </div>
     </section>
   </div>
-  <aside class="space-y-6">
+  <aside class="space-y-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
     {#each sidebarWidgets as widget (widget.id)}
       <div class="bg-white rounded-lg border p-4">
         <WidgetRenderer {widget} posts={data.popular || []} categories={data.categories || []} tags={data.tags || []} />
@@ -170,7 +189,101 @@
 </div>
 
 <style>
-  :global(.post-content p) { margin-bottom: 1rem; line-height: 1.8; }
+  :global(.post-content p) { margin: 1.25rem 0; line-height: 1.8; }
   :global(.post-content strong) { font-weight: 700; }
   :global(.post-content img) { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1.5rem 0; }
+  :global(.post-content ul),
+  :global(.post-content ol) { margin: 1rem 0; padding-left: 1.5em; }
+  :global(.post-content ul) { list-style-type: disc; }
+  :global(.post-content ul ul) { list-style-type: circle; }
+  :global(.post-content ul ul ul) { list-style-type: square; }
+  :global(.post-content ol) { list-style-type: decimal; }
+  :global(.post-content ol ol) { list-style-type: lower-alpha; }
+  :global(.post-content li) { margin: 0.35em 0; line-height: 1.8; }
+  :global(.post-content li > ul),
+  :global(.post-content li > ol) { margin: 0.35em 0; }
+  :global(.post-content blockquote) {
+    border-left: 4px solid #e5e7eb;
+    margin: 1.5rem 0;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-radius: 0 0.5rem 0.5rem 0;
+    color: #6b7280;
+    font-style: italic;
+  }
+  :global(.post-content h1) { font-size: 2em; font-weight: 700; line-height: 1.2; margin: 1em 0 0.5em; }
+  :global(.post-content h2) { font-size: 1.5em; font-weight: 700; line-height: 1.3; margin: 1em 0 0.5em; }
+  :global(.post-content h3) { font-size: 1.25em; font-weight: 600; line-height: 1.4; margin: 1em 0 0.5em; }
+  :global(.post-content a) { color: #dc2626; text-decoration: underline; }
+  :global(.post-content a:hover) { color: #b91c1c; }
+  :global(.post-content table) { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+  :global(.post-content th),
+  :global(.post-content td) { border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; text-align: left; }
+  :global(.post-content th) { background: #f9fafb; font-weight: 600; }
+  :global(.post-content code) {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    background: #f1f5f9;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #e11d48;
+  }
+  :global(.post-content pre) {
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    padding: 1.25em 1.5em;
+    border-radius: 0.75rem;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    line-height: 1.7;
+    font-size: 0.875em;
+    border: 1px solid #1e293b;
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #0f172a;
+  }
+  :global(.post-content pre::-webkit-scrollbar) {
+    height: 6px;
+  }
+  :global(.post-content pre::-webkit-scrollbar-track) {
+    background: #0f172a;
+    border-radius: 3px;
+  }
+  :global(.post-content pre::-webkit-scrollbar-thumb) {
+    background: #334155;
+    border-radius: 3px;
+  }
+  :global(.post-content pre::-webkit-scrollbar-thumb:hover) {
+    background: #475569;
+  }
+  :global(.post-content pre code) {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+  :global(.post-content pre .copy-btn) {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: #1e293b;
+    color: #94a3b8;
+    border: 1px solid #334155;
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s, color 0.2s;
+  }
+  :global(.post-content pre:hover .copy-btn) {
+    opacity: 1;
+  }
+  :global(.post-content pre .copy-btn:hover) {
+    background: #334155;
+    color: #e2e8f0;
+  }
 </style>

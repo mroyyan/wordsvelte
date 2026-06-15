@@ -1,18 +1,28 @@
 <script lang="ts">
   import { formatDate, formatExcerpt } from '$lib/utils'
   import { page } from '$app/stores'
-  import { Clock, Eye, ChevronRight, Megaphone } from '@lucide/svelte'
+  import { Clock, Eye, ChevronRight, ChevronLeft, Megaphone } from '@lucide/svelte'
   import WidgetRenderer from '$lib/components/widgets/widget-renderer.svelte'
 
   let { data } = $props()
   let posts = $derived(data.posts)
-  let featured = $derived(posts[0])
-  let subFeatured = $derived(posts.slice(1, 5))
-  let rest = $derived(posts.slice(0))
+  let pagination = $derived(data.pagination)
+  let featuredPosts = $derived(data.featuredPosts || [])
+  let featured = $derived(featuredPosts.length > 0 ? featuredPosts[0] : posts[0])
+  let subFeatured = $derived(featuredPosts.length > 0 ? featuredPosts.slice(1, 5) : [])
+  let rest = $derived(posts)
 
   let sidebarWidgets = $derived($page.data.widgets?.filter((w: any) => w.sidebarArea === 'sidebar-1') || [])
+  let stickySidebar = $derived($page.data.settings?.sticky_sidebar === 'true')
   let categories = $derived(data.categories || [])
   let tags = $derived(data.tags || [])
+
+  function getPageNumbers(current: number, total: number): (number | '...')[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+    if (current <= 4) return [1, 2, 3, 4, 5, '...', total]
+    if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total]
+    return [1, '...', current - 1, current, current + 1, '...', total]
+  }
 </script>
 
 <!-- News Ticker -->
@@ -117,12 +127,36 @@
           </article>
         {/each}
       </div>
+
+      {#if pagination && pagination.totalPages > 1}
+        <div class="flex items-center justify-center gap-2 py-6 border-t">
+          {#if pagination.page > 1}
+            <a href="/?page={pagination.page - 1}" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-600 bg-white border rounded-lg hover:bg-gray-50 transition-colors">
+              <ChevronLeft class="h-4 w-4" /> Prev
+            </a>
+          {/if}
+          {#each getPageNumbers(pagination.page, pagination.totalPages) as pn}
+            {#if pn === '...'}
+              <span class="px-2 text-sm text-gray-400">…</span>
+            {:else}
+              <a href="/?page={pn}" class="inline-flex items-center justify-center w-9 h-9 text-sm font-medium rounded-lg transition-colors {pn === pagination.page ? 'bg-red-600 text-white' : 'text-gray-600 bg-white border hover:bg-gray-50'}">
+                {pn}
+              </a>
+            {/if}
+          {/each}
+          {#if pagination.page < pagination.totalPages}
+            <a href="/?page={pagination.page + 1}" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-600 bg-white border rounded-lg hover:bg-gray-50 transition-colors">
+              Next <ChevronRight class="h-4 w-4" />
+            </a>
+          {/if}
+        </div>
+      {/if}
     </section>
     {/if}
   </div>
 
   <!-- Sidebar -->
-  <aside class="space-y-6">
+  <aside class="space-y-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
     {#each sidebarWidgets as widget (widget.id)}
       <div class="bg-white rounded-lg border p-4">
         <WidgetRenderer {widget} {posts} {categories} {tags} />

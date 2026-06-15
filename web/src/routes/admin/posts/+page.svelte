@@ -13,7 +13,7 @@
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuSeparator, DropdownMenuTrigger
   } from '$lib/components/ui/dropdown-menu'
-  import { Plus, Pencil, Trash2, Check, CirclePlus, X as XIcon, Ellipsis, FileText, Send } from '@lucide/svelte'
+  import { Plus, Pencil, Trash2, Check, CirclePlus, X as XIcon, Ellipsis, FileText, Send, Star } from '@lucide/svelte'
   import ChevronLeft from '@lucide/svelte/icons/chevron-left'
   import ChevronRight from '@lucide/svelte/icons/chevron-right'
   import ChevronsLeft from '@lucide/svelte/icons/chevrons-left'
@@ -35,7 +35,7 @@
   onMount(async () => {
     const tok = t(); if (!tok) return;
     try {
-      const r = await fetch('/api/posts-admin', { headers: { Authorization: `Bearer ${tok}` } })
+      const r = await fetch('/api/posts-admin?limit=500', { headers: { Authorization: `Bearer ${tok}` } })
       const j = await r.json(); items = j.data ?? []
     } catch {} finally { loading = false }
   })
@@ -148,7 +148,9 @@
           {#each paged as post (post.id)}
             <TableRow data-state={rowSelection.has(post.id) && 'selected'} class="group/row">
               <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted"><Checkbox checked={rowSelection.has(post.id)} onCheckedChange={() => toggle(post.id)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
-              <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted font-medium max-w-xs truncate">{post.title}</TableCell>
+              <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted font-medium max-w-xs truncate">
+                {#if post.isFeatured}<Star class="h-4 w-4 text-yellow-500 fill-yellow-500 inline-block mr-1 -mt-0.5" />{/if}{post.title}
+              </TableCell>
               <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted"><Badge variant="outline" class="capitalize {statusColors[post.status] || ''}">{post.status}</Badge></TableCell>
               <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted text-sm text-muted-foreground">{post.viewCount}</TableCell>
               <TableCell class="bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted text-sm text-muted-foreground">
