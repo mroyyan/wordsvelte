@@ -22,7 +22,7 @@
   import {
     DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableColumnHeader, DataTablePagination, DataTableBulkActions,
   } from '$lib/components/data-table'
-  import { api, errorMessage, fetchAll, runBulk } from '$lib/admin-api'
+  import { api, errorMessage, fetchAll, runBulk } from '$lib/client/admin-api'
   import { formatDate } from '$lib/utils'
 
   interface CommentRow { id: number; postId: number; authorName: string; authorEmail: string; content: string; status: 'approved' | 'pending' | 'spam' | 'trash'; createdAt: string }

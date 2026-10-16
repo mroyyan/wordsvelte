@@ -1,8 +1,8 @@
 import { requireUser } from '$lib/server/auth'
 import { getDb } from '$lib/server/db'
-import { runImport } from '$lib/server/services/migrate.service'
-import { AppError, ValidationError } from '$lib/server/errors'
-import { catchError } from '$lib/server/response'
+import { runImport } from '$lib/server/services/site/migrate.service'
+import { AppError, ValidationError } from '$lib/server/core/errors'
+import { catchError } from '$lib/server/http/response'
 
 const MAX_XML_BYTES = 100 * 1024 * 1024
 

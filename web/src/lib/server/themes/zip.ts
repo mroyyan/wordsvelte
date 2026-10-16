@@ -1,7 +1,7 @@
 import AdmZip from 'adm-zip'
 import Handlebars from 'handlebars'
 import { toSlug } from '@wordsvelte/shared'
-import { ValidationError } from '$lib/server/errors'
+import { ValidationError } from '$lib/server/core/errors'
 import { THEME_SLUG_RE, safeRelativePath } from './paths'
 
 export const MAX_ZIP_BYTES = 10 * 1024 * 1024

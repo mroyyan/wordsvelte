@@ -87,24 +87,35 @@ news/
 ├── web/                     # Main SvelteKit app
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── server/
-│   │   │   │   ├── auth/       # JWT auth
-│   │   │   │   ├── db/         # Database (D1 + SQLite)
-│   │   │   │   ├── crypto/     # Password hashing
-│   │   │   │   ├── themes/     # Handlebars theme engine
-│   │   │   │   ├── services/   # Business logic layer
-│   │   │   │   ├── validators/ # Input validation
-│   │   │   │   └── errors/     # Error classes
+│   │   │   ├── server/          # server-only code (never shipped to the browser)
+│   │   │   │   ├── core/        #   errors, validators, crypto, sanitize: no framework or DB knowledge
+│   │   │   │   ├── http/        #   response helpers, CSRF, rate limiters
+│   │   │   │   ├── auth/        #   JWT sessions + two-factor primitives (TOTP, secret box, codes)
+│   │   │   │   ├── db/          #   database (D1 + local SQLite)
+│   │   │   │   ├── mail/        #   mailer, SMTP client (Workers sockets / node:net in dev)
+│   │   │   │   ├── seo/         #   site info, sitemaps, RSS
+│   │   │   │   ├── storage/     #   uploads (R2)
+│   │   │   │   ├── themes/      #   Handlebars theme engine
+│   │   │   │   └── services/    #   business logic, grouped by domain
+│   │   │   │       ├── content/ #     posts, pages, categories, tags, comments, media
+│   │   │   │       ├── site/    #     settings, menus, widgets, themes, dashboard, migration
+│   │   │   │       └── account/ #     users, profile, password reset, two-factor, SMTP config
+│   │   │   ├── client/          # browser-side helpers (admin API client, session storage)
+│   │   │   ├── shared/          # pure code used by both sides (date formats, SEO helpers)
+│   │   │   ├── config/          # navigation and auth page definitions
 │   │   │   └── components/
-│   │   │       ├── ui/         # shadcn-svelte components
-│   │   │       ├── admin/      # Admin components
-│   │   │       └── widgets/    # Sidebar widgets
+│   │   │       ├── ui/          #   shadcn-svelte
+│   │   │       ├── layout/      #   admin shell (sidebar, header)
+│   │   │       ├── data-table/  #   shared table
+│   │   │       ├── admin/       #   admin forms and editors
+│   │   │       ├── auth/        #   sign-in pages
+│   │   │       └── site/        #   public site (SEO tags, menus, widgets)
 │   │   └── routes/
 │   │       ├── api/           # REST API
 │   │       └── admin/         # Admin panel
 │   ├── themes/                # Theme templates
 │   ├── drizzle/               # DB migrations (schema + seed), applied by drizzle migrator locally and wrangler on D1
-│   ├── tests/                 # vitest suites + e2e helpers
+│   ├── tests/                 # server/ and client/ vitest suites, helpers/ (harness, fake SMTP server)
 │   ├── scripts/e2e-smoke.mjs  # end-to-end smoke test
 │   └── wrangler.toml          # Cloudflare config
 └── package.json               # Root workspace

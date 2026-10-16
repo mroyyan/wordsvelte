@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit'
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { ok, catchError, readJson } from '$lib/server/response'
-import { updateTag, deleteTag } from '$lib/server/services/tag.service'
+import { ok, catchError, readJson } from '$lib/server/http/response'
+import { updateTag, deleteTag } from '$lib/server/services/content/tag.service'
 
 export async function PUT(event) {
   try {

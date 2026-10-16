@@ -1,8 +1,8 @@
 import { getDb } from '$lib/server/db'
 import { widgets } from '@wordsvelte/shared'
-import { getPublicMenus } from '$lib/server/services/menu.service'
-import { getSettings } from '$lib/server/services/settings.service'
-import { siteOrigin } from '$lib/seo'
+import { getPublicMenus } from '$lib/server/services/site/menu.service'
+import { getSettings } from '$lib/server/services/site/settings.service'
+import { siteOrigin } from '$lib/shared/seo'
 import { asc, eq } from 'drizzle-orm'
 import { scanThemes, setActiveTheme } from '$lib/server/themes'
 

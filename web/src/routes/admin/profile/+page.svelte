@@ -18,8 +18,8 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card'
   import PageHeader from '$lib/components/layout/page-header.svelte'
   import PasswordInput from '$lib/components/auth/password-input.svelte'
-  import { api, errorMessage } from '$lib/admin-api'
-  import { saveSession } from '$lib/auth-client'
+  import { api, errorMessage } from '$lib/client/admin-api'
+  import { saveSession } from '$lib/client/auth-client'
 
   type Status = { totpEnabled: boolean; totpPending: boolean; email2faEnabled: boolean; recoveryCodesRemaining: number }
 

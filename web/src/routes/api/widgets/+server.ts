@@ -1,7 +1,7 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { ok, created, catchError, readJson } from '$lib/server/response'
-import { listWidgets, createWidget } from '$lib/server/services/widget.service'
+import { ok, created, catchError, readJson } from '$lib/server/http/response'
+import { listWidgets, createWidget } from '$lib/server/services/site/widget.service'
 
 export async function GET(event) {
   try {

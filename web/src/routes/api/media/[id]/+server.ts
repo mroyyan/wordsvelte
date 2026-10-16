@@ -1,8 +1,8 @@
 import { getDb } from '$lib/server/db'
 import { requireUser, hasRole } from '$lib/server/auth'
-import { getMedia, deleteMedia } from '$lib/server/services/media.service'
-import { ok, catchError } from '$lib/server/response'
-import { ForbiddenError, ValidationError } from '$lib/server/errors'
+import { getMedia, deleteMedia } from '$lib/server/services/content/media.service'
+import { ok, catchError } from '$lib/server/http/response'
+import { ForbiddenError, ValidationError } from '$lib/server/core/errors'
 
 function parseId(event: any): number {
 	const id = Number(event.params.id)

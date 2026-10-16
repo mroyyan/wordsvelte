@@ -1,7 +1,7 @@
 <script lang="ts">
   import { formatExcerpt } from '$lib/utils'
-  import { formatDate } from '$lib/format'
-  import Seo from '$lib/components/seo.svelte'
+  import { formatDate } from '$lib/shared/format'
+  import Seo from '$lib/components/site/seo.svelte'
   import { Search } from '@lucide/svelte'
 
   let { data } = $props()

@@ -1,8 +1,8 @@
 import { eq, desc, asc, sql } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
 import { posts, categories, tags } from '@wordsvelte/shared'
-import { getSettings } from '$lib/server/services/settings.service'
-import { getFeaturedPosts } from '$lib/server/services/post.service'
+import { getSettings } from '$lib/server/services/site/settings.service'
+import { getFeaturedPosts } from '$lib/server/services/content/post.service'
 
 export async function load(event) {
   const db = getDb(event)

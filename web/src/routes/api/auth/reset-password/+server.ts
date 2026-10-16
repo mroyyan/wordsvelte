@@ -1,9 +1,9 @@
 import { getDb } from '$lib/server/db'
-import { ok, catchError, readJson } from '$lib/server/response'
-import { RateLimitError } from '$lib/server/errors'
-import { clientKey } from '$lib/server/rate-limit'
-import { resetByIp } from '$lib/server/limiters'
-import { isResetTokenValid, resetPassword } from '$lib/server/services/password-reset.service'
+import { ok, catchError, readJson } from '$lib/server/http/response'
+import { RateLimitError } from '$lib/server/core/errors'
+import { clientKey } from '$lib/server/http/rate-limit'
+import { resetByIp } from '$lib/server/http/limiters'
+import { isResetTokenValid, resetPassword } from '$lib/server/services/account/password-reset.service'
 
 /** Lets the reset page check a link before showing the form. */
 export async function GET(event) {

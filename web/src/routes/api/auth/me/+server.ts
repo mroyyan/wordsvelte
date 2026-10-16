@@ -1,5 +1,5 @@
 import { requireUser } from '$lib/server/auth'
-import { catchError, ok } from '$lib/server/response'
+import { catchError, ok } from '$lib/server/http/response'
 
 export async function GET(event) {
   try {

@@ -1,7 +1,7 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { ok, catchError, readJson } from '$lib/server/response'
-import { updateUser } from '$lib/server/services/user.service'
+import { ok, catchError, readJson } from '$lib/server/http/response'
+import { updateUser } from '$lib/server/services/account/user.service'
 
 export async function PATCH(event) {
   try {

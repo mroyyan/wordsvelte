@@ -1,7 +1,7 @@
 import { requireUser } from '$lib/server/auth'
-import { ok, catchError, readJson } from '$lib/server/response'
-import { ValidationError } from '$lib/server/errors'
-import { listThemes, scanThemes } from '$lib/server/services/theme.service'
+import { ok, catchError, readJson } from '$lib/server/http/response'
+import { ValidationError } from '$lib/server/core/errors'
+import { listThemes, scanThemes } from '$lib/server/services/site/theme.service'
 
 export async function GET(event) {
   try {

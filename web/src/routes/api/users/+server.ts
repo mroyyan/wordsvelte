@@ -1,7 +1,7 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { listUsers, createUser } from '$lib/server/services/user.service'
-import { okPaginated, created, catchError, parseIntParam, readJson } from '$lib/server/response'
+import { listUsers, createUser } from '$lib/server/services/account/user.service'
+import { okPaginated, created, catchError, parseIntParam, readJson } from '$lib/server/http/response'
 
 export async function GET(event: any) {
 	try {

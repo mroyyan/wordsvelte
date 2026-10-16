@@ -2,8 +2,8 @@
   import { page } from '$app/stores'
   import '../app.css'
   import { Search, Menu, X, ChevronDown } from '@lucide/svelte'
-  import WidgetRenderer from '$lib/components/widgets/widget-renderer.svelte'
-  import { formatToday } from '$lib/format'
+  import WidgetRenderer from '$lib/components/site/widgets/widget-renderer.svelte'
+  import { formatToday } from '$lib/shared/format'
 
   let { children, data }: { children: any, data: any } = $props()
 

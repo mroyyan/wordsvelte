@@ -23,8 +23,8 @@
   import PageHeader from '$lib/components/layout/page-header.svelte'
   import Combobox from '$lib/components/admin/combobox.svelte'
   import SmtpSettings from '$lib/components/admin/smtp-settings.svelte'
-  import { api, errorMessage } from '$lib/admin-api'
-  import { DATE_FORMATS, DEFAULT_TIMEZONE, LANGUAGES, formatDateWith } from '$lib/format-date'
+  import { api, errorMessage } from '$lib/client/admin-api'
+  import { DATE_FORMATS, DEFAULT_TIMEZONE, LANGUAGES, formatDateWith } from '$lib/shared/format-date'
 
   type Option = { value: string; label: string }
   type Field = {

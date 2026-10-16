@@ -1,8 +1,8 @@
 import { getDb } from '$lib/server/db'
 import { requireUser, hasRole, type AuthUser } from '$lib/server/auth'
-import { catchError, ok, readJson } from '$lib/server/response'
-import { getPostById, updatePost, deletePost } from '$lib/server/services/post.service'
-import { ForbiddenError, ValidationError } from '$lib/server/errors'
+import { catchError, ok, readJson } from '$lib/server/http/response'
+import { getPostById, updatePost, deletePost } from '$lib/server/services/content/post.service'
+import { ForbiddenError, ValidationError } from '$lib/server/core/errors'
 
 function parseId(event: any): number {
   const id = Number(event.params.id)

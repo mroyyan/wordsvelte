@@ -1,11 +1,11 @@
 import { getDb } from '$lib/server/db'
-import { ok, catchError, readJson } from '$lib/server/response'
-import { RateLimitError } from '$lib/server/errors'
-import { clientKey } from '$lib/server/rate-limit'
-import { forgotByEmail, forgotByIp } from '$lib/server/limiters'
-import { requestPasswordReset } from '$lib/server/services/password-reset.service'
-import { normalizeEmail } from '$lib/server/services/user.service'
-import { resolveMailer } from '$lib/server/mail-resolver'
+import { ok, catchError, readJson } from '$lib/server/http/response'
+import { RateLimitError } from '$lib/server/core/errors'
+import { clientKey } from '$lib/server/http/rate-limit'
+import { forgotByEmail, forgotByIp } from '$lib/server/http/limiters'
+import { requestPasswordReset } from '$lib/server/services/account/password-reset.service'
+import { normalizeEmail } from '$lib/server/services/account/user.service'
+import { resolveMailer } from '$lib/server/mail/resolver'
 
 const GENERIC = { message: 'If an account exists for that email, a reset link has been sent.' }
 

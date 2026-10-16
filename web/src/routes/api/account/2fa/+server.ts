@@ -1,15 +1,15 @@
 import { getDb } from '$lib/server/db'
 import { getSigningSecret, requireUser } from '$lib/server/auth'
-import { catchError, ok, readJson } from '$lib/server/response'
-import { AppError, RateLimitError, ValidationError } from '$lib/server/errors'
-import { accountPasswordByUser, twoFactorByUser, twoFactorSendByUser } from '$lib/server/limiters'
-import { resolveMailer } from '$lib/server/mail-resolver'
-import { getSettings } from '$lib/server/services/settings.service'
-import { assertPassword } from '$lib/server/services/account.service'
+import { catchError, ok, readJson } from '$lib/server/http/response'
+import { AppError, RateLimitError, ValidationError } from '$lib/server/core/errors'
+import { accountPasswordByUser, twoFactorByUser, twoFactorSendByUser } from '$lib/server/http/limiters'
+import { resolveMailer } from '$lib/server/mail/resolver'
+import { getSettings } from '$lib/server/services/site/settings.service'
+import { assertPassword } from '$lib/server/services/account/account.service'
 import {
   beginTotpSetup, confirmEmail2fa, confirmTotpSetup, disableEmail2fa, disableTotp, getTwoFactorStatus,
   regenerateRecoveryCodes, sendEmailCode,
-} from '$lib/server/services/two-factor.service'
+} from '$lib/server/services/account/two-factor.service'
 
 export async function GET(event: any) {
   try {

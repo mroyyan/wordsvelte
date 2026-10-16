@@ -1,6 +1,6 @@
 import type { Handle } from '@sveltejs/kit'
 import { AUTH_COOKIE } from '$lib/server/auth'
-import { isCsrfViolation } from '$lib/server/csrf'
+import { isCsrfViolation } from '$lib/server/http/csrf'
 import { ensureLocalDb } from '$lib/server/db'
 import { ensureLocalThemeStorage } from '$lib/server/themes/storage'
 

@@ -24,7 +24,7 @@
   import {
     DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableColumnHeader, DataTablePagination, DataTableBulkActions,
   } from '$lib/components/data-table'
-  import { api, errorMessage, runBulk } from '$lib/admin-api'
+  import { api, errorMessage, runBulk } from '$lib/client/admin-api'
   import { formatDate } from '$lib/utils'
 
   interface PageRow { id: number; title: string; slug: string; status: 'draft' | 'publish'; updatedAt: string; publishedAt: string | null }

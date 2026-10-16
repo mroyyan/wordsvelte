@@ -8,7 +8,7 @@
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
   import AuthLayout from '$lib/components/auth/auth-layout.svelte'
   import PasswordInput from '$lib/components/auth/password-input.svelte'
-  import { saveSession } from '$lib/auth-client'
+  import { saveSession } from '$lib/client/auth-client'
 
   let { data } = $props()
   let email = $state('')

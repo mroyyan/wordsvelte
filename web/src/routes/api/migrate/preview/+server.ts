@@ -1,7 +1,7 @@
 import { requireUser } from '$lib/server/auth'
-import { ok, catchError } from '$lib/server/response'
-import { getPreview } from '$lib/server/services/migrate.service'
-import { ValidationError } from '$lib/server/errors'
+import { ok, catchError } from '$lib/server/http/response'
+import { getPreview } from '$lib/server/services/site/migrate.service'
+import { ValidationError } from '$lib/server/core/errors'
 
 export async function POST(event: any) {
   try {

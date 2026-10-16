@@ -25,7 +25,7 @@
   import {
     DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableColumnHeader, DataTablePagination, DataTableBulkActions,
   } from '$lib/components/data-table'
-  import { api, errorMessage, fetchAll, runBulk } from '$lib/admin-api'
+  import { api, errorMessage, fetchAll, runBulk } from '$lib/client/admin-api'
   import { formatDate } from '$lib/utils'
 
   interface PostRow { id: number; title: string; slug: string; status: 'draft' | 'pending' | 'publish'; isFeatured: boolean; viewCount: number; createdAt: string; publishedAt: string | null }

@@ -1,9 +1,9 @@
 import { getDb } from '$lib/server/db'
 import { createToken, requireUser, setAuthCookie } from '$lib/server/auth'
-import { catchError, ok, readJson } from '$lib/server/response'
-import { RateLimitError } from '$lib/server/errors'
-import { accountPasswordByUser } from '$lib/server/limiters'
-import { changePassword } from '$lib/server/services/account.service'
+import { catchError, ok, readJson } from '$lib/server/http/response'
+import { RateLimitError } from '$lib/server/core/errors'
+import { accountPasswordByUser } from '$lib/server/http/limiters'
+import { changePassword } from '$lib/server/services/account/account.service'
 
 /** Changes the password and signs out every other device; this browser stays signed in with a fresh token. */
 export async function POST(event: any) {

@@ -1,10 +1,10 @@
 <script lang="ts">
   import { formatExcerpt } from '$lib/utils'
-  import { formatDate } from '$lib/format'
-  import Seo from '$lib/components/seo.svelte'
+  import { formatDate } from '$lib/shared/format'
+  import Seo from '$lib/components/site/seo.svelte'
   import { page } from '$app/stores'
   import { Clock, Eye, ChevronRight, ChevronLeft, Megaphone } from '@lucide/svelte'
-  import WidgetRenderer from '$lib/components/widgets/widget-renderer.svelte'
+  import WidgetRenderer from '$lib/components/site/widgets/widget-renderer.svelte'
 
   let { data } = $props()
   let posts = $derived(data.posts)

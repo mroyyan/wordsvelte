@@ -1,9 +1,9 @@
 import { requireUser } from '$lib/server/auth'
-import { catchError, created } from '$lib/server/response'
-import { scanThemes } from '$lib/server/services/theme.service'
+import { catchError, created } from '$lib/server/http/response'
+import { scanThemes } from '$lib/server/services/site/theme.service'
 import { getThemeStorage } from '$lib/server/themes/storage'
 import { parseThemeZip } from '$lib/server/themes/zip'
-import { ConflictError, ValidationError } from '$lib/server/errors'
+import { ConflictError, ValidationError } from '$lib/server/core/errors'
 
 export async function POST(event) {
   try {

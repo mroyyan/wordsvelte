@@ -22,7 +22,7 @@
   import PageHeader from '$lib/components/layout/page-header.svelte'
   import PrimaryButton from '$lib/components/layout/primary-button.svelte'
   import { DataTableState, DataTableToolbar, DataTableColumnHeader, DataTablePagination, DataTableBulkActions } from '$lib/components/data-table'
-  import { api, errorMessage, runBulk } from '$lib/admin-api'
+  import { api, errorMessage, runBulk } from '$lib/client/admin-api'
 
   interface Row { id: number; name: string; slug: string; description?: string | null }
 

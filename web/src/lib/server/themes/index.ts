@@ -1,5 +1,5 @@
 import Handlebars from 'handlebars'
-import { sanitizeHtml } from '$lib/server/sanitize'
+import { sanitizeHtml } from '$lib/server/core/sanitize'
 import { getThemeStorage } from './storage'
 
 const RENDER_TIMEOUT_MS = 1000

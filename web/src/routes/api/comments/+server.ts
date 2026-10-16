@@ -1,9 +1,9 @@
 import { getDb } from '$lib/server/db'
-import { created, catchError, readJson } from '$lib/server/response'
-import { createComment } from '$lib/server/services/comment.service'
-import { RateLimitError } from '$lib/server/errors'
-import { clientKey } from '$lib/server/rate-limit'
-import { commentLimiter } from '$lib/server/limiters'
+import { created, catchError, readJson } from '$lib/server/http/response'
+import { createComment } from '$lib/server/services/content/comment.service'
+import { RateLimitError } from '$lib/server/core/errors'
+import { clientKey } from '$lib/server/http/rate-limit'
+import { commentLimiter } from '$lib/server/http/limiters'
 
 export async function POST(event) {
   try {

@@ -1,9 +1,9 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { listMedia, createMedia } from '$lib/server/services/media.service'
-import { ok, created, catchError } from '$lib/server/response'
-import { AppError, ValidationError } from '$lib/server/errors'
-import { MAX_UPLOAD_BYTES, validateImageUpload, buildMediaKey } from '$lib/server/uploads'
+import { listMedia, createMedia } from '$lib/server/services/content/media.service'
+import { ok, created, catchError } from '$lib/server/http/response'
+import { AppError, ValidationError } from '$lib/server/core/errors'
+import { MAX_UPLOAD_BYTES, validateImageUpload, buildMediaKey } from '$lib/server/storage/uploads'
 
 export async function GET(event: any) {
 	try {

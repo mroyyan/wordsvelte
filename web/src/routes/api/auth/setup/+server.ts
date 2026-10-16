@@ -2,8 +2,8 @@ import { json } from '@sveltejs/kit'
 import { getDb } from '$lib/server/db'
 import { createToken, setAuthCookie } from '$lib/server/auth'
 import { users } from '@wordsvelte/shared'
-import { catchError, created, readJson } from '$lib/server/response'
-import { createFirstAdmin } from '$lib/server/services/user.service'
+import { catchError, created, readJson } from '$lib/server/http/response'
+import { createFirstAdmin } from '$lib/server/services/account/user.service'
 
 export async function POST(event) {
   try {

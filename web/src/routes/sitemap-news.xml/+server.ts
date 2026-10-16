@@ -1,6 +1,6 @@
 import { getDb } from '$lib/server/db'
-import { getSite } from '$lib/server/site'
-import { XML_HEADERS, getNewsEntries, newsSitemapXml } from '$lib/server/sitemap'
+import { getSite } from '$lib/server/seo/site'
+import { XML_HEADERS, getNewsEntries, newsSitemapXml } from '$lib/server/seo/sitemap'
 
 /** Google News sitemap: only articles from the last 48 hours. */
 export async function GET(event) {

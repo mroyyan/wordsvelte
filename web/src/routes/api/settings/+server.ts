@@ -1,7 +1,7 @@
 import { getDb } from '$lib/server/db'
 import { requireUser, getOptionalUser } from '$lib/server/auth'
-import { getSettings, updateSettings } from '$lib/server/services/settings.service'
-import { ok, catchError, readJson } from '$lib/server/response'
+import { getSettings, updateSettings } from '$lib/server/services/site/settings.service'
+import { ok, catchError, readJson } from '$lib/server/http/response'
 
 /** Public callers get the non-private settings; admins also see private ones. Secrets are never returned. */
 export async function GET(event: any) {

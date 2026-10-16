@@ -1,5 +1,5 @@
-import { catchError } from '$lib/server/response'
-import { isPublicMediaKey } from '$lib/server/uploads'
+import { catchError } from '$lib/server/http/response'
+import { isPublicMediaKey } from '$lib/server/storage/uploads'
 
 export async function GET({ params, platform }: any) {
 	try {

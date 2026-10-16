@@ -1,8 +1,8 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { ok, catchError, readJson } from '$lib/server/response'
-import { ValidationError } from '$lib/server/errors'
-import { getPageById, updatePage, deletePage } from '$lib/server/services/page.service'
+import { ok, catchError, readJson } from '$lib/server/http/response'
+import { ValidationError } from '$lib/server/core/errors'
+import { getPageById, updatePage, deletePage } from '$lib/server/services/content/page.service'
 
 function parseId(event: any): number {
   const id = Number(event.params.id)

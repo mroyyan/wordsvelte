@@ -16,7 +16,7 @@
   import { Skeleton } from '$lib/components/ui/skeleton'
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
   import PageHeader from '$lib/components/layout/page-header.svelte'
-  import { api, errorMessage } from '$lib/admin-api'
+  import { api, errorMessage } from '$lib/client/admin-api'
   import { formatDate } from '$lib/utils'
 
   interface Dashboard {

@@ -1,4 +1,4 @@
-import { ValidationError } from '$lib/server/errors'
+import { ValidationError } from '$lib/server/core/errors'
 
 export const THEME_SLUG_RE = /^[a-z0-9][a-z0-9-]{0,63}$/
 

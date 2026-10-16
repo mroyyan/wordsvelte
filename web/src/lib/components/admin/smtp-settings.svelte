@@ -12,7 +12,7 @@
   import * as Select from '$lib/components/ui/select'
   import { Card, CardContent } from '$lib/components/ui/card'
   import PasswordInput from '$lib/components/auth/password-input.svelte'
-  import { api, errorMessage } from '$lib/admin-api'
+  import { api, errorMessage } from '$lib/client/admin-api'
 
   type Encryption = 'none' | 'starttls' | 'tls'
   const ENCRYPTIONS: { value: Encryption; label: string; port: number }[] = [

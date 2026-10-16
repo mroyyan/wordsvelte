@@ -1,13 +1,13 @@
 import { createChallengeToken, createToken, getSigningSecret, setAuthCookie } from '$lib/server/auth'
-import { catchError, ok, readJson } from '$lib/server/response'
-import { validateLogin, normalizeEmail } from '$lib/server/services/user.service'
-import { availableMethods, getAuthState, sendEmailCode } from '$lib/server/services/two-factor.service'
+import { catchError, ok, readJson } from '$lib/server/http/response'
+import { validateLogin, normalizeEmail } from '$lib/server/services/account/user.service'
+import { availableMethods, getAuthState, sendEmailCode } from '$lib/server/services/account/two-factor.service'
 import { getDb } from '$lib/server/db'
-import { ValidationError, RateLimitError } from '$lib/server/errors'
-import { clientKey } from '$lib/server/rate-limit'
-import { loginByIp, loginByEmail, twoFactorSendByUser } from '$lib/server/limiters'
-import { resolveMailer } from '$lib/server/mail-resolver'
-import { getSettings } from '$lib/server/services/settings.service'
+import { ValidationError, RateLimitError } from '$lib/server/core/errors'
+import { clientKey } from '$lib/server/http/rate-limit'
+import { loginByIp, loginByEmail, twoFactorSendByUser } from '$lib/server/http/limiters'
+import { resolveMailer } from '$lib/server/mail/resolver'
+import { getSettings } from '$lib/server/services/site/settings.service'
 
 export async function POST(event) {
   try {

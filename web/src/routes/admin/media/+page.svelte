@@ -17,7 +17,7 @@
   import PageHeader from '$lib/components/layout/page-header.svelte'
   import PrimaryButton from '$lib/components/layout/primary-button.svelte'
   import { DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableBulkActions } from '$lib/components/data-table'
-  import { api, errorMessage, runBulk } from '$lib/admin-api'
+  import { api, errorMessage, runBulk } from '$lib/client/admin-api'
 
   interface MediaRow { id: number; r2Key: string; originalName: string; mimeType: string; size: number; width: number | null; height: number | null; createdAt: string }
 

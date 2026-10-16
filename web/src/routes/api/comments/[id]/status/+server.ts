@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit'
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { ok, catchError, readJson } from '$lib/server/response'
-import { updateCommentStatus } from '$lib/server/services/comment.service'
+import { ok, catchError, readJson } from '$lib/server/http/response'
+import { updateCommentStatus } from '$lib/server/services/content/comment.service'
 
 export async function PATCH(event) {
   try {

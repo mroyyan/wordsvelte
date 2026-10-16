@@ -1,6 +1,6 @@
 import { getDb } from '$lib/server/db'
-import { catchError, ok } from '$lib/server/response'
-import { getPostBySlug } from '$lib/server/services/post.service'
+import { catchError, ok } from '$lib/server/http/response'
+import { getPostBySlug } from '$lib/server/services/content/post.service'
 
 export async function GET(event) {
   try {

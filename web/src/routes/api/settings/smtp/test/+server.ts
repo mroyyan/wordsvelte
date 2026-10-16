@@ -1,9 +1,9 @@
 import { getDb } from '$lib/server/db'
 import { getSigningSecret, requireUser } from '$lib/server/auth'
-import { catchError, ok, readJson } from '$lib/server/response'
-import { AppError, ValidationError } from '$lib/server/errors'
-import { loadSmtpConfig } from '$lib/server/services/smtp-config.service'
-import { MailFormatError, SmtpError, sendSmtpMail } from '$lib/server/smtp'
+import { catchError, ok, readJson } from '$lib/server/http/response'
+import { AppError, ValidationError } from '$lib/server/core/errors'
+import { loadSmtpConfig } from '$lib/server/services/account/smtp-config.service'
+import { MailFormatError, SmtpError, sendSmtpMail } from '$lib/server/mail/smtp'
 
 /** Sends a test message through the saved SMTP settings and reports exactly where it fails. Defaults to the admin's own address. */
 export async function POST(event: any) {

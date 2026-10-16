@@ -1,7 +1,7 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { ok, created, catchError, readJson } from '$lib/server/response'
-import { listPages, createPage } from '$lib/server/services/page.service'
+import { ok, created, catchError, readJson } from '$lib/server/http/response'
+import { listPages, createPage } from '$lib/server/services/content/page.service'
 
 /** Page management is an editorial task: editors and admins. */
 export async function GET(event) {

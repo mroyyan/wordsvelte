@@ -9,7 +9,7 @@
     DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
     DropdownMenuSeparator, DropdownMenuTrigger,
   } from '$lib/components/ui/dropdown-menu'
-  import { initials, signOut, type SessionUser } from '$lib/auth-client'
+  import { initials, signOut, type SessionUser } from '$lib/client/auth-client'
 
   let { user }: { user: SessionUser | null } = $props()
 </script>

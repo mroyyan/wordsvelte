@@ -20,7 +20,7 @@
   import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog'
   import PageHeader from '$lib/components/layout/page-header.svelte'
   import PrimaryButton from '$lib/components/layout/primary-button.svelte'
-  import { fetchAll } from '$lib/admin-api'
+  import { fetchAll } from '$lib/client/admin-api'
   import PasswordInput from '$lib/components/auth/password-input.svelte'
   import {
     DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableColumnHeader, DataTablePagination,

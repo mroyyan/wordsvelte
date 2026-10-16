@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit'
 import { getDb } from '$lib/server/db'
-import { getSite } from '$lib/server/site'
-import { XML_HEADERS, countPublishedPosts, getPostEntries, postSitemapCount, urlsetXml } from '$lib/server/sitemap'
+import { getSite } from '$lib/server/seo/site'
+import { XML_HEADERS, countPublishedPosts, getPostEntries, postSitemapCount, urlsetXml } from '$lib/server/seo/sitemap'
 
 export async function GET(event) {
   if (!/^[1-9]\d{0,5}$/.test(event.params.page)) throw error(404, 'Not found')

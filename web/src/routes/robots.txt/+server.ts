@@ -1,6 +1,6 @@
 import { getDb } from '$lib/server/db'
-import { getSite } from '$lib/server/site'
-import { buildRobotsTxt } from '$lib/server/sitemap'
+import { getSite } from '$lib/server/seo/site'
+import { buildRobotsTxt } from '$lib/server/seo/sitemap'
 
 export async function GET(event) {
   const site = await getSite(getDb(event as any), event.url.origin)

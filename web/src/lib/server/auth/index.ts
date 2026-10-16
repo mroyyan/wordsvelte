@@ -3,7 +3,7 @@ import type { RequestEvent } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
 import { settings, users, ROLES, type Role } from '@wordsvelte/shared'
-import { AuthError, ForbiddenError } from '$lib/server/errors'
+import { AuthError, ForbiddenError } from '$lib/server/core/errors'
 
 const JWT_SETTINGS_KEY = 'jwt_secret'
 const PLACEHOLDER_SECRETS = new Set(['change-me-in-production', 'changeme', 'secret'])

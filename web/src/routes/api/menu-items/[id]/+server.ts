@@ -1,7 +1,7 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { ok, catchError, readJson } from '$lib/server/response'
-import { updateMenuItem, deleteMenuItem } from '$lib/server/services/menu.service'
+import { ok, catchError, readJson } from '$lib/server/http/response'
+import { updateMenuItem, deleteMenuItem } from '$lib/server/services/site/menu.service'
 
 export async function PUT(event) {
   try {

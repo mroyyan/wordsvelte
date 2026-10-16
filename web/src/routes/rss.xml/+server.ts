@@ -1,11 +1,11 @@
 import { desc, eq, sql } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
 import { posts, users, categories, postCategories } from '@wordsvelte/shared'
-import { getSite } from '$lib/server/site'
-import { rssXml } from '$lib/server/rss'
-import { sanitizeHtml } from '$lib/server/sanitize'
-import { parseStoredDate } from '$lib/format-date'
-import { snippet, stripHtml } from '$lib/seo'
+import { getSite } from '$lib/server/seo/site'
+import { rssXml } from '$lib/server/seo/rss'
+import { sanitizeHtml } from '$lib/server/core/sanitize'
+import { parseStoredDate } from '$lib/shared/format-date'
+import { snippet, stripHtml } from '$lib/shared/seo'
 
 export async function GET(event) {
   const db = getDb(event as any)

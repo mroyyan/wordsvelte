@@ -1,6 +1,6 @@
 import { getDb } from '$lib/server/db'
-import { ok, catchError } from '$lib/server/response'
-import { getPublicWidgets } from '$lib/server/services/widget.service'
+import { ok, catchError } from '$lib/server/http/response'
+import { getPublicWidgets } from '$lib/server/services/site/widget.service'
 
 export async function GET(event) {
   try {

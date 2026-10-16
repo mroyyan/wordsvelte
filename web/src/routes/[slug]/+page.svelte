@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { formatExcerpt } from '$lib/utils'
-  import { formatDate } from '$lib/format'
-  import Seo from '$lib/components/seo.svelte'
-  import { snippet } from '$lib/seo'
+  import { formatDate } from '$lib/shared/format'
+  import Seo from '$lib/components/site/seo.svelte'
+  import { snippet } from '$lib/shared/seo'
   import { page } from '$app/stores'
   import { Clock, Eye, MessageSquare, Share2, Tag, ChevronRight } from '@lucide/svelte'
-  import WidgetRenderer from '$lib/components/widgets/widget-renderer.svelte'
+  import WidgetRenderer from '$lib/components/site/widgets/widget-renderer.svelte'
 
   let { data } = $props()
   let { post, comments } = $derived(data as any)

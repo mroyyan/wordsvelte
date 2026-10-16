@@ -1,7 +1,7 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { ok, created, catchError, readJson } from '$lib/server/response'
-import { getMenuItems, createMenuItem } from '$lib/server/services/menu.service'
+import { ok, created, catchError, readJson } from '$lib/server/http/response'
+import { getMenuItems, createMenuItem } from '$lib/server/services/site/menu.service'
 
 export async function GET(event) {
   try {

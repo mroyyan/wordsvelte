@@ -1,9 +1,9 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { catchError, ok, readJson } from '$lib/server/response'
-import { RateLimitError } from '$lib/server/errors'
-import { accountPasswordByUser } from '$lib/server/limiters'
-import { getProfile, updateProfile } from '$lib/server/services/account.service'
+import { catchError, ok, readJson } from '$lib/server/http/response'
+import { RateLimitError } from '$lib/server/core/errors'
+import { accountPasswordByUser } from '$lib/server/http/limiters'
+import { getProfile, updateProfile } from '$lib/server/services/account/account.service'
 
 export async function GET(event: any) {
   try {

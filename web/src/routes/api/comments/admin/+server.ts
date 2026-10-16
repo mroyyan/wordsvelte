@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit'
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
-import { okPaginated, catchError } from '$lib/server/response'
-import { listComments } from '$lib/server/services/comment.service'
+import { okPaginated, catchError } from '$lib/server/http/response'
+import { listComments } from '$lib/server/services/content/comment.service'
 
 export async function GET(event) {
   try {

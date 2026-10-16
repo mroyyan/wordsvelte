@@ -1,5 +1,5 @@
 import { getDb } from '$lib/server/db'
-import { createUser } from '$lib/server/services/user.service'
+import { createUser } from '$lib/server/services/account/user.service'
 import { createToken } from '$lib/server/auth'
 
 export const JWT_SECRET = 'test-secret-that-is-long-enough-123456'

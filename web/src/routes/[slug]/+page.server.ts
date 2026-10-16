@@ -2,10 +2,10 @@ import { error } from '@sveltejs/kit'
 import { and, asc, eq, desc, sql } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
 import { posts, postTags, postCategories, tags, categories, users } from '@wordsvelte/shared'
-import { sanitizeHtml } from '$lib/server/sanitize'
-import { listCommentsByPost } from '$lib/server/services/comment.service'
-import { getPublishedPageBySlug } from '$lib/server/services/page.service'
-import { getPopularPosts } from '$lib/server/services/post.service'
+import { sanitizeHtml } from '$lib/server/core/sanitize'
+import { listCommentsByPost } from '$lib/server/services/content/comment.service'
+import { getPublishedPageBySlug } from '$lib/server/services/content/page.service'
+import { getPopularPosts } from '$lib/server/services/content/post.service'
 
 export async function load(event) {
   const { params } = event
