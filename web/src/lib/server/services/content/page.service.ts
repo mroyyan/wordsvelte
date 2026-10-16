@@ -1,5 +1,6 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
-import { pages, toSlug } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
+import { toSlug } from '@wordsvelte/shared'
+import { createPageRepository, type PagePatch } from '$lib/server/repositories/pages.repository'
 import { ConflictError, NotFoundError, ValidationError } from '$lib/server/core/errors'
 import { sanitizeHtml } from '$lib/server/core/sanitize'
 import { slugInUse, uniqueSlugAcross } from '$lib/server/services/content/slug.service'
@@ -21,25 +22,25 @@ export function validatePageStatus(status: unknown): 'draft' | 'publish' {
   return status as 'draft' | 'publish'
 }
 
-export async function listPages(db: any, opts: { status?: string } = {}) {
-  const where = opts.status && opts.status !== 'all' ? eq(pages.status, validatePageStatus(opts.status)) : undefined
-  return db.select().from(pages).where(where).orderBy(desc(sql`COALESCE(${pages.publishedAt}, ${pages.createdAt})`), desc(pages.id))
+export async function listPages(db: DbInstance, opts: { status?: string } = {}) {
+  const status = opts.status && opts.status !== 'all' ? validatePageStatus(opts.status) : undefined
+  return createPageRepository(db).list(status)
 }
 
-export async function getPageById(db: any, id: number) {
-  const [page] = await db.select().from(pages).where(eq(pages.id, id)).limit(1)
+export async function getPageById(db: DbInstance, id: number) {
+  const page = await createPageRepository(db).findById(id)
   if (!page) throw new NotFoundError('Page')
   return page
 }
 
 /** Public lookup: drafts are invisible. Content is sanitised again on the way out (imported/legacy rows). */
-export async function getPublishedPageBySlug(db: any, slug: string) {
-  const [page] = await db.select().from(pages).where(and(eq(pages.slug, slug), eq(pages.status, 'publish'))).limit(1)
+export async function getPublishedPageBySlug(db: DbInstance, slug: string) {
+  const page = await createPageRepository(db).findPublishedBySlug(slug)
   if (!page) return null
   return { ...page, content: sanitizeHtml(page.content) }
 }
 
-export async function createPage(db: any, data: PageInput & { title: string; authorId: number }) {
+export async function createPage(db: DbInstance, data: PageInput & { title: string; authorId: number }) {
   const title = String(data.title ?? '').trim()
   if (!title) throw new ValidationError('Title is required')
   if (title.length > MAX_TITLE_LENGTH) throw new ValidationError(`Title too long (max ${MAX_TITLE_LENGTH} chars)`)
@@ -55,7 +56,7 @@ export async function createPage(db: any, data: PageInput & { title: string; aut
   }
 
   const now = new Date().toISOString()
-  const [page] = await db.insert(pages).values({
+  return createPageRepository(db).insert({
     authorId: data.authorId,
     title,
     slug,
@@ -64,14 +65,13 @@ export async function createPage(db: any, data: PageInput & { title: string; aut
     publishedAt: status === 'publish' ? now : null,
     createdAt: now,
     updatedAt: now,
-  }).returning()
-  return page
+  })
 }
 
-export async function updatePage(db: any, id: number, data: PageInput) {
+export async function updatePage(db: DbInstance, id: number, data: PageInput) {
   const existing = await getPageById(db, id)
   // Explicit allow-list, like posts: never spread the request body into the update.
-  const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() }
+  const patch: PagePatch = { updatedAt: new Date().toISOString() }
 
   if (data.title !== undefined) {
     const title = String(data.title).trim()
@@ -91,12 +91,12 @@ export async function updatePage(db: any, id: number, data: PageInput) {
     if (patch.status === 'publish' && !existing.publishedAt) patch.publishedAt = patch.updatedAt
   }
 
-  await db.update(pages).set(patch).where(eq(pages.id, id))
+  await createPageRepository(db).update(id, patch)
   return getPageById(db, id)
 }
 
 /** Menu items pointing at the page are kept (their page_id becomes NULL via ON DELETE SET NULL) and simply stop showing publicly. */
-export async function deletePage(db: any, id: number) {
+export async function deletePage(db: DbInstance, id: number) {
   await getPageById(db, id)
-  await db.delete(pages).where(eq(pages.id, id))
+  await createPageRepository(db).delete(id)
 }

@@ -1,5 +1,5 @@
-import { eq, asc } from 'drizzle-orm'
-import { widgets } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
+import { createWidgetRepository } from '$lib/server/repositories/widgets.repository'
 import { ValidationError, NotFoundError } from '$lib/server/core/errors'
 import { sanitizeHtml } from '$lib/server/core/sanitize'
 
@@ -26,31 +26,30 @@ interface UpdateWidgetData {
 	status?: string
 }
 
-export async function listWidgets(db: any) {
-	return db.select().from(widgets).orderBy(asc(widgets.sortOrder))
+export async function listWidgets(db: DbInstance) {
+	return createWidgetRepository(db).list()
 }
 
-export async function createWidget(db: any, data: CreateWidgetData) {
+export async function createWidget(db: DbInstance, data: CreateWidgetData) {
 	if (!data.widgetType) throw new ValidationError('widgetType required')
 
-	const [item] = await db.insert(widgets).values({
+	return createWidgetRepository(db).insert({
 		widgetType: data.widgetType,
 		title: data.title ?? null,
 		content: cleanContent(data.widgetType, data.content),
 		settings: data.settings ?? null,
 		sidebarArea: data.sidebarArea || 'sidebar-1',
 		sortOrder: data.sortOrder ?? 0
-	}).returning()
-
-	return item
+	})
 }
 
-export async function updateWidget(db: any, id: number, data: UpdateWidgetData) {
+export async function updateWidget(db: DbInstance, id: number, data: UpdateWidgetData) {
+	const widgets = createWidgetRepository(db)
 	const updateData: any = {}
 	if (data.widgetType !== undefined) updateData.widgetType = data.widgetType
 	if (data.title !== undefined) updateData.title = data.title
 	if (data.content !== undefined) {
-		const [current] = await db.select({ widgetType: widgets.widgetType }).from(widgets).where(eq(widgets.id, id)).limit(1)
+		const current = await widgets.findById(id)
 		updateData.content = cleanContent(data.widgetType ?? current?.widgetType, data.content)
 	}
 	if (data.settings !== undefined) updateData.settings = data.settings
@@ -59,20 +58,18 @@ export async function updateWidget(db: any, id: number, data: UpdateWidgetData) 
 	if (data.status !== undefined) updateData.status = data.status
 	updateData.updatedAt = new Date().toISOString()
 
-	await db.update(widgets).set(updateData).where(eq(widgets.id, id))
+	await widgets.update(id, updateData)
 
-	const [item] = await db.select().from(widgets).where(eq(widgets.id, id)).limit(1)
+	const item = await widgets.findById(id)
 	if (!item) throw new NotFoundError('Widget')
 
 	return item
 }
 
-export async function deleteWidget(db: any, id: number) {
-	await db.delete(widgets).where(eq(widgets.id, id))
+export async function deleteWidget(db: DbInstance, id: number) {
+	await createWidgetRepository(db).delete(id)
 }
 
-export async function getPublicWidgets(db: any) {
-	return db.select().from(widgets)
-		.where(eq(widgets.status, 'active'))
-		.orderBy(asc(widgets.sortOrder))
+export async function getPublicWidgets(db: DbInstance) {
+	return createWidgetRepository(db).list({ activeOnly: true })
 }

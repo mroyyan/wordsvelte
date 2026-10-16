@@ -1,3 +1,4 @@
+import type { DbInstance } from '$lib/server/db'
 import { getSettings } from '$lib/server/services/site/settings.service'
 import { siteOrigin } from '$lib/shared/seo'
 
@@ -12,7 +13,7 @@ export interface SiteInfo {
   hidden: boolean
 }
 
-export async function getSite(db: any, requestOrigin: string): Promise<SiteInfo> {
+export async function getSite(db: DbInstance, requestOrigin: string): Promise<SiteInfo> {
   const settings = await getSettings(db)
   return {
     settings,

@@ -1,9 +1,10 @@
-import { and, eq, gt, lt, sql } from 'drizzle-orm'
-import { passwordResets, users } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
 import { ValidationError } from '$lib/server/core/errors'
 import { hashPassword, passwordPolicyError } from '$lib/server/core/crypto'
 import { normalizeEmail } from '$lib/server/services/account/user.service'
 import type { Mailer } from '$lib/server/mail/mailer'
+import { createUserRepository } from '$lib/server/repositories/users.repository'
+import { createPasswordResetRepository } from '$lib/server/repositories/password-resets.repository'
 
 export const RESET_TOKEN_TTL_MS = 60 * 60 * 1000
 
@@ -21,23 +22,17 @@ function newToken(): string {
  * Create a reset link for the account and mail it. Always resolves the same way whether or not the email
  * exists, so the endpoint cannot be used to discover which addresses have accounts.
  */
-export async function requestPasswordReset(db: any, rawEmail: unknown, opts: { origin: string; mailer: Mailer; now?: Date }) {
+export async function requestPasswordReset(db: DbInstance, rawEmail: unknown, opts: { origin: string; mailer: Mailer; now?: Date }) {
   const email = normalizeEmail(rawEmail)
   if (!email) return
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1)
+  const user = await createUserRepository(db).findByEmail(email)
   if (!user) return
 
   const now = opts.now ?? new Date()
-  // Only the newest link works, and expired ones don't pile up.
-  await db.delete(passwordResets).where(eq(passwordResets.userId, user.id))
-  await db.delete(passwordResets).where(lt(passwordResets.expiresAt, now.toISOString()))
-
   const token = newToken()
-  await db.insert(passwordResets).values({
-    userId: user.id,
-    tokenHash: await hashToken(token),
-    expiresAt: new Date(now.getTime() + RESET_TOKEN_TTL_MS).toISOString(),
-  })
+  await createPasswordResetRepository(db).replaceForUser(
+    user.id, await hashToken(token), new Date(now.getTime() + RESET_TOKEN_TTL_MS).toISOString(), now.toISOString(),
+  )
 
   const link = `${opts.origin}/admin/reset-password?token=${token}`
   try {
@@ -53,22 +48,21 @@ export async function requestPasswordReset(db: any, rawEmail: unknown, opts: { o
 }
 
 /** Check a token without consuming it (lets the page tell people early that a link is dead). */
-export async function isResetTokenValid(db: any, token: unknown, now = new Date()): Promise<boolean> {
+export async function isResetTokenValid(db: DbInstance, token: unknown, now = new Date()): Promise<boolean> {
   if (typeof token !== 'string' || !/^[0-9a-f]{64}$/.test(token)) return false
-  const [row] = await db.select({ id: passwordResets.id }).from(passwordResets)
-    .where(and(eq(passwordResets.tokenHash, await hashToken(token)), gt(passwordResets.expiresAt, now.toISOString()))).limit(1)
-  return !!row
+  return !!(await createPasswordResetRepository(db).findValid(await hashToken(token), now.toISOString()))
 }
 
-export async function resetPassword(db: any, token: unknown, newPassword: unknown, now = new Date()) {
+export async function resetPassword(db: DbInstance, token: unknown, newPassword: unknown, now = new Date()) {
   const policy = passwordPolicyError(newPassword)
   if (policy) throw new ValidationError(policy)
   if (!(await isResetTokenValid(db, token, now))) throw new ValidationError('This reset link is invalid or has expired')
 
-  const [row] = await db.select().from(passwordResets).where(eq(passwordResets.tokenHash, await hashToken(token as string))).limit(1)
-  const passwordHash = await hashPassword(newPassword as string)
-  // Bumping sessionVersion signs the account out everywhere: whoever had the old password loses access too.
-  await db.update(users).set({ passwordHash, sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: now.toISOString() }).where(eq(users.id, row.userId))
+  const resets = createPasswordResetRepository(db)
+  const row = await resets.findByHash(await hashToken(token as string))
+  if (!row) throw new ValidationError('This reset link is invalid or has expired')
+  // Setting the password also bumps sessionVersion: whoever had the old password loses access too.
+  await createUserRepository(db).setPassword(row.userId, await hashPassword(newPassword as string), now.toISOString())
   // Consume every outstanding link for this user.
-  await db.delete(passwordResets).where(eq(passwordResets.userId, row.userId))
+  await resets.deleteForUser(row.userId)
 }

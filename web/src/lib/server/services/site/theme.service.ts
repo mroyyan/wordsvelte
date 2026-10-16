@@ -1,5 +1,6 @@
-import { settings } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
 import { NotFoundError } from '$lib/server/core/errors'
+import { createSettingsRepository } from '$lib/server/repositories/settings.repository'
 import { listThemes as _listThemes, scanThemes as _scanThemes, setActiveTheme } from '$lib/server/themes'
 import { assertThemeSlug } from '$lib/server/themes/paths'
 import { getThemeStorage } from '$lib/server/themes/storage'
@@ -12,13 +13,11 @@ export async function scanThemes(platform?: App.Platform) {
 	return _scanThemes(platform)
 }
 
-export async function activateTheme(db: any, slug: string, platform?: App.Platform) {
+export async function activateTheme(db: DbInstance, slug: string, platform?: App.Platform) {
 	assertThemeSlug(slug)
 	if (!(await getThemeStorage(platform).exists(slug))) throw new NotFoundError('Theme')
 
-	await db.insert(settings)
-		.values({ key: 'theme', value: slug })
-		.onConflictDoUpdate({ target: settings.key, set: { value: slug } })
+	await createSettingsRepository(db).upsert('theme', slug)
 
 	await setActiveTheme(slug, platform)
 }

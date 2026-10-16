@@ -1,3 +1,4 @@
+import type { DbInstance } from '$lib/server/db'
 import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import { posts, pages, comments, media, categories, tags, users } from '@wordsvelte/shared'
 import { ROLE_RANK, type AuthUser } from '$lib/server/auth'
@@ -39,7 +40,7 @@ export function lastMonths(now: Date, count = MONTHS_IN_CHART): string[] {
   return out
 }
 
-export async function getDashboard(db: any, user: Pick<AuthUser, 'userId' | 'role'>, now = new Date()): Promise<DashboardData> {
+export async function getDashboard(db: DbInstance, user: Pick<AuthUser, 'userId' | 'role'>, now = new Date()): Promise<DashboardData> {
   const sitewide = ROLE_RANK[user.role] >= ROLE_RANK.editor
   const isAdmin = user.role === 'admin'
   const own = sitewide ? undefined : eq(posts.authorId, user.userId)
@@ -85,7 +86,7 @@ export async function getDashboard(db: any, user: Pick<AuthUser, 'userId' | 'rol
     postsPerMonth,
     monthDelta: { thisMonth, lastMonth, difference: thisMonth - lastMonth },
     topPosts: topPosts.map((p: any) => ({ ...p, viewCount: Number(p.viewCount) })),
-    recentPosts,
+    recentPosts: recentPosts as DashboardData["recentPosts"],
   }
 
   if (sitewide) {

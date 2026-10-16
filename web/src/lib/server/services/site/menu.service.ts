@@ -1,5 +1,6 @@
-import { eq, asc, inArray } from 'drizzle-orm'
-import { menus, menuItems, pages, toSlug } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
+import { toSlug } from '@wordsvelte/shared'
+import { createMenuRepository } from '$lib/server/repositories/menus.repository'
 import { ValidationError, NotFoundError } from '$lib/server/core/errors'
 
 interface CreateMenuData {
@@ -51,9 +52,9 @@ export function validateMenuUrl(url: unknown): string | null {
  * Items of type "page" store only a page id; the URL is derived from the page's current slug so renaming a page never
  * breaks a menu. `publicOnly` also drops items whose page is missing or not published (visitors must never get a dead link).
  */
-export async function resolvePageLinks(db: any, items: any[], opts: { publicOnly?: boolean } = {}) {
+export async function resolvePageLinks(db: DbInstance, items: any[], opts: { publicOnly?: boolean } = {}) {
 	const ids = [...new Set(items.filter(i => i.itemType === 'page' && i.pageId).map(i => i.pageId as number))]
-	const rows = ids.length ? await db.select({ id: pages.id, slug: pages.slug, title: pages.title, status: pages.status }).from(pages).where(inArray(pages.id, ids)) : []
+	const rows = await createMenuRepository(db).findPageSummaries(ids)
 	const byId = new Map<number, any>(rows.map((r: any) => [r.id, r]))
 
 	const out: any[] = []
@@ -66,40 +67,38 @@ export async function resolvePageLinks(db: any, items: any[], opts: { publicOnly
 	return out
 }
 
-async function requirePage(db: any, pageId: unknown) {
+async function requirePage(db: DbInstance, pageId: unknown) {
 	const id = Number(pageId)
 	if (!Number.isInteger(id)) throw new ValidationError('A page is required for page menu items')
-	const [page] = await db.select().from(pages).where(eq(pages.id, id)).limit(1)
+	const page = await createMenuRepository(db).findPageById(id)
 	if (!page) throw new NotFoundError('Page')
 	return page
 }
 
-export async function listMenus(db: any) {
-	const allMenus = await db.select().from(menus).orderBy(asc(menus.name))
+export async function listMenus(db: DbInstance) {
+	const menus = createMenuRepository(db)
 	const result = []
-	for (const menu of allMenus) {
-		const items = await db.select().from(menuItems)
-			.where(eq(menuItems.menuId, menu.id))
-			.orderBy(asc(menuItems.sortOrder))
-		result.push({ ...menu, items: await resolvePageLinks(db, items) })
+	for (const menu of await menus.listMenus()) {
+		result.push({ ...menu, items: await resolvePageLinks(db, await menus.listItems(menu.id)) })
 	}
 	return result
 }
 
-export async function createMenu(db: any, data: CreateMenuData) {
+export async function createMenu(db: DbInstance, data: CreateMenuData) {
 	if (!data.name) throw new ValidationError('Name required')
 
 	const slug = data.slug || toSlug(data.name)
-	const [menu] = await db.insert(menus).values({
+	const menu = await createMenuRepository(db).insertMenu({
 		name: data.name,
 		slug,
 		location: data.location || 'header'
-	}).returning()
+	})
 
 	return { ...menu, items: [] }
 }
 
-export async function updateMenu(db: any, id: number, data: UpdateMenuData) {
+export async function updateMenu(db: DbInstance, id: number, data: UpdateMenuData) {
+	const menus = createMenuRepository(db)
 	const updateData: any = {}
 	if (data.name !== undefined) {
 		updateData.name = data.name
@@ -109,43 +108,34 @@ export async function updateMenu(db: any, id: number, data: UpdateMenuData) {
 	if (data.status !== undefined) updateData.status = data.status
 	updateData.updatedAt = new Date().toISOString()
 
-	await db.update(menus).set(updateData).where(eq(menus.id, id))
+	await menus.updateMenu(id, updateData)
 
-	const [menu] = await db.select().from(menus).where(eq(menus.id, id)).limit(1)
+	const menu = await menus.findMenuById(id)
 	if (!menu) throw new NotFoundError('Menu')
 
-	const items = await db.select().from(menuItems)
-		.where(eq(menuItems.menuId, id))
-		.orderBy(asc(menuItems.sortOrder))
-
-	return { ...menu, items: await resolvePageLinks(db, items) }
+	return { ...menu, items: await resolvePageLinks(db, await menus.listItems(id)) }
 }
 
-export async function deleteMenu(db: any, id: number) {
-	await db.delete(menuItems).where(eq(menuItems.menuId, id))
-	await db.delete(menus).where(eq(menus.id, id))
+export async function deleteMenu(db: DbInstance, id: number) {
+	await createMenuRepository(db).deleteMenu(id)
 }
 
-export async function getMenuItems(db: any, menuId: number) {
-	const items = await db.select().from(menuItems)
-		.where(eq(menuItems.menuId, menuId))
-		.orderBy(asc(menuItems.sortOrder))
-	return resolvePageLinks(db, items)
+export async function getMenuItems(db: DbInstance, menuId: number) {
+	return resolvePageLinks(db, await createMenuRepository(db).listItems(menuId))
 }
 
-export async function createMenuItem(db: any, data: CreateMenuItemData) {
-	const [menu] = await db.select().from(menus).where(eq(menus.id, data.menuId)).limit(1)
-	if (!menu) throw new NotFoundError('Menu')
+export async function createMenuItem(db: DbInstance, data: CreateMenuItemData) {
+	const menus = createMenuRepository(db)
+	if (!(await menus.findMenuById(data.menuId))) throw new NotFoundError('Menu')
 
 	const isPage = data.itemType === 'page'
 	const page = isPage ? await requirePage(db, data.pageId) : null
 	const label = String(data.label || page?.title || '').trim()
 	if (!label) throw new ValidationError('Label required')
 
-	const count = await db.select({ count: menuItems.id }).from(menuItems).where(eq(menuItems.menuId, data.menuId))
-	const sortOrder = data.sortOrder ?? (count?.length || 0)
+	const sortOrder = data.sortOrder ?? await menus.countItems(data.menuId)
 
-	const [item] = await db.insert(menuItems).values({
+	const item = await menus.insertItem({
 		menuId: data.menuId,
 		parentId: data.parentId ?? null,
 		itemType: isPage ? 'page' : 'custom',
@@ -154,13 +144,14 @@ export async function createMenuItem(db: any, data: CreateMenuItemData) {
 		url: isPage ? null : validateMenuUrl(data.url),
 		target: data.target || '_self',
 		sortOrder
-	}).returning()
+	})
 
 	return (await resolvePageLinks(db, [item]))[0]
 }
 
-export async function updateMenuItem(db: any, id: number, data: UpdateMenuItemData) {
-	const [existing] = await db.select().from(menuItems).where(eq(menuItems.id, id)).limit(1)
+export async function updateMenuItem(db: DbInstance, id: number, data: UpdateMenuItemData) {
+	const menus = createMenuRepository(db)
+	const existing = await menus.findItemById(id)
 	if (!existing) throw new NotFoundError('Menu item')
 
 	const updateData: any = {}
@@ -185,26 +176,20 @@ export async function updateMenuItem(db: any, id: number, data: UpdateMenuItemDa
 		if (data.url !== undefined) updateData.url = validateMenuUrl(data.url)
 	}
 
-	await db.update(menuItems).set(updateData).where(eq(menuItems.id, id))
-	const [item] = await db.select().from(menuItems).where(eq(menuItems.id, id)).limit(1)
+	await menus.updateItem(id, updateData)
+	const item = await menus.findItemById(id)
 	return (await resolvePageLinks(db, [item]))[0]
 }
 
-export async function deleteMenuItem(db: any, id: number) {
-	await db.delete(menuItems).where(eq(menuItems.id, id))
+export async function deleteMenuItem(db: DbInstance, id: number) {
+	await createMenuRepository(db).deleteItem(id)
 }
 
-export async function getPublicMenus(db: any) {
-	const allMenus = await db.select().from(menus)
-		.where(eq(menus.status, 'active'))
-		.orderBy(asc(menus.name))
-
+export async function getPublicMenus(db: DbInstance) {
+	const menus = createMenuRepository(db)
 	const result = []
-	for (const menu of allMenus) {
-		const items = await db.select().from(menuItems)
-			.where(eq(menuItems.menuId, menu.id))
-			.orderBy(asc(menuItems.sortOrder))
-		const active = items.filter((i: any) => i.status === 'active')
+	for (const menu of await menus.listMenus({ activeOnly: true })) {
+		const active = (await menus.listItems(menu.id)).filter((i: any) => i.status === 'active')
 		result.push({ ...menu, items: await resolvePageLinks(db, active, { publicOnly: true }) })
 	}
 	return result

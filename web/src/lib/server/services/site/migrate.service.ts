@@ -1,3 +1,4 @@
+import type { DbInstance } from '$lib/server/db'
 import { sanitizeHtml } from '$lib/server/core/sanitize'
 import { IMAGE_TYPES, MAX_UPLOAD_BYTES, buildMediaKey, sniffImageType } from '$lib/server/storage/uploads'
 import { XMLParser } from 'fast-xml-parser'
@@ -244,7 +245,7 @@ function cleanExcerpt(html: string): string {
 
 // --- Slug Helpers ---
 
-async function getExistingSlugs(db: any, table: any, slugColumn: any): Promise<Set<string>> {
+async function getExistingSlugs(db: DbInstance, table: any, slugColumn: any): Promise<Set<string>> {
   const rows = await db.select({ slug: slugColumn }).from(table)
   return new Set(rows.map((r: any) => r.slug))
 }
@@ -324,7 +325,7 @@ async function uploadToR2(r2: any, buffer: ArrayBuffer, contentType: string, _fi
 
 export async function runImport(
   xml: string,
-  db: any,
+  db: DbInstance,
   r2: any,
   userId: number,
   sendProgress: (p: MigrateProgress) => void,

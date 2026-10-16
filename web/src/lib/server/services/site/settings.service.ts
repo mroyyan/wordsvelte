@@ -1,7 +1,8 @@
-import { settings } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
 import { ValidationError } from '$lib/server/core/errors'
 import { DATE_FORMAT_RE, LANGUAGES, isValidTimeZone } from '$lib/shared/format-date'
 import { EMAIL_RE } from '$lib/server/core/validators'
+import { createSettingsRepository } from '$lib/server/repositories/settings.repository'
 
 /** Never returned by any API or page, and never writable through the settings API. */
 const SECRET_KEYS = new Set(['jwt_secret'])
@@ -71,9 +72,9 @@ export const isPrivateKey = (key: string) => PRIVATE_KEYS.has(key)
  * `scope: 'public'` is what the site (and any anonymous caller) may see;
  * `scope: 'admin'` additionally includes private keys. Secrets are never included.
  */
-export async function getSettings(db: any, opts: { scope?: 'public' | 'admin' } = {}): Promise<Record<string, string>> {
+export async function getSettings(db: DbInstance, opts: { scope?: 'public' | 'admin' } = {}): Promise<Record<string, string>> {
 	const scope = opts.scope ?? 'public'
-	const all = await db.select().from(settings)
+	const all = await createSettingsRepository(db).all()
 	const data: Record<string, string> = {}
 	for (const s of all) {
 		if (isSecretKey(s.key)) continue
@@ -83,7 +84,7 @@ export async function getSettings(db: any, opts: { scope?: 'public' | 'admin' } 
 	return data
 }
 
-export async function updateSettings(db: any, data: Record<string, unknown>) {
+export async function updateSettings(db: DbInstance, data: Record<string, unknown>) {
 	const entries = Object.entries(data)
 	if (entries.length > MAX_KEYS_PER_UPDATE) throw new ValidationError('Too many settings in one request')
 	for (const [key, value] of entries) {
@@ -96,8 +97,6 @@ export async function updateSettings(db: any, data: Record<string, unknown>) {
 		const problem = SETTING_RULES[key]?.(String(value))
 		if (problem) throw new ValidationError(`Setting "${key}" ${problem}`)
 	}
-	for (const [key, value] of entries) {
-		const v = String(value)
-		await db.insert(settings).values({ key, value: v }).onConflictDoUpdate({ target: settings.key, set: { value: v } })
-	}
+	const store = createSettingsRepository(db)
+	for (const [key, value] of entries) await store.upsert(key, String(value))
 }

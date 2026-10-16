@@ -5,7 +5,7 @@ import { clientKey } from '$lib/server/http/rate-limit'
 import { forgotByEmail, forgotByIp } from '$lib/server/http/limiters'
 import { requestPasswordReset } from '$lib/server/services/account/password-reset.service'
 import { normalizeEmail } from '$lib/server/services/account/user.service'
-import { resolveMailer } from '$lib/server/mail/resolver'
+import { resolveMailer } from '$lib/server/services/site/mail.service'
 
 const GENERIC = { message: 'If an account exists for that email, a reset link has been sent.' }
 

@@ -91,15 +91,16 @@ news/
 │   │   │   │   ├── core/        #   errors, validators, crypto, sanitize: no framework or DB knowledge
 │   │   │   │   ├── http/        #   response helpers, CSRF, rate limiters
 │   │   │   │   ├── auth/        #   JWT sessions + two-factor primitives (TOTP, secret box, codes)
-│   │   │   │   ├── db/          #   database (D1 + local SQLite)
+│   │   │   │   ├── db/          #   database connection (D1 + local SQLite)
+│   │   │   │   ├── repositories/ #  all SQL (Drizzle) lives here, one repository per aggregate
 │   │   │   │   ├── mail/        #   mailer, SMTP client (Workers sockets / node:net in dev)
 │   │   │   │   ├── seo/         #   site info, sitemaps, RSS
 │   │   │   │   ├── storage/     #   uploads (R2)
 │   │   │   │   ├── themes/      #   Handlebars theme engine
-│   │   │   │   └── services/    #   business logic, grouped by domain
-│   │   │   │       ├── content/ #     posts, pages, categories, tags, comments, media
-│   │   │   │       ├── site/    #     settings, menus, widgets, themes, dashboard, migration
-│   │   │   │       └── account/ #     users, profile, password reset, two-factor, SMTP config
+│   │   │   │   └── services/    #   business rules, grouped by domain; no SQL, talks to repositories
+│   │   │   │       ├── content/ #     posts, pages, categories, tags, comments, media, public-site read model
+│   │   │   │       ├── site/    #     settings, SMTP config, mail, menus, widgets, themes, dashboard, migration
+│   │   │   │       └── account/ #     users, profile, sign-in, password reset, two-factor
 │   │   │   ├── client/          # browser-side helpers (admin API client, session storage)
 │   │   │   ├── shared/          # pure code used by both sides (date formats, SEO helpers)
 │   │   │   ├── config/          # navigation and auth page definitions
@@ -120,6 +121,10 @@ news/
 │   └── wrangler.toml          # Cloudflare config
 └── package.json               # Root workspace
 ```
+
+Dependencies run one way: **routes -> services -> repositories -> db**. Routes only translate HTTP (cookies, tokens, throttling, status codes);
+services hold the rules; repositories hold the SQL. `tests/server/architecture.test.ts` enforces this (allowed imports per layer, and no Drizzle or table
+access outside repositories). Three read-only/bulk modules (dashboard, WordPress import, sitemap) are listed there as known exceptions.
 
 ## SEO
 

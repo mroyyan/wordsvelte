@@ -1,9 +1,10 @@
 import { jwtVerify, SignJWT } from 'jose'
 import type { RequestEvent } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
-import { settings, users, ROLES, type Role } from '@wordsvelte/shared'
+import { ROLES, type Role } from '@wordsvelte/shared'
 import { AuthError, ForbiddenError } from '$lib/server/core/errors'
+import { createSettingsRepository } from '$lib/server/repositories/settings.repository'
+import { createUserRepository } from '$lib/server/repositories/users.repository'
 
 const JWT_SETTINGS_KEY = 'jwt_secret'
 const PLACEHOLDER_SECRETS = new Set(['change-me-in-production', 'changeme', 'secret'])
@@ -46,19 +47,18 @@ async function getSecret(event: EventLike): Promise<Uint8Array> {
   }
 
   if (cachedDbSecret) return enc.encode(cachedDbSecret)
-  const db = getDb(event)
-  const rows = await db.select().from(settings).where(eq(settings.key, JWT_SETTINGS_KEY)).limit(1)
-  if (rows.length > 0 && rows[0].value) {
-    cachedDbSecret = rows[0].value
-    return enc.encode(cachedDbSecret!)
+  const store = createSettingsRepository(getDb(event))
+  const existing = await store.get(JWT_SETTINGS_KEY)
+  if (existing) {
+    cachedDbSecret = existing
+    return enc.encode(existing)
   }
 
   const bytes = crypto.getRandomValues(new Uint8Array(32))
   const secret = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
-  await db.insert(settings).values({ key: JWT_SETTINGS_KEY, value: secret }).onConflictDoNothing()
-  const fresh = await db.select().from(settings).where(eq(settings.key, JWT_SETTINGS_KEY)).limit(1)
-  cachedDbSecret = fresh[0]?.value || secret
-  return enc.encode(cachedDbSecret!)
+  await store.insertIfAbsent(JWT_SETTINGS_KEY, secret)
+  cachedDbSecret = (await store.get(JWT_SETTINGS_KEY)) || secret
+  return enc.encode(cachedDbSecret)
 }
 
 function getToken(event: EventLike): string | null {
@@ -125,7 +125,7 @@ export async function requireUser(event: EventLike, minRole: Role = 'author'): P
   }
   if (typeof userId !== 'number') throw new AuthError('Invalid token')
 
-  const [user] = await getDb(event).select().from(users).where(eq(users.id, userId)).limit(1)
+  const user = await createUserRepository(getDb(event)).findById(userId)
   if (!user || !ROLES.includes(user.role as Role)) throw new AuthError('Invalid token')
   // A password change / reset / security change bumps the version: every token issued before it stops working.
   if (user.sessionVersion !== sessionVersion) throw new AuthError('Your session has ended. Please sign in again.')

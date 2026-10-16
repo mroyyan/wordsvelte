@@ -29,7 +29,7 @@ describe('createPost', () => {
   it('sets publishedAt only when created as published', async () => {
     const { user } = await seedUser('author')
     const p = await mkPost(user.id, { status: 'publish' })
-    expect(Date.parse(p.publishedAt)).not.toBeNaN()
+    expect(Date.parse(p.publishedAt!)).not.toBeNaN()
   })
 
   it('auto-generates unique slugs (-2, -3) instead of crashing on duplicates', async () => {

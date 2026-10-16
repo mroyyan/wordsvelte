@@ -30,7 +30,7 @@ describe('page service', () => {
 
   it('stamps publishedAt on first publish and keeps it afterwards', async () => {
     const p = await mk({ status: 'publish' })
-    expect(Date.parse(p.publishedAt)).not.toBeNaN()
+    expect(Date.parse(p.publishedAt!)).not.toBeNaN()
     const first = p.publishedAt
     await updatePage(getDb(), p.id, { status: 'draft' })
     await updatePage(getDb(), p.id, { status: 'publish', title: 'About' })

@@ -1,9 +1,8 @@
 import { json } from '@sveltejs/kit'
 import { getDb } from '$lib/server/db'
 import { createToken, setAuthCookie } from '$lib/server/auth'
-import { users } from '@wordsvelte/shared'
 import { catchError, created, readJson } from '$lib/server/http/response'
-import { createFirstAdmin } from '$lib/server/services/account/user.service'
+import { createFirstAdmin, needsSetup } from '$lib/server/services/account/user.service'
 
 export async function POST(event) {
   try {
@@ -20,8 +19,6 @@ export async function POST(event) {
 
 export async function GET(event) {
   try {
-    const db = getDb(event as any)
-    const [existing] = await db.select({ id: users.id }).from(users).limit(1)
-    return json({ success: true, data: { needsSetup: !existing } })
+    return json({ success: true, data: { needsSetup: await needsSetup(getDb(event as any)) } })
   } catch (e) { return catchError(e) }
 }

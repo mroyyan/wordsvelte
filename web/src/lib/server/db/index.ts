@@ -1,16 +1,22 @@
-import { drizzle } from 'drizzle-orm/d1'
+import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1'
 import * as schema from '@wordsvelte/shared'
 import type { RequestEvent } from '@sveltejs/kit'
 
-// Intentionally typed loosely: D1 and better-sqlite3 share the query-builder API
-// but have different result types (sync vs async), and services only `await` them.
-export type DbInstance = any
+/**
+ * The query-builder type every service is written against. Production runs on D1 (async); local development and the tests
+ * use better-sqlite3 (sync), which exposes the same builder API and is only ever awaited, so it is accepted here through
+ * `setDb` / `asDb` rather than weakening the type for everyone.
+ */
+export type DbInstance = DrizzleD1Database<typeof schema>
+
+/** Adapt a better-sqlite3 database (local dev, tests) to the D1-shaped type the services use. */
+export const asDb = (db: unknown) => db as DbInstance
 
 let overrideDb: DbInstance | null = null
 
 /** Install a database used when no D1 binding is present (local dev and tests). */
-export function setDb(db: DbInstance | null) {
-  overrideDb = db
+export function setDb(db: unknown | null) {
+  overrideDb = db === null ? null : asDb(db)
 }
 
 /**
@@ -20,7 +26,7 @@ export function setDb(db: DbInstance | null) {
 export async function ensureLocalDb() {
   if (overrideDb || !import.meta.env.DEV) return
   const { createSqliteDb } = await import('./local')
-  overrideDb = createSqliteDb()
+  overrideDb = asDb(createSqliteDb())
 }
 
 export function getDb(event?: Pick<RequestEvent, 'platform'> | null): DbInstance {

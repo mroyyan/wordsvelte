@@ -1,8 +1,8 @@
-import { eq, inArray } from 'drizzle-orm'
-import { settings } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
 import { ValidationError } from '$lib/server/core/errors'
 import { EMAIL_RE } from '$lib/server/core/validators'
 import { openSecret, sealSecret } from '$lib/server/auth/two-factor/secret-box'
+import { createSettingsRepository } from '$lib/server/repositories/settings.repository'
 import { isLoopbackHost, type SmtpConfig, type SmtpEncryption } from '$lib/server/mail/smtp'
 
 const KEYS = ['smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name'] as const
@@ -36,13 +36,10 @@ export interface SmtpSettingsInput {
   fromName?: unknown
 }
 
-async function readRaw(db: any): Promise<Record<string, string>> {
-  const rows = await db.select().from(settings).where(inArray(settings.key, [...KEYS]))
-  return Object.fromEntries(rows.map((r: any) => [r.key, r.value]))
+async function readRaw(db: DbInstance): Promise<Record<string, string>> {
+  const rows = await createSettingsRepository(db).getMany([...KEYS])
+  return Object.fromEntries(rows.map(r => [r.key, r.value]))
 }
-
-const put = (db: any, key: string, value: string) =>
-  db.insert(settings).values({ key, value }).onConflictDoUpdate({ target: settings.key, set: { value } })
 
 function decodeRaw(raw: Record<string, string>) {
   const encryption = ENCRYPTIONS.includes(raw.smtp_encryption as SmtpEncryption) ? (raw.smtp_encryption as SmtpEncryption) : 'starttls'
@@ -57,7 +54,7 @@ function decodeRaw(raw: Record<string, string>) {
   }
 }
 
-export async function getSmtpSettings(db: any, secret: Uint8Array): Promise<SmtpSettingsView> {
+export async function getSmtpSettings(db: DbInstance, secret: Uint8Array): Promise<SmtpSettingsView> {
   const raw = await readRaw(db)
   const base = decodeRaw(raw)
   const stored = raw.smtp_password ?? ''
@@ -71,7 +68,7 @@ export async function getSmtpSettings(db: any, secret: Uint8Array): Promise<Smtp
 }
 
 /** The settings in the shape the SMTP client wants, or null when mail is not configured (or the password is unreadable). */
-export async function loadSmtpConfig(db: any, secret: Uint8Array): Promise<SmtpConfig | null> {
+export async function loadSmtpConfig(db: DbInstance, secret: Uint8Array): Promise<SmtpConfig | null> {
   const raw = await readRaw(db)
   const base = decodeRaw(raw)
   if (!base.host || !base.fromEmail) return null
@@ -86,7 +83,7 @@ export async function loadSmtpConfig(db: any, secret: Uint8Array): Promise<SmtpC
 
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 
-export async function saveSmtpSettings(db: any, secret: Uint8Array, input: SmtpSettingsInput): Promise<SmtpSettingsView> {
+export async function saveSmtpSettings(db: DbInstance, secret: Uint8Array, input: SmtpSettingsInput): Promise<SmtpSettingsView> {
   const host = text(input.host)
   const fromEmail = text(input.fromEmail)
   const fromName = text(input.fromName).replace(/[\r\n]+/g, ' ')
@@ -96,7 +93,7 @@ export async function saveSmtpSettings(db: any, secret: Uint8Array, input: SmtpS
 
   // Clearing the host switches SMTP off entirely.
   if (!host) {
-    await db.delete(settings).where(inArray(settings.key, [...KEYS]))
+    await createSettingsRepository(db).deleteMany([...KEYS])
     return getSmtpSettings(db, secret)
   }
 
@@ -117,17 +114,18 @@ export async function saveSmtpSettings(db: any, secret: Uint8Array, input: SmtpS
   }
   if (username && !willHavePassword) throw new ValidationError('Enter the SMTP password for this username')
 
-  await put(db, 'smtp_host', host)
-  await put(db, 'smtp_port', String(port))
-  await put(db, 'smtp_encryption', encryption)
-  await put(db, 'smtp_username', username)
-  await put(db, 'smtp_from_email', fromEmail)
-  await put(db, 'smtp_from_name', fromName)
+  const store = createSettingsRepository(db)
+  await store.upsert('smtp_host', host)
+  await store.upsert('smtp_port', String(port))
+  await store.upsert('smtp_encryption', encryption)
+  await store.upsert('smtp_username', username)
+  await store.upsert('smtp_from_email', fromEmail)
+  await store.upsert('smtp_from_name', fromName)
 
   if (input.clearPassword === true || !username) {
-    await db.delete(settings).where(eq(settings.key, 'smtp_password'))
+    await store.deleteMany(['smtp_password'])
   } else if (newPassword) {
-    await put(db, 'smtp_password', await sealSecret(secret, PASSWORD_PURPOSE, newPassword))
+    await store.upsert('smtp_password', await sealSecret(secret, PASSWORD_PURPOSE, newPassword))
   }
   return getSmtpSettings(db, secret)
 }

@@ -3,12 +3,11 @@ import { getSigningSecret, requireUser } from '$lib/server/auth'
 import { catchError, ok, readJson } from '$lib/server/http/response'
 import { AppError, RateLimitError, ValidationError } from '$lib/server/core/errors'
 import { accountPasswordByUser, twoFactorByUser, twoFactorSendByUser } from '$lib/server/http/limiters'
-import { resolveMailer } from '$lib/server/mail/resolver'
-import { getSettings } from '$lib/server/services/site/settings.service'
+import { getMailContext } from '$lib/server/services/site/mail.service'
 import { assertPassword } from '$lib/server/services/account/account.service'
 import {
   beginTotpSetup, confirmEmail2fa, confirmTotpSetup, disableEmail2fa, disableTotp, getTwoFactorStatus,
-  regenerateRecoveryCodes, sendEmailCode,
+  regenerateRecoveryCodes, sendEnrolmentCode,
 } from '$lib/server/services/account/two-factor.service'
 
 export async function GET(event: any) {
@@ -52,8 +51,7 @@ export async function POST(event: any) {
 
     switch (action) {
       case 'totp-setup': {
-        const settings = await getSettings(db)
-        return ok(await beginTotpSetup(db, secret, me.userId, settings.site_name || 'WordSvelte'))
+        return ok(await beginTotpSetup(db, secret, me.userId, (await getMailContext(db, event)).siteName))
       }
       case 'totp-confirm': {
         try { return ok(await confirmTotpSetup(db, secret, me.userId, String(body.code ?? ''))) }
@@ -67,13 +65,7 @@ export async function POST(event: any) {
         const wait = twoFactorSendByUser.check(key)
         if (wait > 0) throw new RateLimitError(wait)
         twoFactorSendByUser.hit(key)
-        const settings = await getSettings(db)
-        try {
-          await sendEmailCode(db, secret, me.userId, 'enable', await resolveMailer(db, event), settings.site_name || 'WordSvelte')
-        } catch (e) {
-          console.error('Failed to send the verification email:', e)
-          throw new AppError('Could not send the email. Check Settings > Email first.', 502)
-        }
+        await sendEnrolmentCode(db, secret, me.userId, () => getMailContext(db, event))
         return ok({ sent: true })
       }
       case 'email-confirm': {

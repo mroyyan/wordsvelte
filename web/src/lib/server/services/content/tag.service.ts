@@ -1,5 +1,6 @@
-import { eq } from 'drizzle-orm'
-import { tags, toSlug } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
+import { toSlug } from '@wordsvelte/shared'
+import { createTagRepository } from '$lib/server/repositories/tags.repository'
 import { ValidationError, NotFoundError, ConflictError } from '$lib/server/core/errors'
 
 interface CreateTagData {
@@ -11,33 +12,32 @@ interface UpdateTagData {
   name?: string
 }
 
-export async function listTags(db: any) {
-  return db.select().from(tags).orderBy(tags.name)
+export async function listTags(db: DbInstance) {
+  return createTagRepository(db).list()
 }
 
-export async function createTag(db: any, data: CreateTagData) {
+export async function createTag(db: DbInstance, data: CreateTagData) {
   if (!data.name) throw new ValidationError('Name required')
 
   if (typeof data.name !== 'string' || data.name.length > 100) throw new ValidationError('Invalid name')
   const slug = toSlug(data.slug || data.name)
   if (!slug) throw new ValidationError('Invalid slug')
-  const [taken] = await db.select({ id: tags.id }).from(tags).where(eq(tags.slug, slug)).limit(1)
-  if (taken) throw new ConflictError('Tag already exists')
-  const [tag] = await db.insert(tags).values({ name: data.name, slug }).returning()
-
-  return tag
+  const tags = createTagRepository(db)
+  if (await tags.slugExists(slug)) throw new ConflictError('Tag already exists')
+  return tags.insert({ name: data.name, slug })
 }
 
-export async function updateTag(db: any, id: number, data: UpdateTagData) {
+export async function updateTag(db: DbInstance, id: number, data: UpdateTagData) {
   if (data.name !== undefined && (typeof data.name !== 'string' || !data.name.trim() || data.name.length > 100)) throw new ValidationError('Invalid name')
-  await db.update(tags).set({ name: data.name }).where(eq(tags.id, id))
+  const tags = createTagRepository(db)
+  await tags.updateName(id, data.name)
 
-  const [tag] = await db.select().from(tags).where(eq(tags.id, id)).limit(1)
+  const tag = await tags.findById(id)
   if (!tag) throw new NotFoundError('Tag')
 
   return tag
 }
 
-export async function deleteTag(db: any, id: number) {
-  await db.delete(tags).where(eq(tags.id, id))
+export async function deleteTag(db: DbInstance, id: number) {
+  await createTagRepository(db).delete(id)
 }

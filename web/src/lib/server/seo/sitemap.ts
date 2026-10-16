@@ -1,3 +1,4 @@
+import type { DbInstance } from '$lib/server/db'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import { posts, pages, categories, tags, postCategories, postTags } from '@wordsvelte/shared'
 import { parseStoredDate } from '$lib/shared/format-date'
@@ -41,7 +42,7 @@ export function newsSitemapXml(entries: { loc: string; title: string; publishedA
   return `${HEADER}<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n${rows.join('\n')}${rows.length ? '\n' : ''}</urlset>\n`
 }
 
-export async function countPublishedPosts(db: any): Promise<number> {
+export async function countPublishedPosts(db: DbInstance): Promise<number> {
   const [{ n }] = await db.select({ n: sql<number>`count(*)` }).from(posts).where(eq(posts.status, 'publish'))
   return Number(n)
 }
@@ -49,14 +50,14 @@ export async function countPublishedPosts(db: any): Promise<number> {
 export const postSitemapCount = (total: number) => Math.ceil(total / POSTS_PER_SITEMAP)
 
 /** 1-based chunk of published posts, ordered by id so a chunk's contents never shift when new posts are added. */
-export async function getPostEntries(db: any, origin: string, page: number): Promise<UrlEntry[]> {
+export async function getPostEntries(db: DbInstance, origin: string, page: number): Promise<UrlEntry[]> {
   const rows = await db.select({ slug: posts.slug, updatedAt: posts.updatedAt, publishedAt: posts.publishedAt, createdAt: posts.createdAt })
     .from(posts).where(eq(posts.status, 'publish')).orderBy(asc(posts.id)).limit(POSTS_PER_SITEMAP).offset((page - 1) * POSTS_PER_SITEMAP)
   return rows.map((r: any) => ({ loc: `${origin}/${r.slug}`, lastmod: toIso(r.updatedAt) ?? toIso(r.publishedAt) ?? toIso(r.createdAt) }))
 }
 
 /** Home, published pages, and the categories/tags that actually contain published posts (empty ones are thin pages). */
-export async function getStaticEntries(db: any, origin: string): Promise<UrlEntry[]> {
+export async function getStaticEntries(db: DbInstance, origin: string): Promise<UrlEntry[]> {
   const [latest] = await db.select({ d: sql<string>`MAX(COALESCE(${posts.updatedAt}, ${posts.createdAt}))` }).from(posts).where(eq(posts.status, 'publish'))
   const entries: UrlEntry[] = [{ loc: `${origin}/`, lastmod: toIso(latest?.d), changefreq: 'hourly', priority: '1.0' }]
 
@@ -77,7 +78,7 @@ export async function getStaticEntries(db: any, origin: string): Promise<UrlEntr
 }
 
 /** Posts published within the last 48 hours, newest first, for the Google News sitemap. */
-export async function getNewsEntries(db: any, origin: string, now = new Date()) {
+export async function getNewsEntries(db: DbInstance, origin: string, now = new Date()) {
   const when = sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`
   const cutoff = new Date(now.getTime() - NEWS_WINDOW_MS)
   // coarse date-prefix filter in SQL (works for every stored format), exact check below

@@ -1,7 +1,7 @@
 import { getDb } from '$lib/server/db'
 import { getSigningSecret, requireUser } from '$lib/server/auth'
 import { catchError, ok, readJson } from '$lib/server/http/response'
-import { getSmtpSettings, saveSmtpSettings } from '$lib/server/services/account/smtp-config.service'
+import { getSmtpSettings, saveSmtpSettings } from '$lib/server/services/site/smtp-config.service'
 
 /** Mail server settings (admin only). The password is never returned, only whether one is stored. */
 export async function GET(event: any) {

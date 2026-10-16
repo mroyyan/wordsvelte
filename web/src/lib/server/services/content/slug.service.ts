@@ -1,5 +1,6 @@
-import { eq } from 'drizzle-orm'
-import { posts, pages, toSlug } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
+import { toSlug } from '@wordsvelte/shared'
+import { createSlugRepository } from '$lib/server/repositories/slug.repository'
 
 /**
  * Posts and pages are both served from /<slug>, so a slug may only exist once across both tables.
@@ -14,16 +15,17 @@ export interface SlugIgnore {
   pageId?: number
 }
 
-export async function slugInUse(db: any, slug: string, ignore: SlugIgnore = {}): Promise<boolean> {
+export async function slugInUse(db: DbInstance, slug: string, ignore: SlugIgnore = {}): Promise<boolean> {
   if (RESERVED_SLUGS.has(slug)) return true
-  const [post] = await db.select({ id: posts.id }).from(posts).where(eq(posts.slug, slug)).limit(1)
-  if (post && post.id !== ignore.postId) return true
-  const [page] = await db.select({ id: pages.id }).from(pages).where(eq(pages.slug, slug)).limit(1)
-  return !!page && page.id !== ignore.pageId
+  const slugs = createSlugRepository(db)
+  const postId = await slugs.findPostIdBySlug(slug)
+  if (postId !== null && postId !== ignore.postId) return true
+  const pageId = await slugs.findPageIdBySlug(slug)
+  return pageId !== null && pageId !== ignore.pageId
 }
 
 /** Normalise `base` to a slug and append -2, -3, ... until it is free everywhere. */
-export async function uniqueSlugAcross(db: any, base: string, ignore: SlugIgnore = {}, fallback = 'post'): Promise<string> {
+export async function uniqueSlugAcross(db: DbInstance, base: string, ignore: SlugIgnore = {}, fallback = 'post'): Promise<string> {
   const root = toSlug(base) || fallback
   if (!(await slugInUse(db, root, ignore))) return root
   for (let n = 2; n < 100; n++) {

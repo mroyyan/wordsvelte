@@ -1,20 +1,11 @@
-import { eq, desc, sql, and, ne } from 'drizzle-orm'
-import { users, ROLES, type Role } from '@wordsvelte/shared'
+import type { DbInstance } from '$lib/server/db'
+import { ROLES, type Role } from '@wordsvelte/shared'
 import { ValidationError, NotFoundError, ConflictError, AppError, ForbiddenError } from '$lib/server/core/errors'
 import { hashPassword, verifyPassword, verifyDummyPassword, passwordPolicyError } from '$lib/server/core/crypto'
 import { EMAIL_RE } from '$lib/server/core/validators'
+import { createUserRepository, type UserPatch } from '$lib/server/repositories/users.repository'
 
 const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/
-
-const publicColumns = {
-	id: users.id,
-	email: users.email,
-	username: users.username,
-	displayName: users.displayName,
-	role: users.role,
-	avatarUrl: users.avatarUrl,
-	createdAt: users.createdAt,
-}
 
 export const normalizeEmail = (email: unknown) => String(email ?? '').trim().toLowerCase()
 
@@ -34,26 +25,27 @@ function validateDisplayName(name: unknown): string {
 	return v
 }
 
-export async function listUsers(db: any, opts: { page?: number; limit?: number } = {}) {
+export async function listUsers(db: DbInstance, opts: { page?: number; limit?: number } = {}) {
+	const users = createUserRepository(db)
 	const page = Math.max(1, opts.page || 1)
 	const limit = Math.min(100, Math.max(1, opts.limit || 10))
 	const offset = (page - 1) * limit
 
-	const total = await db.select({ count: sql<number>`count(*)` }).from(users).then((r: any) => r[0].count)
-	const data = await db.select(publicColumns).from(users).orderBy(desc(users.createdAt), desc(users.id)).limit(limit).offset(offset)
+	const total = await users.count()
+	const data = await users.listPublic(limit, offset)
 
 	return { data, total, page, limit, totalPages: Math.ceil(total / limit) }
 }
 
-export async function getUserByEmail(db: any, email: string) {
-	const [user] = await db.select().from(users).where(eq(users.email, normalizeEmail(email))).limit(1)
-	return user || null
+export async function getUserByEmail(db: DbInstance, email: string) {
+	return createUserRepository(db).findByEmail(normalizeEmail(email))
 }
 
 export async function createUser(
-	db: any,
+	db: DbInstance,
 	data: { email: string; username: string; password: string; displayName: string; role?: string },
 ) {
+	const users = createUserRepository(db)
 	const email = normalizeEmail(data.email)
 	validateEmail(email)
 	const username = String(data.username ?? '').trim()
@@ -63,33 +55,29 @@ export async function createUser(
 	const displayName = validateDisplayName(data.displayName)
 	const role = data.role === undefined ? 'author' : validateRole(data.role)
 
-	const [emailTaken] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)
-	if (emailTaken) throw new ConflictError('Email already registered')
-	const [nameTaken] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1)
-	if (nameTaken) throw new ConflictError('Username already taken')
+	if (await users.emailTaken(email)) throw new ConflictError('Email already registered')
+	if (await users.usernameTaken(username)) throw new ConflictError('Username already taken')
 
-	const passwordHash = await hashPassword(data.password)
-	const [user] = await db.insert(users).values({ email, username, passwordHash, displayName, role }).returning()
+	const user = await users.insert({ email, username, passwordHash: await hashPassword(data.password), displayName, role })
 
 	return { id: user.id, email: user.email, username: user.username, displayName: user.displayName, role: user.role }
 }
 
 /** Create the very first admin. Safe against two simultaneous setup requests: only the lowest id survives. */
-export async function createFirstAdmin(db: any, data: { email: string; username: string; password: string; displayName: string }) {
-	const [existing] = await db.select({ id: users.id }).from(users).limit(1)
-	if (existing) throw new AppError('Setup already completed', 403)
+export async function createFirstAdmin(db: DbInstance, data: { email: string; username: string; password: string; displayName: string }) {
+	const users = createUserRepository(db)
+	if (await users.hasAny()) throw new AppError('Setup already completed', 403)
 
 	const admin = await createUser(db, { ...data, role: 'admin' })
 
-	const [{ minId }] = await db.select({ minId: sql<number>`min(${users.id})` }).from(users)
-	if (minId !== admin.id) {
-		await db.delete(users).where(eq(users.id, admin.id))
+	if ((await users.minId()) !== admin.id) {
+		await users.deleteById(admin.id)
 		throw new AppError('Setup already completed', 403)
 	}
 	return admin
 }
 
-export async function validateLogin(db: any, email: string, password: string) {
+export async function validateLogin(db: DbInstance, email: string, password: string) {
 	const user = await getUserByEmail(db, email)
 	if (!user) {
 		await verifyDummyPassword(String(password))
@@ -102,7 +90,7 @@ export async function validateLogin(db: any, email: string, password: string) {
 }
 
 export async function updateUser(
-	db: any,
+	db: DbInstance,
 	actor: { userId: number },
 	id: number,
 	body: { displayName?: unknown; email?: unknown; role?: unknown },
@@ -111,21 +99,24 @@ export async function updateUser(
 	if (id === 1) throw new ForbiddenError('Cannot modify the primary admin')
 	if (actor.userId === id) throw new ForbiddenError('Cannot modify your own account')
 
-	const [existing] = await db.select().from(users).where(eq(users.id, id)).limit(1)
-	if (!existing) throw new NotFoundError('User')
+	const users = createUserRepository(db)
+	if (!(await users.findById(id))) throw new NotFoundError('User')
 
-	const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() }
+	const patch: UserPatch = {}
 	if (body.displayName !== undefined) patch.displayName = validateDisplayName(body.displayName)
 	if (body.role !== undefined) patch.role = validateRole(body.role)
 	if (body.email !== undefined) {
 		const email = normalizeEmail(body.email)
 		validateEmail(email)
-		const [taken] = await db.select({ id: users.id }).from(users).where(and(eq(users.email, email), ne(users.id, id))).limit(1)
-		if (taken) throw new ConflictError('Email already registered')
+		if (await users.emailTaken(email, id)) throw new ConflictError('Email already registered')
 		patch.email = email
 	}
 
-	await db.update(users).set(patch).where(eq(users.id, id))
-	const [updated] = await db.select(publicColumns).from(users).where(eq(users.id, id)).limit(1)
-	return updated
+	await users.update(id, patch)
+	return users.findPublicById(id)
+}
+
+/** True until the first administrator exists (the app then sends visitors to /admin/setup). */
+export async function needsSetup(db: DbInstance): Promise<boolean> {
+	return !(await createUserRepository(db).hasAny())
 }
