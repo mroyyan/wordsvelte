@@ -9,6 +9,7 @@ import { createCategory } from '$lib/server/services/category.service'
 import { createTag } from '$lib/server/services/tag.service'
 import { createMenu, createMenuItem } from '$lib/server/services/menu.service'
 import { createWidget } from '$lib/server/services/widget.service'
+import { createPage } from '$lib/server/services/page.service'
 import * as categories from '../src/routes/api/categories/+server'
 import * as category from '../src/routes/api/categories/[id]/+server'
 import * as tags from '../src/routes/api/tags/+server'
@@ -22,6 +23,12 @@ import * as widget from '../src/routes/api/widgets/[id]/+server'
 import * as migratePreview from '../src/routes/api/migrate/preview/+server'
 import * as migrateImport from '../src/routes/api/migrate/import/+server'
 import * as me from '../src/routes/api/auth/me/+server'
+import * as accountRoute from '../src/routes/api/account/+server'
+import * as account2fa from '../src/routes/api/account/2fa/+server'
+import * as smtpRoute from '../src/routes/api/settings/smtp/+server'
+import * as smtpTest from '../src/routes/api/settings/smtp/test/+server'
+import * as pagesRoute from '../src/routes/api/pages/+server'
+import * as pageRoute from '../src/routes/api/pages/[id]/+server'
 import { call, makeEvent, seedUser, withR2 } from './helpers/harness'
 
 type Min = 'author' | 'editor' | 'admin'
@@ -30,7 +37,7 @@ const ROLES: Role[] = ['anonymous', 'author', 'editor', 'admin']
 const RANK: Record<Role, number> = { anonymous: 0, author: 1, editor: 2, admin: 3 }
 
 interface Case { name: string; min: Min; run: (token: string | undefined, ids: Ids) => Promise<{ status: number }> }
-interface Ids { cat: number; tag: number; menu: number; item: number; widget: number }
+interface Ids { cat: number; tag: number; menu: number; item: number; widget: number; page: number }
 
 async function fixtures(): Promise<Ids> {
   const db = getDb()
@@ -39,7 +46,9 @@ async function fixtures(): Promise<Ids> {
   const mn = await createMenu(db, { name: 'Menu', slug: 'menu', location: 'footer' } as any)
   const it = await createMenuItem(db, { menuId: mn.id, label: 'Item', url: '/x' } as any)
   const wd = await createWidget(db, { widgetType: 'html', title: 'W', content: '<p>x</p>' })
-  return { cat: cat.id, tag: tg.id, menu: mn.id, item: it.id, widget: wd.id }
+  const owner = await seedUser('admin')
+  const pg = await createPage(db, { title: 'Fixture', content: '<p>x</p>', authorId: owner.user.id })
+  return { cat: cat.id, tag: tg.id, menu: mn.id, item: it.id, widget: wd.id, page: pg.id }
 }
 
 const ev = (token: string | undefined, o: object = {}) => makeEvent({ token, platform: withR2(), ...o })
@@ -49,9 +58,22 @@ const json = (method: string, token: string | undefined, params: object, body: o
 const CASES: Case[] = [
   { name: 'GET /api/auth/me', min: 'author', run: t => call(me.GET, ev(t)) },
 
+  { name: 'GET /api/account', min: 'author', run: t => call(accountRoute.GET, ev(t)) },
+  { name: 'PATCH /api/account', min: 'author', run: t => call(accountRoute.PATCH, json('PATCH', t, {}, { displayName: 'New Name' })) },
+  { name: 'GET /api/account/2fa', min: 'author', run: t => call(account2fa.GET, ev(t)) },
+  { name: 'POST /api/account/2fa', min: 'author', run: t => call(account2fa.POST, json('POST', t, {}, { action: 'nope' })) },
+  { name: 'GET /api/settings/smtp', min: 'admin', run: t => call(smtpRoute.GET, ev(t)) },
+  { name: 'PUT /api/settings/smtp', min: 'admin', run: t => call(smtpRoute.PUT, json('PUT', t, {}, { host: '' })) },
+  { name: 'POST /api/settings/smtp/test', min: 'admin', run: t => call(smtpTest.POST, json('POST', t, {}, {})) },
+
   { name: 'POST /api/categories', min: 'editor', run: t => call(categories.POST, json('POST', t, {}, { name: `c${Math.random()}` })) },
   { name: 'PUT /api/categories/:id', min: 'editor', run: (t, i) => call(category.PUT, json('PUT', t, { id: String(i.cat) }, { name: 'renamed' })) },
   { name: 'DELETE /api/categories/:id', min: 'editor', run: (t, i) => call(category.DELETE, json('DELETE', t, { id: String(i.cat) })) },
+
+  { name: 'GET /api/pages', min: 'editor', run: t => call(pagesRoute.GET, ev(t)) },
+  { name: 'POST /api/pages', min: 'editor', run: t => call(pagesRoute.POST, json('POST', t, {}, { title: `p${Math.random()}` })) },
+  { name: 'PATCH /api/pages/:id', min: 'editor', run: (t, i) => call(pageRoute.PATCH, json('PATCH', t, { id: String(i.page) }, { title: 'renamed' })) },
+  { name: 'DELETE /api/pages/:id', min: 'editor', run: (t, i) => call(pageRoute.DELETE, json('DELETE', t, { id: String(i.page) })) },
 
   { name: 'POST /api/tags', min: 'editor', run: t => call(tags.POST, json('POST', t, {}, { name: `t${Math.random()}` })) },
   { name: 'PUT /api/tags/:id', min: 'editor', run: (t, i) => call(tag.PUT, json('PUT', t, { id: String(i.tag) }, { name: 'renamed' })) },
@@ -98,8 +120,8 @@ describe('authorization matrix', () => {
 
     // Routes whose auth is exercised in their own dedicated test files.
     const covered = [
-      'auth/login', 'auth/logout', 'auth/setup', 'auth/me', 'users', 'settings', 'comments', 'media', 'posts', 'posts-admin', 'themes',
-      'categories', 'tags', 'menus', 'menu-items', 'widgets', 'migrate',
+      'auth/login', 'auth/logout', 'auth/setup', 'auth/me', 'auth/forgot-password', 'auth/reset-password', 'auth/2fa', 'account', 'users', 'settings', 'comments', 'media', 'posts', 'posts-admin', 'themes',
+      'categories', 'tags', 'menus', 'menu-items', 'widgets', 'migrate', 'pages', 'dashboard',
     ]
     for (const f of files) {
       const rel = relative(root, f).replace(/\\/g, '/').replace('/+server.ts', '')

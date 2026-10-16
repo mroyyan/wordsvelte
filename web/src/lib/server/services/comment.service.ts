@@ -3,6 +3,7 @@ import { comments, posts } from '@wordsvelte/shared'
 import { ValidationError, NotFoundError, ForbiddenError } from '$lib/server/errors'
 import { EMAIL_RE } from '$lib/server/validators'
 import { getSettings } from '$lib/server/services/settings.service'
+import { parseStoredDate } from '$lib/format-date'
 
 const MAX_CONTENT_LENGTH = 5000
 const MAX_NAME_LENGTH = 100
@@ -25,24 +26,29 @@ export async function createComment(
 ) {
 	const postId = Number(data.postId)
 	if (!Number.isInteger(postId)) throw new ValidationError('Invalid post')
-	const authorName = String(data.authorName ?? '').trim()
+	const settings = await getSettings(db)
+	const requireIdentity = settings.comments_require_name_email !== 'false'
+	let authorName = String(data.authorName ?? '').trim()
 	const authorEmail = String(data.authorEmail ?? '').trim()
 	const content = String(data.content ?? '').trim()
 
+	if (!authorName && !requireIdentity) authorName = 'Anonim'
 	if (!authorName) throw new ValidationError('Name is required')
 	if (authorName.length > MAX_NAME_LENGTH) throw new ValidationError(`Name too long (max ${MAX_NAME_LENGTH} chars)`)
-	if (!EMAIL_RE.test(authorEmail) || authorEmail.length > 254) throw new ValidationError('Invalid email format')
+	// When identity is optional the email may be left out, but one that is given must still be valid.
+	if (authorEmail || requireIdentity) {
+		if (!EMAIL_RE.test(authorEmail) || authorEmail.length > 254) throw new ValidationError('Invalid email format')
+	}
 	if (!content) throw new ValidationError('Comment is required')
 	if (content.length > MAX_CONTENT_LENGTH) throw new ValidationError(`Content too long (max ${MAX_CONTENT_LENGTH} chars)`)
 
 	const [post] = await db.select().from(posts).where(eq(posts.id, postId)).limit(1)
 	if (!post || post.status !== 'publish') throw new NotFoundError('Post')
 
-	const settings = await getSettings(db)
 	if (settings.comments_enabled === 'false') throw new ForbiddenError('Comments are disabled')
 	const closeAfterDays = parseInt(settings.comments_close_after_days || '0', 10)
 	if (closeAfterDays > 0) {
-		const published = new Date(post.publishedAt || post.createdAt).getTime()
+		const published = parseStoredDate(post.publishedAt || post.createdAt)?.getTime() ?? NaN
 		if (Number.isFinite(published) && Date.now() - published > closeAfterDays * 86_400_000) {
 			throw new ForbiddenError('Comments are closed for this post')
 		}

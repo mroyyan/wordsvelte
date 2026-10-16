@@ -96,6 +96,8 @@ export async function ensureLocalThemeStorage() {
 
 export function getThemeStorage(platform?: App.Platform): ThemeStorage {
   if (storage) return storage
+  // `vite dev` also exposes an emulated R2 binding; in dev the themes folder on disk is the source of truth.
+  if (import.meta.env.DEV && localStorageInstance) return localStorageInstance
   if (platform?.env?.R2) {
     storage = new LayeredThemeStorage(new R2ThemeStorage(platform.env.R2))
     return storage

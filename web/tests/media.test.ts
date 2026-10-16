@@ -130,7 +130,7 @@ describe('POST /api/media', () => {
 
   it('503 with a clear error (not a crash) when R2 is not bound', async () => {
     const { token } = await seedUser('author')
-    const r = await up(token, uploadForm(PNG_BYTES), { env: { JWT_SECRET: 'test-secret-that-is-long-enough-123456' } })
+    const r = await up(token, uploadForm(PNG_BYTES), { env: { JWT_SECRET: 'test-secret-that-is-long-enough-123456' } } as any)
     expect(r.status).toBe(503)
   })
 

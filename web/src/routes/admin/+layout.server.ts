@@ -1,11 +1,12 @@
 import { redirect } from '@sveltejs/kit'
-import { verifyAuth } from '$lib/server/auth'
+import { requireUser } from '$lib/server/auth'
 import { getDb } from '$lib/server/db'
 import { users } from '@wordsvelte/shared'
+import { isAuthPage } from '$lib/config/auth-pages'
 
 export async function load(event) {
-  // Public pages
-  if (event.url.pathname === '/admin/login' || event.url.pathname === '/admin/setup') return {}
+  // Public pages (auth screens render without the admin shell)
+  if (isAuthPage(event.url.pathname)) return { user: null }
 
   // Check if setup needed
   try {
@@ -18,8 +19,8 @@ export async function load(event) {
 
   // Verify auth
   try {
-    await verifyAuth(event as any)
-    return {}
+    const user = await requireUser(event as any)
+    return { user: { id: user.userId, role: user.role, email: user.email, username: user.username, displayName: user.displayName } }
   } catch {
     throw redirect(302, '/admin/login')
   }

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Button } from '$lib/components/ui/button'
+  import PrimaryButton from '$lib/components/layout/primary-button.svelte'
   import { Input } from '$lib/components/ui/input'
   import { Textarea } from '$lib/components/ui/textarea'
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select'
@@ -159,7 +160,7 @@
 <div class="space-y-6">
   <div class="flex items-center justify-between">
     <div><h1 class="text-2xl font-bold tracking-tight">Widgets</h1><p class="text-muted-foreground">Manage sidebar widgets</p></div>
-    <Button onclick={openCreate}><Plus class="mr-2 h-4 w-4" /> Add Widget</Button>
+    <PrimaryButton label="Add Widget" icon={Plus} onclick={openCreate} />
   </div>
 
   {#if loading}

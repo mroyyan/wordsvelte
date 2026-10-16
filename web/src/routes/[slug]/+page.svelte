@@ -1,18 +1,22 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { formatDate, formatExcerpt } from '$lib/utils'
+  import { formatExcerpt } from '$lib/utils'
+  import { formatDate } from '$lib/format'
+  import Seo from '$lib/components/seo.svelte'
+  import { snippet } from '$lib/seo'
   import { page } from '$app/stores'
   import { Clock, Eye, MessageSquare, Share2, Tag, ChevronRight } from '@lucide/svelte'
   import WidgetRenderer from '$lib/components/widgets/widget-renderer.svelte'
 
   let { data } = $props()
-  let { post, comments } = $derived(data)
+  let { post, comments } = $derived(data as any)
   let postTags: { id: number; name: string; slug: string }[] = $derived((data.postTags || []) as any)
   let allTags = $derived(data.tags || [])
   let sidebarWidgets = $derived($page.data.widgets?.filter((w: any) => w.sidebarArea === 'sidebar-1') || [])
   let stickySidebar = $derived($page.data.settings?.sticky_sidebar === 'true')
 
   let commentText = $state('')
+  let requireIdentity = $derived($page.data.settings?.comments_require_name_email !== 'false')
   let commentName = $state('')
   let commentEmail = $state('')
 
@@ -37,7 +41,7 @@
 
   async function handleCommentSubmit(e: Event) {
     e.preventDefault()
-    if (!commentText.trim() || !commentName.trim() || !commentEmail.trim()) return
+    if (!commentText.trim() || (requireIdentity && (!commentName.trim() || !commentEmail.trim()))) return
     submitting = true; commentError = ''; commentSuccess = false
     try {
       const res = await fetch('/api/comments', {
@@ -52,6 +56,60 @@
   }
 </script>
 
+{#if data.kind === 'page'}
+  <Seo
+    title={data.page.title}
+    description={snippet(data.page.content)}
+    modifiedAt={data.page.updatedAt}
+    webPage
+    breadcrumbs={[{ name: data.page.title, path: `/${data.page.slug}` }]}
+  />
+{:else}
+  <Seo
+    title={post.title}
+    description={post.excerpt || snippet(post.content)}
+    image={post.featuredImageUrl}
+    type="article"
+    publishedAt={post.publishedAt || post.createdAt}
+    modifiedAt={post.updatedAt}
+    authorName={data.authorName}
+    section={data.postCategories?.[0]?.name}
+    tags={postTags.map(t => t.name)}
+    breadcrumbs={[
+      ...(data.postCategories?.[0] ? [{ name: data.postCategories[0].name, path: `/kategori/${data.postCategories[0].slug}` }] : []),
+      { name: post.title, path: `/${post.slug}` },
+    ]}
+  />
+{/if}
+
+{#if data.kind === 'page'}
+  <div class="grid lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2">
+      <article class="bg-white rounded-lg border overflow-hidden">
+        <div class="px-6 pt-6 pb-2">
+          <nav class="flex items-center gap-1 text-xs text-gray-500 mb-3">
+            <a href="/" class="hover:text-red-600">Beranda</a>
+            <ChevronRight class="h-3 w-3" />
+            <span class="text-gray-400 truncate max-w-[200px]">{data.page.title}</span>
+          </nav>
+          <h1 class="text-2xl md:text-3xl font-bold leading-tight text-gray-900 pb-4 border-b">{data.page.title}</h1>
+        </div>
+        <div class="px-6 py-6">
+          <div class="post-content text-gray-800 leading-relaxed text-[15px] space-y-4">
+            {@html data.page.content}
+          </div>
+        </div>
+      </article>
+    </div>
+    <aside class="space-y-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
+      {#each sidebarWidgets as widget (widget.id)}
+        <div class="bg-white rounded-lg border p-4">
+          <WidgetRenderer {widget} posts={data.popular || []} categories={data.categories || []} tags={data.tags || []} />
+        </div>
+      {/each}
+    </aside>
+  </div>
+{:else}
 <div class="grid lg:grid-cols-3 gap-8">
   <div class="lg:col-span-2">
     <article class="bg-white rounded-lg border overflow-hidden">
@@ -163,8 +221,8 @@
         <form class="space-y-3" onsubmit={handleCommentSubmit}>
           <textarea bind:value={commentText} placeholder="Tulis komentar Anda di sini..." required class="w-full border rounded-lg p-4 text-sm min-h-[120px] focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-white placeholder:text-gray-400"></textarea>
           <div class="grid md:grid-cols-2 gap-3">
-            <input bind:value={commentName} placeholder="Nama Lengkap *" required class="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none bg-white placeholder:text-gray-400" />
-            <input bind:value={commentEmail} type="email" placeholder="Alamat Email *" required class="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none bg-white placeholder:text-gray-400" />
+            <input bind:value={commentName} placeholder={requireIdentity ? 'Nama Lengkap *' : 'Nama Lengkap (opsional)'} required={requireIdentity} class="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none bg-white placeholder:text-gray-400" />
+            <input bind:value={commentEmail} type="email" placeholder={requireIdentity ? 'Alamat Email *' : 'Alamat Email (opsional)'} required={requireIdentity} class="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none bg-white placeholder:text-gray-400" />
           </div>
           <div class="flex items-center gap-2 text-xs text-gray-500">
             <input type="checkbox" id="save-info" class="rounded border-gray-300" />
@@ -187,6 +245,7 @@
     {/each}
   </aside>
 </div>
+{/if}
 
 <style>
   :global(.post-content p) { margin: 1.25rem 0; line-height: 1.8; }

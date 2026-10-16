@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { formatDate, formatExcerpt } from '$lib/utils'
+  import { formatExcerpt } from '$lib/utils'
+  import { formatDate } from '$lib/format'
+  import Seo from '$lib/components/seo.svelte'
   import { page } from '$app/stores'
   import { Clock, Eye, ChevronRight, ChevronLeft, Megaphone } from '@lucide/svelte'
   import WidgetRenderer from '$lib/components/widgets/widget-renderer.svelte'
@@ -24,6 +26,8 @@
     return [1, '...', current - 1, current, current + 1, '...', total]
   }
 </script>
+
+<Seo home pageNumber={pagination?.page} />
 
 <!-- News Ticker -->
 {#if posts.length > 0}

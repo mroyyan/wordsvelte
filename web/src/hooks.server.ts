@@ -23,6 +23,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const response = await resolve(event)
 	try {
+		// the admin and the API must never be indexed, whatever the site-wide setting says
+		const { pathname } = event.url
+		if (pathname === '/admin' || pathname.startsWith('/admin/') || pathname.startsWith('/api/')) {
+			response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+		}
 		response.headers.set('X-Content-Type-Options', 'nosniff')
 		response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
 		response.headers.set('X-Frame-Options', 'SAMEORIGIN')

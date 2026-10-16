@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { formatDate, formatExcerpt } from '$lib/utils'
+  import { formatExcerpt } from '$lib/utils'
+  import { formatDate } from '$lib/format'
+  import Seo from '$lib/components/seo.svelte'
   import { Clock } from '@lucide/svelte'
 
   let { data } = $props()
@@ -9,6 +11,13 @@
   let subFeatured = $derived(posts.slice(1, 5))
   let rest = $derived(posts.slice(5))
 </script>
+
+<Seo
+  title={`Berita ${category.name}`}
+  description={category.description || `Kumpulan berita terbaru seputar ${category.name}.`}
+  image={featured?.featuredImageUrl}
+  breadcrumbs={[{ name: category.name, path: `/kategori/${category.slug}` }]}
+/>
 
 <div class="mb-6">
   <!-- Subcategory Nav -->

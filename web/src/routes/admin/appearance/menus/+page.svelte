@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Button } from '$lib/components/ui/button'
+  import PrimaryButton from '$lib/components/layout/primary-button.svelte'
   import { Input } from '$lib/components/ui/input'
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select'
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card'
@@ -39,6 +40,9 @@
   let itemType = $state('custom')
   let itemParentId = $state<number | null>(null)
 
+  let pagesList = $state<any[]>([])
+  let pageToAdd = $state('')
+
   let deleteMenuId = $state<number | null>(null)
   let deleteItemId = $state<number | null>(null)
   let parentItemValue = $state('')
@@ -51,8 +55,6 @@
 
   const presetItems = [
     { label: 'Home', url: '/', icon: Home },
-    { label: 'About', url: '/about', icon: Info },
-    { label: 'Contact', url: '/contact', icon: Mail },
   ]
 
   const footerPresetItems = [
@@ -66,6 +68,27 @@
 
   function t() { return localStorage.getItem('wordsvelte_token') }
 
+  async function loadPages() {
+    const tok = t(); if (!tok) return
+    try {
+      const r = await fetch('/api/pages?status=publish', { headers: { Authorization: `Bearer ${tok}` } })
+      const j = await r.json()
+      pagesList = j.data ?? []
+    } catch {}
+  }
+
+  async function addPageItem() {
+    const tok = t(); if (!tok || !activeMenuId || !pageToAdd) return
+    const page = pagesList.find((p: any) => String(p.id) === pageToAdd)
+    try {
+      const r = await fetch(`/api/menus/${activeMenuId}/items`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ itemType: 'page', pageId: Number(pageToAdd), label: page?.title }) })
+      const j = await r.json()
+      if (!j.success) { alert(j.error || 'Could not add the page'); return }
+      pageToAdd = ''
+      await load()
+    } catch (e: any) { alert(e.message) }
+  }
+
   async function load() {
     const tok = t(); if (!tok) return
     try {
@@ -76,7 +99,7 @@
     } catch {} finally { loading = false }
   }
 
-  onMount(load)
+  onMount(() => { load(); loadPages() })
 
   let activeMenu = $derived(menus.find(m => m.id === activeMenuId) || null)
   let rootItems = $derived(activeMenu ? activeMenu.items.filter((i: any) => !i.parentId) : [])
@@ -183,7 +206,7 @@
 <div class="space-y-6">
   <div class="flex items-center justify-between">
     <div><h1 class="text-2xl font-bold tracking-tight">Menus</h1><p class="text-muted-foreground">Manage navigation menus</p></div>
-    <Button onclick={openCreateMenu}><Plus class="mr-2 h-4 w-4" /> New Menu</Button>
+    <PrimaryButton label="Add Menu" icon={Plus} onclick={openCreateMenu} />
   </div>
 
   {#if loading}
@@ -192,7 +215,7 @@
     <div class="border-2 border-dashed rounded-lg p-12 text-center text-muted-foreground">
       <p class="font-medium">No menus yet</p>
       <p class="text-sm">Create your first menu to get started</p>
-      <Button onclick={openCreateMenu} class="mt-4"><Plus class="mr-2 h-4 w-4" /> Create Menu</Button>
+      <div class="mt-4"><PrimaryButton label="Add Menu" icon={Plus} onclick={openCreateMenu} /></div>
     </div>
   {:else}
     <div class="grid lg:grid-cols-3 gap-6">
@@ -249,6 +272,22 @@
                   <Button variant="outline" size="sm" onclick={() => openCreateItem('custom')}><Link class="h-4 w-4 mr-1" /> Add Custom Link</Button>
                 </div>
                 <div>
+                  <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Pages</h4>
+                  {#if pagesList.length === 0}
+                    <p class="text-sm text-muted-foreground">No published pages yet. <a href="/admin/pages/new" class="underline underline-offset-4">Create one</a> to add it here.</p>
+                  {:else}
+                    <div class="flex flex-wrap items-center gap-2">
+                      <Select type="single" bind:value={pageToAdd}>
+                        <SelectTrigger class="w-56" aria-label="Page">{pagesList.find((p: any) => String(p.id) === pageToAdd)?.title ?? 'Select a page'}</SelectTrigger>
+                        <SelectContent>
+                          {#each pagesList as pg (pg.id)}<SelectItem value={String(pg.id)} label={pg.title}>{pg.title}</SelectItem>{/each}
+                        </SelectContent>
+                      </Select>
+                      <Button variant="outline" size="sm" disabled={!pageToAdd} onclick={addPageItem}><Plus class="h-4 w-4 mr-1" /> Add to menu</Button>
+                    </div>
+                  {/if}
+                </div>
+                <div>
                   <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Preset Links</h4>
                   <div class="flex flex-wrap gap-2">
                     {#each presetItems as p, i}
@@ -259,16 +298,6 @@
                     {/each}
                   </div>
                 </div>
-                {#if activeMenu?.location === 'footer'}
-                  <div>
-                    <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Footer Presets</h4>
-                    <div class="flex flex-wrap gap-2">
-                      {#each footerPresetItems as p}
-                        <Button variant="outline" size="sm" onclick={() => openCreatePreset(p.label, p.url)}>{p.label}</Button>
-                      {/each}
-                    </div>
-                  </div>
-                {/if}
               </div>
             </CardContent>
           </Card>
@@ -288,6 +317,8 @@
                           <ExternalLink class="h-4 w-4 shrink-0 text-muted-foreground" />
                           <span class="font-medium text-sm truncate">{item.label}</span>
                           <span class="text-xs text-muted-foreground truncate">{item.url || '/'}</span>
+                          {#if item.itemType === 'page'}<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">page</span>{/if}
+                          {#if item.pageStatus && item.pageStatus !== 'publish'}<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">hidden: page {item.pageStatus === 'missing' ? 'deleted' : 'is a draft'}</span>{/if}
                         </div>
                         <div class="shrink-0">
                           <DropdownMenu>
@@ -329,6 +360,8 @@
                                 <span class="text-muted-foreground">└</span>
                                 <span class="text-sm truncate">{child.label}</span>
                                 <span class="text-xs text-muted-foreground truncate">{child.url || '/'}</span>
+                                {#if child.itemType === 'page'}<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">page</span>{/if}
+                                {#if child.pageStatus && child.pageStatus !== 'publish'}<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">hidden: page {child.pageStatus === 'missing' ? 'deleted' : 'is a draft'}</span>{/if}
                               </div>
                               <div class="shrink-0">
                                 <DropdownMenu>
@@ -402,7 +435,11 @@
   <DialogContent class="sm:max-w-sm"><DialogHeader><DialogTitle>{editItem ? 'Edit' : 'Add'} Menu Item</DialogTitle></DialogHeader>
     <div class="space-y-4 py-4">
       <div class="space-y-1"><span class="text-sm font-medium">Label</span><Input bind:value={itemLabel} placeholder="Menu label" aria-label="Label" /></div>
-      <div class="space-y-1"><span class="text-sm font-medium">URL</span><Input bind:value={itemUrl} placeholder="https:// or /path" aria-label="URL" /></div>
+      {#if editItem?.itemType === 'page'}
+        <p class="text-xs text-muted-foreground">This item links to a page. Its address follows the page, so renaming the page never breaks the menu.</p>
+      {:else}
+        <div class="space-y-1"><span class="text-sm font-medium">URL</span><Input bind:value={itemUrl} placeholder="https:// or /path" aria-label="URL" /></div>
+      {/if}
       {#if rootItems.length > 0}
         <div class="space-y-1">
           <span class="text-sm font-medium">Parent Item</span>

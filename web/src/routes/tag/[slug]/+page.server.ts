@@ -24,7 +24,7 @@ export async function load(event) {
 
   return { 
     tag, 
-    posts: tagPosts.map(r => r.posts),
+    posts: tagPosts.map((r: any) => r.posts),
     categories: allCategories,
     tags: allTags
   }

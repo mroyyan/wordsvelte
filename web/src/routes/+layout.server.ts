@@ -1,7 +1,9 @@
 import { getDb } from '$lib/server/db'
-import { widgets, menus, menuItems } from '@wordsvelte/shared'
+import { widgets } from '@wordsvelte/shared'
+import { getPublicMenus } from '$lib/server/services/menu.service'
 import { getSettings } from '$lib/server/services/settings.service'
-import { and, asc, eq } from 'drizzle-orm'
+import { siteOrigin } from '$lib/seo'
+import { asc, eq } from 'drizzle-orm'
 import { scanThemes, setActiveTheme } from '$lib/server/themes'
 
 export async function load(event) {
@@ -14,17 +16,8 @@ export async function load(event) {
     .where(eq(widgets.status, 'active'))
     .orderBy(asc(widgets.sortOrder))
 
-  const allMenus = await db.select().from(menus)
-    .where(eq(menus.status, 'active'))
-    .orderBy(asc(menus.name))
-
-  const menuResults = []
-  for (const menu of allMenus) {
-    const items = await db.select().from(menuItems)
-      .where(and(eq(menuItems.menuId, menu.id), eq(menuItems.status, 'active')))
-      .orderBy(asc(menuItems.sortOrder))
-    menuResults.push({ ...menu, items })
-  }
+  // Page-type items are resolved to their current slug; unpublished/missing pages are dropped.
+  const menuResults = await getPublicMenus(db)
 
   // Set active theme
   const themeSlug = settingsMap['theme'] || 'default'
@@ -33,6 +26,7 @@ export async function load(event) {
 
   return {
     settings: settingsMap,
+    siteUrl: siteOrigin(settingsMap.site_url, event.url.origin),
     widgets: allWidgets,
     menus: menuResults,
     theme: themeSlug,

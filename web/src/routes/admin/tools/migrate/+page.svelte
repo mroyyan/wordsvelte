@@ -117,6 +117,7 @@
 
   const stats = $derived([
     { label: 'Posts', value: preview?.posts || 0, icon: FileText },
+    { label: 'Pages', value: preview?.pages || 0, icon: FileText },
     { label: 'Categories', value: preview?.categories || 0, icon: FolderTree },
     { label: 'Tags', value: preview?.tags || 0, icon: Tags },
     { label: 'Images', value: preview?.images || 0, icon: ImageIcon },
@@ -212,7 +213,7 @@
               <CardDescription>Review what will be imported from "{file?.name}"</CardDescription>
             </CardHeader>
             <CardContent class="space-y-6">
-              <div class="grid grid-cols-5 gap-3">
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {#each stats as stat}
                   <div class="text-center p-3 rounded-lg bg-muted/50">
                     <stat.icon class="mx-auto h-5 w-5 text-muted-foreground mb-1" />
@@ -265,10 +266,14 @@
               </CardTitle>
             </CardHeader>
             <CardContent class="space-y-4">
-              <div class="grid grid-cols-5 gap-3">
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 <div class="text-center p-3 rounded-lg bg-muted/50">
                   <div class="text-2xl font-bold">{results?.totalPosts || 0}</div>
                   <div class="text-xs text-muted-foreground">Posts</div>
+                </div>
+                <div class="text-center p-3 rounded-lg bg-muted/50">
+                  <div class="text-2xl font-bold">{results?.totalPages || 0}</div>
+                  <div class="text-xs text-muted-foreground">Pages</div>
                 </div>
                 <div class="text-center p-3 rounded-lg bg-muted/50">
                   <div class="text-2xl font-bold">{results?.totalCategories || 0}</div>

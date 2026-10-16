@@ -4,6 +4,8 @@ export interface RateLimiter {
   /** Record one failed attempt (or one use) for the key. */
   hit(key: string): void
   reset(key: string): void
+  /** Forget everything (tests, or a manual operator reset). */
+  clear(): void
 }
 
 /**
@@ -35,6 +37,9 @@ export function createRateLimiter(opts: { max: number; windowMs: number; now?: (
     },
     reset(key) {
       entries.delete(key)
+    },
+    clear() {
+      entries.clear()
     },
   }
 }

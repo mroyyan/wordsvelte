@@ -2,13 +2,15 @@ import { sanitizeHtml } from '$lib/server/sanitize'
 import { IMAGE_TYPES, MAX_UPLOAD_BYTES, buildMediaKey, sniffImageType } from '$lib/server/uploads'
 import { XMLParser } from 'fast-xml-parser'
 import { eq, sql } from 'drizzle-orm'
-import { posts, categories, tags, postCategories, postTags, media, comments } from '@wordsvelte/shared'
+import { posts, pages, categories, tags, postCategories, postTags, media, comments } from '@wordsvelte/shared'
+import { RESERVED_SLUGS } from '$lib/server/services/slug.service'
 import { toSlug } from '@wordsvelte/shared/src/utils/slug'
 
 // --- Types ---
 
 export interface MigratePreview {
   posts: number
+  pages: number
   categories: number
   tags: number
   images: number
@@ -22,6 +24,7 @@ export interface MigrateProgress {
   message: string
   // done stage extras
   totalPosts?: number
+  totalPages?: number
   totalCategories?: number
   totalTags?: number
   totalImages?: number
@@ -105,6 +108,7 @@ export function getPreview(xml: string): MigratePreview {
   const items: WxrItem[] = parsed?.rss?.channel?.item || []
 
   let postCount = 0
+  let pageCount = 0
   let categoryCount = 0
   let tagCount = 0
   let imageCount = 0
@@ -130,6 +134,8 @@ export function getPreview(xml: string): MigratePreview {
       }
       const commentsList = normalizeComments(item['wp:comment'])
       commentCount += commentsList.length
+    } else if (type === 'page') {
+      pageCount++
     } else if (type === 'attachment') {
       const url = item['wp:attachment_url']
       if (url && isImageUrl(url)) {
@@ -155,7 +161,7 @@ export function getPreview(xml: string): MigratePreview {
   categoryCount = categorySlugs.size
   tagCount = tagSlugs.size
 
-  return { posts: postCount, categories: categoryCount, tags: tagCount, images: imageCount, comments: commentCount }
+  return { posts: postCount, pages: pageCount, categories: categoryCount, tags: tagCount, images: imageCount, comments: commentCount }
 }
 
 // --- Image URL Helpers ---
@@ -460,7 +466,10 @@ export async function runImport(
     }
 
     // --- Phase 4: Posts ---
+    // Posts and pages share one URL namespace (/<slug>), and reserved addresses can never be used.
     const existingPostSlugs = await getExistingSlugs(db, posts, posts.slug)
+    for (const s of await getExistingSlugs(db, pages, pages.slug)) existingPostSlugs.add(s)
+    for (const s of RESERVED_SLUGS) existingPostSlugs.add(s)
     const wpPostMap = new Map<number, number>() // wp post id → db post id
     const postItems = items.filter(i => i['wp:post_type'] === 'post')
 
@@ -555,6 +564,27 @@ export async function runImport(
       }
     }
 
+    // --- Phase 4b: Static pages ---
+    const pageItems = items.filter(i => i['wp:post_type'] === 'page')
+    for (let i = 0; i < pageItems.length; i++) {
+      const item = pageItems[i]
+      sendProgress({ stage: 'posts', current: postItems.length, total: postItems.length, message: `Importing page: ${item.title || 'Untitled'}` })
+
+      const slug = uniqueSlug(item['wp:post_name'] || toSlug(item.title || 'page'), existingPostSlugs)
+      const published = item['wp:status'] === 'publish'
+      const wpDate = item['wp:post_date'] ? item['wp:post_date'].replace(' ', 'T') : new Date().toISOString()
+      await db.insert(pages).values({
+        authorId: userId,
+        title: item.title || 'Untitled',
+        slug,
+        content: sanitizeHtml(cleanContent(item['content:encoded'] || '', wpBaseUrl, urlToLocalMap)),
+        status: published ? 'publish' : 'draft',
+        publishedAt: published ? wpDate : null,
+        createdAt: wpDate,
+        updatedAt: wpDate,
+      })
+    }
+
     // --- Phase 5: Comments ---
     const wpCommentMap = new Map<number, number>() // wp comment id → db comment id
     const allComments: Array<{ postId: number; comment: WxrComment; wpPostId: number }> = []
@@ -612,6 +642,7 @@ export async function runImport(
       total: 0,
       message: 'Import complete',
       totalPosts: postItems.length,
+      totalPages: pageItems.length,
       totalCategories: allCategories.length,
       totalTags: allTags.length,
       totalImages: allImageUrls.length,

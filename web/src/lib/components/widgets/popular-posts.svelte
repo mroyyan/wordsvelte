@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatDate } from '$lib/utils'
+  import { formatDate } from '$lib/format'
 
   let { title, posts, limit = 5, context = 'sidebar' }: { title?: string, posts: any[], limit?: number, context?: string } = $props()
   let isFooter = $derived(context === 'footer')

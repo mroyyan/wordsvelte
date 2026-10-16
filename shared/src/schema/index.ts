@@ -13,6 +13,14 @@ export const users = sqliteTable('users', {
   displayName: text('display_name').notNull(),
   role: text('role').notNull().default('author'),
   avatarUrl: text('avatar_url'),
+  /** Bumped on password change/reset and security changes; tokens carry the value they were issued under, so a bump signs every other device out. */
+  sessionVersion: integer('session_version').notNull().default(0),
+  /** AES-GCM encrypted TOTP secret (see secret-box). Set during setup, only trusted once totpEnabled is 1. */
+  totpSecret: text('totp_secret'),
+  totpEnabled: integer('totp_enabled', { mode: 'boolean' }).notNull().default(false),
+  /** Last accepted 30 s time step, so one authenticator code cannot be replayed. */
+  totpLastStep: integer('totp_last_step'),
+  email2faEnabled: integer('email_2fa_enabled', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
 })
@@ -127,6 +135,21 @@ export const widgets = sqliteTable('widgets', {
   updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
 })
 
+/** Static pages (About, Contact, ...). Served at /<slug>, so slugs are unique across posts and pages. */
+export const pages = sqliteTable('pages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  authorId: integer('author_id').notNull().references(() => users.id),
+  title: text('title').notNull(),
+  slug: text('slug').notNull().unique(),
+  content: text('content').notNull().default(''),
+  status: text('status').notNull().default('draft'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  publishedAt: text('published_at'),
+}, (table) => ({
+  statusIdx: index('idx_pages_status').on(table.status),
+}))
+
 export const menus = sqliteTable('menus', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
@@ -142,6 +165,8 @@ export const menuItems = sqliteTable('menu_items', {
   menuId: integer('menu_id').notNull().references(() => menus.id, { onDelete: 'cascade' }),
   parentId: integer('parent_id').references((): AnySQLiteColumn => menuItems.id),
   itemType: text('item_type').notNull().default('custom'),
+  /** For item_type = 'page': the URL is resolved from the page slug so renames never break the menu. */
+  pageId: integer('page_id').references(() => pages.id, { onDelete: 'set null' }),
   label: text('label').notNull(),
   url: text('url'),
   target: text('target').notNull().default('_self'),
@@ -149,3 +174,36 @@ export const menuItems = sqliteTable('menu_items', {
   status: text('status').notNull().default('active'),
   createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
 })
+
+/** One-time password reset links. Only a SHA-256 hash of the token is stored, never the token itself. */
+export const passwordResets = sqliteTable('password_resets', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: text('expires_at').notNull(),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+})
+
+/** Short-lived one-time codes sent by email (second factor at login, or confirming that email 2FA works). Only hashes are stored. */
+export const twoFactorCodes = sqliteTable('two_factor_codes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  purpose: text('purpose').notNull(),
+  codeHash: text('code_hash').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  userPurposeIdx: index('idx_2fa_codes_user_purpose').on(table.userId, table.purpose),
+}))
+
+/** Single-use backup codes for when the authenticator or inbox is unavailable. Only hashes are stored. */
+export const recoveryCodes = sqliteTable('recovery_codes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  codeHash: text('code_hash').notNull(),
+  usedAt: text('used_at'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  userIdx: index('idx_recovery_codes_user').on(table.userId),
+}))

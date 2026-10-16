@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Button } from '$lib/components/ui/button'
+  import PrimaryButton from '$lib/components/layout/primary-button.svelte'
   import { Input } from '$lib/components/ui/input'
   import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '$lib/components/ui/dialog'
   import { Upload, UploadCloud, FileArchive } from '@lucide/svelte'
@@ -62,7 +63,7 @@
 <div class="space-y-6">
   <div class="flex items-center justify-between">
     <div><h1 class="text-2xl font-bold tracking-tight">Themes</h1><p class="text-muted-foreground">Manage site appearance</p></div>
-    <Button onclick={() => uploadOpen = true}><Upload class="h-4 w-4 mr-2" /> Upload Theme</Button>
+    <PrimaryButton label="Upload Theme" icon={Upload} onclick={() => (uploadOpen = true)} />
   </div>
 
   {#if loading}
@@ -72,7 +73,7 @@
       <UploadCloud class="h-8 w-8 mx-auto mb-3" />
       <p class="font-medium">No themes yet</p>
       <p class="text-sm mb-4">Upload a .zip theme file</p>
-      <Button onclick={() => uploadOpen = true}><Upload class="h-4 w-4 mr-2" /> Upload Theme</Button>
+      <PrimaryButton label="Upload Theme" icon={Upload} onclick={() => (uploadOpen = true)} />
     </div>
   {:else}
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">

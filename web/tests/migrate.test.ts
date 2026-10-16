@@ -122,7 +122,7 @@ describe('migrate API', () => {
     expect((await go(author.token, form(SAMPLE, 'x.xml'))).status).toBe(403)
     expect((await go(admin.token, form(SAMPLE, 'x.html'))).status).toBe(400)
     expect((await go(admin.token, new FormData())).status).toBe(400)
-    expect((await go(admin.token, form(SAMPLE, 'x.xml'), { env: { JWT_SECRET: 'test-secret-that-is-long-enough-123456' } })).status).toBe(503)
+    expect((await go(admin.token, form(SAMPLE, 'x.xml'), { env: { JWT_SECRET: 'test-secret-that-is-long-enough-123456' } } as any)).status).toBe(503)
   })
 
   it('import: streams SSE progress ending in a done event', async () => {

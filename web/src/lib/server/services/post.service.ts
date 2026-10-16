@@ -3,6 +3,7 @@ import { posts, postCategories, postTags, categories, tags, POST_STATUSES } from
 import { toSlug } from '@wordsvelte/shared'
 import { ValidationError, NotFoundError, ConflictError } from '$lib/server/errors'
 import { sanitizeHtml } from '$lib/server/sanitize'
+import { slugInUse, uniqueSlugAcross } from '$lib/server/services/slug.service'
 import { publicCommentColumns } from '$lib/server/services/comment.service'
 import { comments } from '@wordsvelte/shared'
 
@@ -72,21 +73,10 @@ async function assertAllExist(db: any, table: any, ids: number[], label: string)
   if (rows.length !== ids.length) throw new ValidationError(`One or more ${label} do not exist`)
 }
 
-async function slugTaken(db: any, slug: string, excludeId?: number) {
-  const [row] = await db.select({ id: posts.id }).from(posts).where(eq(posts.slug, slug)).limit(1)
-  return !!row && row.id !== excludeId
-}
+const slugTaken = (db: any, slug: string, excludeId?: number) => slugInUse(db, slug, { postId: excludeId })
 
-/** Append -2, -3, ... until the slug is free. */
-async function uniqueSlug(db: any, base: string, excludeId?: number) {
-  const root = toSlug(base) || 'post'
-  if (!(await slugTaken(db, root, excludeId))) return root
-  for (let n = 2; n < 100; n++) {
-    const candidate = `${root.slice(0, 190)}-${n}`
-    if (!(await slugTaken(db, candidate, excludeId))) return candidate
-  }
-  return `${root.slice(0, 180)}-${crypto.randomUUID().slice(0, 8)}`
-}
+/** Append -2, -3, ... until the slug is free across posts, pages and reserved addresses. */
+const uniqueSlug = (db: any, base: string, excludeId?: number) => uniqueSlugAcross(db, base, { postId: excludeId })
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, c => '\\' + c)
 

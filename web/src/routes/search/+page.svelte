@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { formatDate, formatExcerpt } from '$lib/utils'
+  import { formatExcerpt } from '$lib/utils'
+  import { formatDate } from '$lib/format'
+  import Seo from '$lib/components/seo.svelte'
   import { Search } from '@lucide/svelte'
 
   let { data } = $props()
@@ -8,6 +10,9 @@
 
   let searchInput = $state(data.query || '')
 </script>
+
+<!-- Result pages are thin and endless: keep them out of the index, but let crawlers follow the links. -->
+<Seo title={query ? `Cari: ${query}` : 'Pencarian'} noindex />
 
 <div class="max-w-3xl mx-auto">
   <h1 class="text-2xl font-bold mb-6">Pencarian</h1>
