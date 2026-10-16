@@ -1,5 +1,5 @@
 import Handlebars from 'handlebars'
-import DOMPurify from 'isomorphic-dompurify'
+import { sanitizeHtml } from '$lib/server/sanitize'
 import { getThemeStorage } from './storage'
 
 const RENDER_TIMEOUT_MS = 1000
@@ -148,7 +148,7 @@ export function prepareThemeData(layoutData: any, pageData: any = {}): Record<st
     header_menu_items: headerMenuTree,
     sidebar_widgets: allWidgets.filter((w: any) => w.sidebarArea === 'sidebar-1').map((w: any) => ({
       ...w,
-      content: w.widgetType === 'html' ? DOMPurify.sanitize(w.content || '') : w.content,
+      content: w.widgetType === 'html' ? sanitizeHtml(w.content) : w.content,
     })),
     categories: pageData.categories || [],
     tags: pageData.tags || [],

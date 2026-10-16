@@ -1,9 +1,4 @@
-import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const THEMES_DIR = join(__dirname, '..', '..', '..', '..', 'themes')
+import { assertSafeRelativePath, assertThemeSlug } from './paths'
 
 export interface ThemeStorage {
   listSlugs(): Promise<string[]>
@@ -13,44 +8,9 @@ export interface ThemeStorage {
   writeFile(slug: string, filePath: string, data: Uint8Array): Promise<void>
 }
 
-class LocalThemeStorage implements ThemeStorage {
-  async listSlugs(): Promise<string[]> {
-    if (!existsSync(THEMES_DIR)) return []
-    return readdirSync(THEMES_DIR).filter(e => {
-      try { return statSync(join(THEMES_DIR, e)).isDirectory() }
-      catch { return false }
-    })
-  }
-
-  async exists(slug: string): Promise<boolean> {
-    return existsSync(join(THEMES_DIR, slug))
-  }
-
-  async readFile(slug: string, filePath: string): Promise<string | null> {
-    const fullPath = join(THEMES_DIR, slug, filePath)
-    if (!existsSync(fullPath)) return null
-    return readFileSync(fullPath, 'utf-8')
-  }
-
-  async createDir(slug: string): Promise<void> {
-    const dir = join(THEMES_DIR, slug)
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  }
-
-  async writeFile(slug: string, filePath: string, data: Uint8Array): Promise<void> {
-    const targetPath = join(THEMES_DIR, slug, filePath)
-    const targetDir = dirname(targetPath)
-    if (!existsSync(targetDir)) mkdirSync(targetDir, { recursive: true })
-    writeFileSync(targetPath, data)
-  }
-}
-
-class R2ThemeStorage implements ThemeStorage {
-  private r2: any
-
-  constructor(r2: any) {
-    this.r2 = r2
-  }
+/** Cloudflare R2: themes live under the `themes/<slug>/` prefix. */
+export class R2ThemeStorage implements ThemeStorage {
+  constructor(private r2: any) {}
 
   async listSlugs(): Promise<string[]> {
     const slugs = new Set<string>()
@@ -58,8 +18,8 @@ class R2ThemeStorage implements ThemeStorage {
     do {
       const result = await this.r2.list({ prefix: 'themes/', cursor })
       for (const obj of result.objects) {
-        const parts = obj.key.replace('themes/', '').split('/')
-        if (parts[0]) slugs.add(parts[0])
+        const first = obj.key.slice('themes/'.length).split('/')[0]
+        if (first) slugs.add(first)
       }
       cursor = result.truncated ? result.cursor : undefined
     } while (cursor)
@@ -67,33 +27,78 @@ class R2ThemeStorage implements ThemeStorage {
   }
 
   async exists(slug: string): Promise<boolean> {
-    const obj = await this.r2.get(`themes/${slug}/manifest.json`)
-    return obj !== null
+    assertThemeSlug(slug)
+    return (await this.r2.get(`themes/${slug}/manifest.json`)) !== null
   }
 
   async readFile(slug: string, filePath: string): Promise<string | null> {
-    const obj = await this.r2.get(`themes/${slug}/${filePath}`)
-    if (!obj) return null
-    return obj.text()
+    assertThemeSlug(slug)
+    const obj = await this.r2.get(`themes/${slug}/${assertSafeRelativePath(filePath)}`)
+    return obj ? obj.text() : null
   }
 
-  async createDir(_slug: string): Promise<void> {}
+  async createDir(slug: string): Promise<void> {
+    assertThemeSlug(slug)
+  }
 
   async writeFile(slug: string, filePath: string, data: Uint8Array): Promise<void> {
-    await this.r2.put(`themes/${slug}/${filePath}`, data)
+    assertThemeSlug(slug)
+    await this.r2.put(`themes/${slug}/${assertSafeRelativePath(filePath)}`, data)
   }
 }
 
+// The default theme ships inside the bundle so a fresh deploy renders before anything is uploaded to R2.
+const bundledFiles = import.meta.glob('../../../../themes/default/**/*', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+const BUNDLED_PREFIX = '../../../../themes/default/'
+const bundled = new Map<string, string>(
+  Object.entries(bundledFiles).map(([k, v]) => [k.slice(BUNDLED_PREFIX.length), v]),
+)
+
+export const BUNDLED_THEME_SLUG = 'default'
+
+/** Read-only storage backed by the files bundled at build time. */
+export class BundledThemeStorage implements ThemeStorage {
+  async listSlugs() { return bundled.size ? [BUNDLED_THEME_SLUG] : [] }
+  async exists(slug: string) { return slug === BUNDLED_THEME_SLUG && bundled.has('manifest.json') }
+  async readFile(slug: string, filePath: string) {
+    return slug === BUNDLED_THEME_SLUG ? (bundled.get(assertSafeRelativePath(filePath)) ?? null) : null
+  }
+  async createDir(): Promise<void> { throw new Error('Bundled themes are read-only') }
+  async writeFile(): Promise<void> { throw new Error('Bundled themes are read-only') }
+}
+
+/** Reads/writes go to `primary`; reads fall back to the bundled default theme. */
+export class LayeredThemeStorage implements ThemeStorage {
+  constructor(private primary: ThemeStorage, private fallback: ThemeStorage = new BundledThemeStorage()) {}
+
+  async listSlugs() { return [...new Set([...(await this.primary.listSlugs()), ...(await this.fallback.listSlugs())])] }
+  async exists(slug: string) { return (await this.primary.exists(slug)) || (await this.fallback.exists(slug)) }
+  async readFile(slug: string, filePath: string) {
+    return (await this.primary.readFile(slug, filePath)) ?? (await this.fallback.readFile(slug, filePath))
+  }
+  createDir(slug: string) { return this.primary.createDir(slug) }
+  writeFile(slug: string, filePath: string, data: Uint8Array) { return this.primary.writeFile(slug, filePath, data) }
+}
+
 let storage: ThemeStorage | null = null
+let localStorageInstance: ThemeStorage | null = null
+
+export function setThemeStorage(s: ThemeStorage | null) {
+  storage = s
+}
+
+/** Local dev only (statically removed from production builds, like ensureLocalDb). */
+export async function ensureLocalThemeStorage() {
+  if (localStorageInstance || !import.meta.env.DEV) return
+  const { LocalThemeStorage } = await import('./local-storage')
+  localStorageInstance = new LayeredThemeStorage(new LocalThemeStorage())
+}
 
 export function getThemeStorage(platform?: App.Platform): ThemeStorage {
   if (storage) return storage
-
-  const isCfWorker = typeof process === 'undefined' || !process.versions?.node
-  if (isCfWorker && platform?.env?.R2) {
-    storage = new R2ThemeStorage(platform.env.R2)
-  } else {
-    storage = new LocalThemeStorage()
+  if (platform?.env?.R2) {
+    storage = new LayeredThemeStorage(new R2ThemeStorage(platform.env.R2))
+    return storage
   }
-  return storage
+  return localStorageInstance ?? new BundledThemeStorage()
 }

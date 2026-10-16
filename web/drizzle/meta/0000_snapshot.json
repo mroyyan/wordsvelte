@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "25ae5f75-dbce-4ea7-996a-48dd89918971",
+  "id": "95f9bd6e-4a58-4d49-b3e2-5c41b8086489",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "categories": {
@@ -48,7 +48,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {
@@ -138,10 +138,19 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_comments_post_status": {
+          "name": "idx_comments_post_status",
+          "columns": [
+            "post_id",
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "comments_post_id_posts_id_fk": {
           "name": "comments_post_id_posts_id_fk",
@@ -253,7 +262,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {},
@@ -352,7 +361,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {},
@@ -434,7 +443,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         },
         "updated_at": {
           "name": "updated_at",
@@ -442,7 +451,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {
@@ -698,6 +707,14 @@
           "notNull": false,
           "autoincrement": false
         },
+        "is_featured": {
+          "name": "is_featured",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
         "view_count": {
           "name": "view_count",
           "type": "integer",
@@ -712,7 +729,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         },
         "updated_at": {
           "name": "updated_at",
@@ -720,7 +737,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         },
         "published_at": {
           "name": "published_at",
@@ -737,6 +754,21 @@
             "slug"
           ],
           "isUnique": true
+        },
+        "idx_posts_status_published": {
+          "name": "idx_posts_status_published",
+          "columns": [
+            "status",
+            "published_at"
+          ],
+          "isUnique": false
+        },
+        "idx_posts_author": {
+          "name": "idx_posts_author",
+          "columns": [
+            "author_id"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -788,7 +820,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {},
@@ -865,7 +897,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {
@@ -941,7 +973,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         },
         "updated_at": {
           "name": "updated_at",
@@ -949,7 +981,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {
@@ -1041,7 +1073,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         },
         "updated_at": {
           "name": "updated_at",
@@ -1049,7 +1081,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'datetime(''now'')'"
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {},

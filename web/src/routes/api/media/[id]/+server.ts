@@ -1,23 +1,33 @@
 import { getDb } from '$lib/server/db'
-import { verifyAuth } from '$lib/server/auth'
+import { requireUser, hasRole } from '$lib/server/auth'
 import { getMedia, deleteMedia } from '$lib/server/services/media.service'
 import { ok, catchError } from '$lib/server/response'
+import { ForbiddenError, ValidationError } from '$lib/server/errors'
+
+function parseId(event: any): number {
+	const id = Number(event.params.id)
+	if (!Number.isInteger(id)) throw new ValidationError('Invalid id')
+	return id
+}
 
 export async function GET(event: any) {
 	try {
-		await verifyAuth(event)
-		const db = getDb(event)
-		const record = await getMedia(db, parseInt(event.params.id))
-		return ok(record)
+		await requireUser(event, 'author')
+		return ok(await getMedia(getDb(event), parseId(event)))
 	} catch (e) { return catchError(e) }
 }
 
+/** Authors may delete their own uploads; editors and admins may delete any. */
 export async function DELETE(event: any) {
 	try {
-		await verifyAuth(event)
+		const user = await requireUser(event, 'author')
 		const db = getDb(event)
-		const r2Key = await deleteMedia(db, parseInt(event.params.id))
-		await event.platform.env.R2.delete(r2Key)
+		const id = parseId(event)
+		const record = await getMedia(db, id)
+		if (!hasRole(user, 'editor') && record.uploadedBy !== user.userId) throw new ForbiddenError('You can only delete your own uploads')
+
+		const r2Key = await deleteMedia(db, id)
+		await event.platform?.env?.R2?.delete(r2Key)
 		return ok({})
 	} catch (e) { return catchError(e) }
 }

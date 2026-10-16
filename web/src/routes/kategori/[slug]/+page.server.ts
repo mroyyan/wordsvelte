@@ -1,3 +1,4 @@
+import { error } from '@sveltejs/kit'
 import { eq, desc, and, asc } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
 import { posts, categories, postCategories, tags } from '@wordsvelte/shared'
@@ -10,7 +11,7 @@ export async function load(event) {
     .where(eq(categories.slug, params.slug))
     .limit(1)
 
-  if (!category) throw new Error('Category not found')
+  if (!category) throw error(404, 'Category not found')
 
   const catPosts = await db.select()
     .from(posts)

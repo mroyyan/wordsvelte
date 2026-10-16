@@ -1,6 +1,11 @@
 import { eq, asc } from 'drizzle-orm'
 import { widgets } from '@wordsvelte/shared'
 import { ValidationError, NotFoundError } from '$lib/server/errors'
+import { sanitizeHtml } from '$lib/server/sanitize'
+
+/** Free-form HTML widgets are rendered raw on the public site, so they are sanitized on write. */
+const cleanContent = (type: string | undefined, content: string | null | undefined) =>
+	type === 'html' ? sanitizeHtml(content) : (content ?? null)
 
 interface CreateWidgetData {
 	widgetType: string
@@ -31,7 +36,7 @@ export async function createWidget(db: any, data: CreateWidgetData) {
 	const [item] = await db.insert(widgets).values({
 		widgetType: data.widgetType,
 		title: data.title ?? null,
-		content: data.content ?? null,
+		content: cleanContent(data.widgetType, data.content),
 		settings: data.settings ?? null,
 		sidebarArea: data.sidebarArea || 'sidebar-1',
 		sortOrder: data.sortOrder ?? 0
@@ -44,7 +49,10 @@ export async function updateWidget(db: any, id: number, data: UpdateWidgetData) 
 	const updateData: any = {}
 	if (data.widgetType !== undefined) updateData.widgetType = data.widgetType
 	if (data.title !== undefined) updateData.title = data.title
-	if (data.content !== undefined) updateData.content = data.content
+	if (data.content !== undefined) {
+		const [current] = await db.select({ widgetType: widgets.widgetType }).from(widgets).where(eq(widgets.id, id)).limit(1)
+		updateData.content = cleanContent(data.widgetType ?? current?.widgetType, data.content)
+	}
 	if (data.settings !== undefined) updateData.settings = data.settings
 	if (data.sidebarArea !== undefined) updateData.sidebarArea = data.sidebarArea
 	if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder

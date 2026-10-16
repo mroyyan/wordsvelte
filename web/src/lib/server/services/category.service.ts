@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { categories, toSlug } from '@wordsvelte/shared'
-import { ValidationError, NotFoundError } from '$lib/server/errors'
+import { ValidationError, NotFoundError, ConflictError } from '$lib/server/errors'
 
 interface CreateCategoryData {
   name: string
@@ -22,7 +22,11 @@ export async function listCategories(db: any) {
 export async function createCategory(db: any, data: CreateCategoryData) {
   if (!data.name) throw new ValidationError('Name required')
 
-  const slug = data.slug || toSlug(data.name)
+  if (typeof data.name !== 'string' || data.name.length > 200) throw new ValidationError('Invalid name')
+  const slug = toSlug(data.slug || data.name)
+  if (!slug) throw new ValidationError('Invalid slug')
+  const [taken] = await db.select({ id: categories.id }).from(categories).where(eq(categories.slug, slug)).limit(1)
+  if (taken) throw new ConflictError('Category already exists')
   const [cat] = await db.insert(categories).values({
     name: data.name,
     slug,

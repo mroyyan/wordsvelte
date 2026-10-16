@@ -1,4 +1,9 @@
-import { sqliteTable, text, integer, uniqueIndex, primaryKey, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import { sql } from 'drizzle-orm'
+import { sqliteTable, text, integer, uniqueIndex, primaryKey, index, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+
+export const ROLES = ['admin', 'editor', 'author'] as const
+export type Role = (typeof ROLES)[number]
+export const POST_STATUSES = ['draft', 'pending', 'publish'] as const
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -8,8 +13,8 @@ export const users = sqliteTable('users', {
   displayName: text('display_name').notNull(),
   role: text('role').notNull().default('author'),
   avatarUrl: text('avatar_url'),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
-  updatedAt: text('updated_at').notNull().default("datetime('now')"),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
 })
 
 export const posts = sqliteTable('posts', {
@@ -21,11 +26,15 @@ export const posts = sqliteTable('posts', {
   content: text('content').notNull(),
   status: text('status').notNull().default('draft'),
   featuredImageUrl: text('featured_image_url'),
+  isFeatured: integer('is_featured', { mode: 'boolean' }).notNull().default(false),
   viewCount: integer('view_count').notNull().default(0),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
-  updatedAt: text('updated_at').notNull().default("datetime('now')"),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
   publishedAt: text('published_at'),
-})
+}, (table) => ({
+  statusPublishedIdx: index('idx_posts_status_published').on(table.status, table.publishedAt),
+  authorIdx: index('idx_posts_author').on(table.authorId),
+}))
 
 export const postMeta = sqliteTable('post_meta', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -42,14 +51,14 @@ export const categories = sqliteTable('categories', {
   slug: text('slug').notNull().unique(),
   description: text('description'),
   parentId: integer('parent_id').references((): AnySQLiteColumn => categories.id),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
 })
 
 export const tags = sqliteTable('tags', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
 })
 
 export const postCategories = sqliteTable('post_categories', {
@@ -77,7 +86,7 @@ export const media = sqliteTable('media', {
   altText: text('alt_text'),
   caption: text('caption'),
   uploadedBy: integer('uploaded_by').notNull().references(() => users.id),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
 })
 
 export const comments = sqliteTable('comments', {
@@ -88,8 +97,10 @@ export const comments = sqliteTable('comments', {
   content: text('content').notNull(),
   status: text('status').notNull().default('pending'),
   parentId: integer('parent_id').references((): AnySQLiteColumn => comments.id),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
-})
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  postStatusIdx: index('idx_comments_post_status').on(table.postId, table.status),
+}))
 
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
@@ -100,7 +111,7 @@ export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   expiresAt: text('expires_at').notNull(),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
 })
 
 export const widgets = sqliteTable('widgets', {
@@ -112,8 +123,8 @@ export const widgets = sqliteTable('widgets', {
   sidebarArea: text('sidebar_area').notNull().default('sidebar-1'),
   sortOrder: integer('sort_order').notNull().default(0),
   status: text('status').notNull().default('active'),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
-  updatedAt: text('updated_at').notNull().default("datetime('now')"),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
 })
 
 export const menus = sqliteTable('menus', {
@@ -122,8 +133,8 @@ export const menus = sqliteTable('menus', {
   slug: text('slug').notNull().unique(),
   location: text('location').notNull().default('header'),
   status: text('status').notNull().default('active'),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
-  updatedAt: text('updated_at').notNull().default("datetime('now')"),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
 })
 
 export const menuItems = sqliteTable('menu_items', {
@@ -136,5 +147,5 @@ export const menuItems = sqliteTable('menu_items', {
   target: text('target').notNull().default('_self'),
   sortOrder: integer('sort_order').notNull().default(0),
   status: text('status').notNull().default('active'),
-  createdAt: text('created_at').notNull().default("datetime('now')"),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
 })

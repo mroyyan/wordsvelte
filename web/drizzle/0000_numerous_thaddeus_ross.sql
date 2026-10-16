@@ -4,7 +4,7 @@ CREATE TABLE `categories` (
 	`slug` text NOT NULL,
 	`description` text,
 	`parent_id` integer,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL,
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
 	FOREIGN KEY (`parent_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -17,11 +17,12 @@ CREATE TABLE `comments` (
 	`content` text NOT NULL,
 	`status` text DEFAULT 'pending' NOT NULL,
 	`parent_id` integer,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL,
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
 	FOREIGN KEY (`post_id`) REFERENCES `posts`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`parent_id`) REFERENCES `comments`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE INDEX `idx_comments_post_status` ON `comments` (`post_id`,`status`);--> statement-breakpoint
 CREATE TABLE `media` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`r2_key` text NOT NULL,
@@ -33,7 +34,7 @@ CREATE TABLE `media` (
 	`alt_text` text,
 	`caption` text,
 	`uploaded_by` integer NOT NULL,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL,
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
 	FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -47,7 +48,7 @@ CREATE TABLE `menu_items` (
 	`target` text DEFAULT '_self' NOT NULL,
 	`sort_order` integer DEFAULT 0 NOT NULL,
 	`status` text DEFAULT 'active' NOT NULL,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL,
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
 	FOREIGN KEY (`menu_id`) REFERENCES `menus`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`parent_id`) REFERENCES `menu_items`(`id`) ON UPDATE no action ON DELETE no action
 );
@@ -58,8 +59,8 @@ CREATE TABLE `menus` (
 	`slug` text NOT NULL,
 	`location` text DEFAULT 'header' NOT NULL,
 	`status` text DEFAULT 'active' NOT NULL,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL,
-	`updated_at` text DEFAULT 'datetime(''now'')' NOT NULL
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
+	`updated_at` text DEFAULT (datetime('now')) NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `menus_slug_unique` ON `menus` (`slug`);--> statement-breakpoint
@@ -97,19 +98,22 @@ CREATE TABLE `posts` (
 	`content` text NOT NULL,
 	`status` text DEFAULT 'draft' NOT NULL,
 	`featured_image_url` text,
+	`is_featured` integer DEFAULT false NOT NULL,
 	`view_count` integer DEFAULT 0 NOT NULL,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL,
-	`updated_at` text DEFAULT 'datetime(''now'')' NOT NULL,
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
+	`updated_at` text DEFAULT (datetime('now')) NOT NULL,
 	`published_at` text,
 	FOREIGN KEY (`author_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `posts_slug_unique` ON `posts` (`slug`);--> statement-breakpoint
+CREATE INDEX `idx_posts_status_published` ON `posts` (`status`,`published_at`);--> statement-breakpoint
+CREATE INDEX `idx_posts_author` ON `posts` (`author_id`);--> statement-breakpoint
 CREATE TABLE `sessions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` integer NOT NULL,
 	`expires_at` text NOT NULL,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL,
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -122,7 +126,7 @@ CREATE TABLE `tags` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`slug` text NOT NULL,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL
+	`created_at` text DEFAULT (datetime('now')) NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `tags_slug_unique` ON `tags` (`slug`);--> statement-breakpoint
@@ -134,8 +138,8 @@ CREATE TABLE `users` (
 	`display_name` text NOT NULL,
 	`role` text DEFAULT 'author' NOT NULL,
 	`avatar_url` text,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL,
-	`updated_at` text DEFAULT 'datetime(''now'')' NOT NULL
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
+	`updated_at` text DEFAULT (datetime('now')) NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
@@ -149,6 +153,6 @@ CREATE TABLE `widgets` (
 	`sidebar_area` text DEFAULT 'sidebar-1' NOT NULL,
 	`sort_order` integer DEFAULT 0 NOT NULL,
 	`status` text DEFAULT 'active' NOT NULL,
-	`created_at` text DEFAULT 'datetime(''now'')' NOT NULL,
-	`updated_at` text DEFAULT 'datetime(''now'')' NOT NULL
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
+	`updated_at` text DEFAULT (datetime('now')) NOT NULL
 );

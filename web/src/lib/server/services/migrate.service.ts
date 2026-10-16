@@ -1,3 +1,5 @@
+import { sanitizeHtml } from '$lib/server/sanitize'
+import { IMAGE_TYPES, MAX_UPLOAD_BYTES, buildMediaKey, sniffImageType } from '$lib/server/uploads'
 import { XMLParser } from 'fast-xml-parser'
 import { eq, sql } from 'drizzle-orm'
 import { posts, categories, tags, postCategories, postTags, media, comments } from '@wordsvelte/shared'
@@ -254,26 +256,60 @@ function uniqueSlug(slug: string, existing: Set<string>): string {
 
 // --- Image Download ---
 
+/** True for loopback, private, link-local, CGNAT and reserved addresses/names (URL already normalises odd IPv4 spellings). */
+function isPrivateHost(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h.endsWith('.internal')) return true
+
+  const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (v4) {
+    const a = Number(v4[1])
+    const b = Number(v4[2])
+    return a === 0 || a === 10 || a === 127 || a >= 224
+      || (a === 100 && b >= 64 && b <= 127)
+      || (a === 169 && b === 254)
+      || (a === 172 && b >= 16 && b <= 31)
+      || (a === 192 && b === 168)
+  }
+
+  if (h.includes(':')) {
+    return h === '::' || h === '::1' || h.startsWith('::ffff:') || /^f[cd]/.test(h) || /^fe[89ab]/.test(h)
+  }
+  return false
+}
+
+/** Only fetch public http(s) images: the XML is untrusted input, so don't let it point us at internal hosts. */
+export function isFetchableImageUrl(url: string): boolean {
+  try {
+    const u = new URL(url)
+    return (u.protocol === 'http:' || u.protocol === 'https:') && !isPrivateHost(u.hostname)
+  } catch {
+    return false
+  }
+}
+
 async function downloadImage(url: string): Promise<{ buffer: ArrayBuffer; contentType: string; fileName: string } | null> {
+  if (!isFetchableImageUrl(url)) return null
   try {
     const response = await fetch(url, {
       headers: { 'User-Agent': 'WordSvelte-Migrator/1.0' },
       signal: AbortSignal.timeout(30000),
     })
     if (!response.ok) return null
-    const contentType = response.headers.get('content-type') || 'image/jpeg'
     const buffer = await response.arrayBuffer()
-    const fileName = url.split('/').pop()?.split('?')[0] || 'image.jpg'
+    if (buffer.byteLength > MAX_UPLOAD_BYTES) return null
+    // Trust the bytes, not the remote Content-Type: non-images (HTML, SVG, scripts) are skipped.
+    const contentType = sniffImageType(new Uint8Array(buffer))
+    if (!contentType) return null
+    const fileName = url.split('/').pop()?.split('?')[0] || `image.${IMAGE_TYPES[contentType]}`
     return { buffer, contentType, fileName }
   } catch {
     return null
   }
 }
 
-async function uploadToR2(r2: any, buffer: ArrayBuffer, contentType: string, fileName: string): Promise<string> {
-  const now = new Date()
-  const ext = fileName.split('.').pop() || 'jpg'
-  const r2Key = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${crypto.randomUUID()}.${ext}`
+async function uploadToR2(r2: any, buffer: ArrayBuffer, contentType: string, _fileName: string): Promise<string> {
+  const r2Key = buildMediaKey(IMAGE_TYPES[contentType] || 'jpg')
   await r2.put(r2Key, buffer, { httpMetadata: { contentType } })
   return r2Key
 }
@@ -442,7 +478,7 @@ export async function runImport(
       const status = item['wp:status'] === 'publish' ? 'publish' : 'draft'
 
       let content = item['content:encoded'] || ''
-      content = cleanContent(content, wpBaseUrl, urlToLocalMap)
+      content = sanitizeHtml(cleanContent(content, wpBaseUrl, urlToLocalMap))
 
       const excerpt = cleanExcerpt(item['excerpt:encoded'] || '')
 

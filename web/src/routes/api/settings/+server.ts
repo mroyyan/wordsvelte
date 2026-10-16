@@ -1,22 +1,21 @@
 import { getDb } from '$lib/server/db'
-import { verifyAuth } from '$lib/server/auth'
+import { requireUser, getOptionalUser } from '$lib/server/auth'
 import { getSettings, updateSettings } from '$lib/server/services/settings.service'
-import { ok, catchError } from '$lib/server/response'
+import { ok, catchError, readJson } from '$lib/server/response'
 
+/** Public callers get the non-private settings; admins also see private ones. Secrets are never returned. */
 export async function GET(event: any) {
 	try {
-		const db = getDb(event)
-		const data = await getSettings(db)
+		const user = await getOptionalUser(event)
+		const data = await getSettings(getDb(event), { scope: user?.role === 'admin' ? 'admin' : 'public' })
 		return ok(data)
 	} catch (e) { return catchError(e) }
 }
 
 export async function PUT(event: any) {
 	try {
-		await verifyAuth(event)
-		const body = await event.request.json()
-		const db = getDb(event)
-		await updateSettings(db, body)
+		await requireUser(event, 'admin')
+		await updateSettings(getDb(event), await readJson(event.request))
 		return ok({})
 	} catch (e) { return catchError(e) }
 }

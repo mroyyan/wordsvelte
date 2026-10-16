@@ -148,9 +148,9 @@
     const tok = t(); if (!tok) return
     saving = true; createError = ''
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
         body: JSON.stringify({ email: newEmail, username: newUsername, password: newPassword, displayName: newDisplayName, role: newRole }),
       })
       const json = await res.json()

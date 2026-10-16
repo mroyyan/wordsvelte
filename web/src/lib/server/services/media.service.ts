@@ -2,8 +2,10 @@ import { eq, desc } from 'drizzle-orm'
 import { media } from '@wordsvelte/shared'
 import { NotFoundError } from '$lib/server/errors'
 
-export async function listMedia(db: any) {
-	return db.select().from(media).orderBy(desc(media.createdAt))
+export async function listMedia(db: any, opts: { uploadedBy?: number } = {}) {
+	const query = db.select().from(media)
+	const filtered = opts.uploadedBy ? query.where(eq(media.uploadedBy, opts.uploadedBy)) : query
+	return filtered.orderBy(desc(media.createdAt), desc(media.id))
 }
 
 export async function getMedia(db: any, id: number) {
@@ -18,7 +20,7 @@ export async function createMedia(
 ) {
 	const [record] = await db.insert(media).values({
 		r2Key: data.r2Key,
-		originalName: data.originalName,
+		originalName: data.originalName.slice(0, 255),
 		mimeType: data.mimeType,
 		size: data.size,
 		uploadedBy: data.uploadedBy,
@@ -27,9 +29,9 @@ export async function createMedia(
 	return record
 }
 
+/** Removes the DB row and returns the storage key so the caller can delete the object. */
 export async function deleteMedia(db: any, id: number) {
-	const [record] = await db.select().from(media).where(eq(media.id, id)).limit(1)
-	if (!record) throw new NotFoundError('Media')
+	const record = await getMedia(db, id)
 	await db.delete(media).where(eq(media.id, id))
 	return record.r2Key
 }

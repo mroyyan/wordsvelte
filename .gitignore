@@ -6,4 +6,4 @@ build/
 .wrangler/
 .env
 !.env.example
-.local.db/
+.local.db*/

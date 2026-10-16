@@ -36,3 +36,17 @@ export class ConflictError extends AppError {
     this.name = 'ConflictError'
   }
 }
+
+export class ForbiddenError extends AppError {
+  constructor(message = 'Forbidden') {
+    super(message, 403, 'FORBIDDEN')
+    this.name = 'ForbiddenError'
+  }
+}
+
+export class RateLimitError extends AppError {
+  constructor(public retryAfterSeconds: number) {
+    super('Too many requests, please try again later', 429, 'RATE_LIMITED')
+    this.name = 'RateLimitError'
+  }
+}

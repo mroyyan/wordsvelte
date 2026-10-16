@@ -1,14 +1,14 @@
 import { getDb } from '$lib/server/db'
-import { widgets, menus, menuItems, settings } from '@wordsvelte/shared'
+import { widgets, menus, menuItems } from '@wordsvelte/shared'
+import { getSettings } from '$lib/server/services/settings.service'
 import { and, asc, eq } from 'drizzle-orm'
 import { scanThemes, setActiveTheme } from '$lib/server/themes'
 
 export async function load(event) {
   const db = getDb(event as any)
   
-  const allSettings = await db.select().from(settings)
-  const settingsMap: Record<string, string> = {}
-  for (const s of allSettings) settingsMap[s.key] = s.value
+  // Public scope only: this object is serialised into every page, so it must never contain secrets.
+  const settingsMap = await getSettings(db)
 
   const allWidgets = await db.select().from(widgets)
     .where(eq(widgets.status, 'active'))

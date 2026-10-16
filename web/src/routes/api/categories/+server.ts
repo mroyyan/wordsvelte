@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit'
 import { getDb } from '$lib/server/db'
-import { verifyAuth } from '$lib/server/auth'
-import { ok, created, catchError } from '$lib/server/response'
+import { requireUser } from '$lib/server/auth'
+import { ok, created, catchError, readJson } from '$lib/server/response'
 import { listCategories, createCategory } from '$lib/server/services/category.service'
 
 export async function GET(event) {
@@ -14,9 +14,9 @@ export async function GET(event) {
 
 export async function POST(event) {
   try {
-    await verifyAuth(event as any)
+    await requireUser(event as any, 'editor')
     const db = getDb(event as any)
-    const body = await event.request.json()
+    const body = await readJson(event.request)
     const cat = await createCategory(db, body)
     return created(cat)
   } catch (e) { return catchError(e) }

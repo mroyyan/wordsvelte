@@ -26,4 +26,6 @@ declare module 'ckeditor5' {
   export const ImageToolbar: any
   export const ImageUpload: any
   export const ImageResize: any
+  export const Code: any
+  export const CodeBlock: any
 }

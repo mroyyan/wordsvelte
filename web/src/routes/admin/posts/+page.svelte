@@ -80,7 +80,7 @@
     }
   }
 
-  async function handleDelete() { if (!deleteId) return; const tok = t(); if (!tok) return; try { await fetch(`/api/posts/${deleteId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${tok}` } }); items = items.filter((c: any) => c.id !== deleteId) } catch (e: any) { alert(e.message) } finally { deleteId = null } }
+  async function handleDelete() { if (!deleteId) return; const tok = t(); if (!tok) return; try { await fetch(`/api/posts-admin/${deleteId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${tok}` } }); items = items.filter((c: any) => c.id !== deleteId) } catch (e: any) { alert(e.message) } finally { deleteId = null } }
 
   function getPageNumbers(): (number | '...')[] {
     const total = totalPages; const current = page

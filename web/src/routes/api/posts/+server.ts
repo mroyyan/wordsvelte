@@ -1,22 +1,18 @@
 import { getDb } from '$lib/server/db'
-import { verifyAuth } from '$lib/server/auth'
-import { catchError, okPaginated, created } from '$lib/server/response'
+import { requireUser, hasRole } from '$lib/server/auth'
+import { catchError, okPaginated, created, parseIntParam, readJson } from '$lib/server/response'
 import { listPosts, createPost } from '$lib/server/services/post.service'
 
 export async function GET(event) {
   try {
     const url = event.url
-    const page = parseInt(url.searchParams.get('page') || '1')
-    const limit = parseInt(url.searchParams.get('limit') || '20')
+    const page = parseIntParam(url.searchParams.get('page'), 1)
+    const limit = parseIntParam(url.searchParams.get('limit'), 20, { max: 100 })
     const search = url.searchParams.get('q') || undefined
-    const categoryId = url.searchParams.get('categoryId')
+    const categoryId = parseIntParam(url.searchParams.get('categoryId'), 0, { min: 0 })
 
-    const db = getDb(event as any)
-    const { data, total } = await listPosts(db, {
-      page,
-      limit,
-      search,
-      categoryId: categoryId ? parseInt(categoryId) : undefined,
+    const { data, total } = await listPosts(getDb(event as any), {
+      page, limit, search, categoryId: categoryId || undefined,
     })
     return okPaginated(data, total, page, limit)
   } catch (e) { return catchError(e) }
@@ -24,10 +20,11 @@ export async function GET(event) {
 
 export async function POST(event) {
   try {
-    const user = await verifyAuth(event as any)
-    const db = getDb(event as any)
-    const body = await event.request.json()
-    const post = await createPost(db, { ...body, authorId: user.userId })
+    const user = await requireUser(event as any, 'author')
+    const body = await readJson(event.request)
+    // Front-page curation is an editorial decision.
+    const isFeatured = hasRole(user, 'editor') ? body.isFeatured : false
+    const post = await createPost(getDb(event as any), { ...body, isFeatured, authorId: user.userId })
     return created(post)
   } catch (e) { return catchError(e) }
 }

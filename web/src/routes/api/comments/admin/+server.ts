@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit'
 import { getDb } from '$lib/server/db'
-import { verifyAuth } from '$lib/server/auth'
+import { requireUser } from '$lib/server/auth'
 import { okPaginated, catchError } from '$lib/server/response'
 import { listComments } from '$lib/server/services/comment.service'
 
 export async function GET(event) {
   try {
-    await verifyAuth(event as any)
+    await requireUser(event as any, 'editor')
     const db = getDb(event as any)
     const url = event.url
     const page = parseInt(url.searchParams.get('page') || '1')

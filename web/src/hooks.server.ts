@@ -1,41 +1,33 @@
 import type { Handle } from '@sveltejs/kit'
-
-const STATE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
-
-function isAllowedOrigin(requestOrigin: string, serverOrigin: string): boolean {
-	try {
-		const req = new URL(requestOrigin)
-		const srv = new URL(serverOrigin)
-		return req.hostname === srv.hostname && req.protocol === srv.protocol
-	} catch {
-		return false
-	}
-}
+import { AUTH_COOKIE } from '$lib/server/auth'
+import { isCsrfViolation } from '$lib/server/csrf'
+import { ensureLocalDb } from '$lib/server/db'
+import { ensureLocalThemeStorage } from '$lib/server/themes/storage'
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// CSRF check: validate Origin/Referer on state-changing requests
-	if (STATE_METHODS.has(event.request.method)) {
-		const origin = event.request.headers.get('origin')
-		const referer = event.request.headers.get('referer')
-		const serverOrigin = event.url.origin
+	// No-ops in production builds (dev-only SQLite + filesystem themes).
+	await ensureLocalDb()
+	await ensureLocalThemeStorage()
 
-		if (origin) {
-			if (!isAllowedOrigin(origin, serverOrigin)) {
-				return new Response(JSON.stringify({ error: 'CSRF validation failed' }), {
-					status: 403,
-					headers: { 'Content-Type': 'application/json' }
-				})
-			}
-		} else if (referer) {
-			if (!isAllowedOrigin(referer, serverOrigin)) {
-				return new Response(JSON.stringify({ error: 'CSRF validation failed' }), {
-					status: 403,
-					headers: { 'Content-Type': 'application/json' }
-				})
-			}
-		}
-		// No Origin/Referer → allow (non-browser clients like curl, server-to-server)
+	if (isCsrfViolation({
+		method: event.request.method,
+		headers: event.request.headers,
+		serverOrigin: event.url.origin,
+		hasAuthCookie: !!event.cookies.get(AUTH_COOKIE),
+	})) {
+		return new Response(JSON.stringify({ success: false, error: 'CSRF validation failed' }), {
+			status: 403,
+			headers: { 'Content-Type': 'application/json' },
+		})
 	}
 
-	return await resolve(event)
+	const response = await resolve(event)
+	try {
+		response.headers.set('X-Content-Type-Options', 'nosniff')
+		response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+		response.headers.set('X-Frame-Options', 'SAMEORIGIN')
+	} catch {
+		// Immutable (e.g. proxied/redirect) responses: skip the extra headers.
+	}
+	return response
 }

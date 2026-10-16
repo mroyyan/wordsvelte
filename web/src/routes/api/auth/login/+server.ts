@@ -1,17 +1,36 @@
-import { json } from '@sveltejs/kit'
 import { createToken, setAuthCookie } from '$lib/server/auth'
-import { catchError, ok } from '$lib/server/response'
-import { validateLogin } from '$lib/server/services/user.service'
+import { catchError, ok, readJson } from '$lib/server/response'
+import { validateLogin, normalizeEmail } from '$lib/server/services/user.service'
 import { getDb } from '$lib/server/db'
+import { ValidationError, RateLimitError } from '$lib/server/errors'
+import { clientKey } from '$lib/server/rate-limit'
+import { loginByIp, loginByEmail } from '$lib/server/limiters'
 
 export async function POST(event) {
   try {
-    const { email, password } = await event.request.json()
-    if (!email || !password) return json({ success: false, error: 'Email and password required' }, { status: 400 })
+    const body = await readJson(event.request)
+    if (typeof body.email !== 'string' || typeof body.password !== 'string' || !body.email || !body.password) {
+      throw new ValidationError('Email and password required')
+    }
+    const email = normalizeEmail(body.email)
+    const ipKey = clientKey(event)
+
+    const wait = Math.max(loginByIp.check(ipKey), loginByEmail.check(email))
+    if (wait > 0) throw new RateLimitError(wait)
+
     const db = getDb(event as any)
-    const user = await validateLogin(db, email, password)
+    let user
+    try {
+      user = await validateLogin(db, email, body.password)
+    } catch (e) {
+      loginByIp.hit(ipKey)
+      loginByEmail.hit(email)
+      throw e
+    }
+    loginByEmail.reset(email)
+
     const token = await createToken({ userId: user.id, role: user.role }, event as any)
     setAuthCookie(event, token)
-    return ok({ token, user: { id: user.id, email: user.email, username: user.username, displayName: user.displayName, role: user.role } })
+    return ok({ token, user })
   } catch (e) { return catchError(e) }
 }

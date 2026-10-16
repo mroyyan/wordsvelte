@@ -1,52 +1,112 @@
-import { eq, desc, asc, and, sql } from 'drizzle-orm'
-import { posts, postCategories, postTags, categories, tags, comments } from '@wordsvelte/shared'
+import { eq, desc, asc, and, sql, inArray } from 'drizzle-orm'
+import { posts, postCategories, postTags, categories, tags, POST_STATUSES } from '@wordsvelte/shared'
 import { toSlug } from '@wordsvelte/shared'
-import { ValidationError, NotFoundError, AppError } from '$lib/server/errors'
+import { ValidationError, NotFoundError, ConflictError } from '$lib/server/errors'
+import { sanitizeHtml } from '$lib/server/sanitize'
+import { publicCommentColumns } from '$lib/server/services/comment.service'
+import { comments } from '@wordsvelte/shared'
+
+const MAX_TITLE_LENGTH = 300
+const MAX_FEATURED = 5
 
 interface ListPostsOpts {
   page: number
   limit: number
   search?: string
   categoryId?: number
+  authorId?: number
+  /** Defaults to 'publish'. Pass 'all' to disable the status filter (admin views). */
   status?: string
 }
 
-interface CreatePostData {
-  title: string
-  content: string
-  slug?: string
-  excerpt?: string
-  status?: string
-  featuredImageUrl?: string
-  isFeatured?: boolean
-  categoryIds?: number[]
-  tagIds?: number[]
-  authorId: number
-}
-
-interface UpdatePostData {
+interface PostInput {
   title?: string
   content?: string
   slug?: string
-  excerpt?: string
+  excerpt?: string | null
   status?: string
-  featuredImageUrl?: string
+  featuredImageUrl?: string | null
   isFeatured?: boolean
   categoryIds?: number[]
   tagIds?: number[]
 }
 
-export async function listPosts(db: any, opts: ListPostsOpts) {
-  const { page, limit, search, categoryId, status } = opts
-  const conditions: any[] = []
-  const statusFilter = status || 'publish'
-  conditions.push(eq(posts.status, statusFilter))
-  if (search) conditions.push(sql`posts.title LIKE ${'%' + search + '%'}`)
-  if (categoryId) conditions.push(sql`EXISTS (SELECT 1 FROM post_categories WHERE post_id = posts.id AND category_id = ${categoryId})`)
+interface CreatePostData extends PostInput {
+  title: string
+  content: string
+  authorId: number
+}
 
-  const { total } = await db.select({ total: sql<number>`count(*)` }).from(posts).where(and(...conditions)).then((r: any[]) => r[0])
-  const offset = (page - 1) * limit
-  const data = await db.select().from(posts).where(and(...conditions)).orderBy(desc(posts.publishedAt)).limit(limit).offset(offset)
+type UpdatePostData = PostInput
+
+export function validateStatus(status: unknown): string {
+  if (!(POST_STATUSES as readonly string[]).includes(status as string)) {
+    throw new ValidationError(`Status must be one of: ${POST_STATUSES.join(', ')}`)
+  }
+  return status as string
+}
+
+/** Only same-site paths and http(s) URLs: blocks javascript:/data: URLs in image fields. */
+function validateImageUrl(url: unknown): string | null {
+  if (url === null || url === undefined || url === '') return null
+  if (typeof url !== 'string' || url.length > 2048) throw new ValidationError('Invalid featured image URL')
+  if (url.startsWith('/') && !url.startsWith('//')) return url
+  try {
+    const u = new URL(url)
+    if (u.protocol === 'http:' || u.protocol === 'https:') return url
+  } catch {}
+  throw new ValidationError('Invalid featured image URL')
+}
+
+function validateIdList(ids: unknown, field: string): number[] {
+  if (ids === undefined) return []
+  if (!Array.isArray(ids) || !ids.every(i => Number.isInteger(i) && i > 0)) {
+    throw new ValidationError(`${field} must be an array of positive integers`)
+  }
+  return [...new Set(ids as number[])]
+}
+
+async function assertAllExist(db: any, table: any, ids: number[], label: string) {
+  if (!ids.length) return
+  const rows = await db.select({ id: table.id }).from(table).where(inArray(table.id, ids))
+  if (rows.length !== ids.length) throw new ValidationError(`One or more ${label} do not exist`)
+}
+
+async function slugTaken(db: any, slug: string, excludeId?: number) {
+  const [row] = await db.select({ id: posts.id }).from(posts).where(eq(posts.slug, slug)).limit(1)
+  return !!row && row.id !== excludeId
+}
+
+/** Append -2, -3, ... until the slug is free. */
+async function uniqueSlug(db: any, base: string, excludeId?: number) {
+  const root = toSlug(base) || 'post'
+  if (!(await slugTaken(db, root, excludeId))) return root
+  for (let n = 2; n < 100; n++) {
+    const candidate = `${root.slice(0, 190)}-${n}`
+    if (!(await slugTaken(db, candidate, excludeId))) return candidate
+  }
+  return `${root.slice(0, 180)}-${crypto.randomUUID().slice(0, 8)}`
+}
+
+const escapeLike = (s: string) => s.replace(/[\\%_]/g, c => '\\' + c)
+
+export async function listPosts(db: any, opts: ListPostsOpts) {
+  const page = Math.max(1, opts.page || 1)
+  const limit = Math.min(500, Math.max(1, opts.limit || 20))
+  const { search, categoryId, authorId } = opts
+  const status = opts.status || 'publish'
+
+  const conditions: any[] = []
+  if (status !== 'all') conditions.push(eq(posts.status, validateStatus(status)))
+  if (authorId) conditions.push(eq(posts.authorId, authorId))
+  if (search) conditions.push(sql`${posts.title} LIKE ${'%' + escapeLike(search) + '%'} ESCAPE '\\'`)
+  if (categoryId) conditions.push(sql`EXISTS (SELECT 1 FROM post_categories WHERE post_id = ${posts.id} AND category_id = ${categoryId})`)
+  const where = conditions.length ? and(...conditions) : undefined
+
+  const { total } = await db.select({ total: sql<number>`count(*)` }).from(posts).where(where).then((r: any[]) => r[0])
+  const data = await db.select().from(posts).where(where)
+    .orderBy(desc(sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`), desc(posts.id))
+    .limit(limit).offset((page - 1) * limit)
 
   return { data, total, page, limit, totalPages: Math.ceil(total / limit) }
 }
@@ -61,10 +121,12 @@ export async function getPostBySlug(db: any, slug: string) {
   const tagRows = await db.select({ id: tags.id, name: tags.name, slug: tags.slug })
     .from(postTags).innerJoin(tags, eq(postTags.tagId, tags.id))
     .where(eq(postTags.postId, post.id))
-  const commentRows = await db.select().from(comments).where(eq(comments.postId, post.id)).orderBy(desc(comments.createdAt))
+  const commentRows = await db.select(publicCommentColumns).from(comments)
+    .where(and(eq(comments.postId, post.id), eq(comments.status, 'approved')))
+    .orderBy(desc(comments.createdAt))
 
   await incrementViewCount(db, post.id)
-  return { ...post, categories: catRows, tags: tagRows, comments: commentRows }
+  return { ...post, content: sanitizeHtml(post.content), categories: catRows, tags: tagRows, comments: commentRows }
 }
 
 export async function getPostById(db: any, id: number) {
@@ -82,61 +144,101 @@ export async function getPostById(db: any, id: number) {
 }
 
 export async function createPost(db: any, data: CreatePostData) {
-  if (!data.title || !data.content) throw new ValidationError('Title and content required')
+  const title = String(data.title ?? '').trim()
+  if (!title || !data.content) throw new ValidationError('Title and content required')
+  if (title.length > MAX_TITLE_LENGTH) throw new ValidationError(`Title too long (max ${MAX_TITLE_LENGTH} chars)`)
 
-  const slug = data.slug || toSlug(data.title)
+  const status = data.status === undefined ? 'draft' : validateStatus(data.status)
+  const categoryIds = validateIdList(data.categoryIds, 'categoryIds')
+  const tagIds = validateIdList(data.tagIds, 'tagIds')
+  await assertAllExist(db, categories, categoryIds, 'categories')
+  await assertAllExist(db, tags, tagIds, 'tags')
+
+  let slug: string
+  if (data.slug) {
+    slug = toSlug(data.slug)
+    if (!slug) throw new ValidationError('Invalid slug')
+    if (await slugTaken(db, slug)) throw new ConflictError('Slug already in use')
+  } else {
+    slug = await uniqueSlug(db, title)
+  }
+
+  const now = new Date().toISOString()
   const [post] = await db.insert(posts).values({
     authorId: data.authorId,
-    title: data.title,
+    title,
     slug,
-    excerpt: data.excerpt || null,
-    content: data.content,
-    status: data.status || 'draft',
-    featuredImageUrl: data.featuredImageUrl || null,
-    isFeatured: data.isFeatured || false,
-    publishedAt: data.status === 'publish' ? new Date().toISOString() : null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    excerpt: data.excerpt ? sanitizeHtml(data.excerpt) : null,
+    content: sanitizeHtml(data.content),
+    status,
+    featuredImageUrl: validateImageUrl(data.featuredImageUrl),
+    isFeatured: false,
+    publishedAt: status === 'publish' ? now : null,
+    createdAt: now,
+    updatedAt: now,
   }).returning()
 
-  if (data.categoryIds?.length) await db.insert(postCategories).values(data.categoryIds.map((catId: number) => ({ postId: post.id, categoryId: catId })))
-  if (data.tagIds?.length) await db.insert(postTags).values(data.tagIds.map((tagId: number) => ({ postId: post.id, tagId })))
+  if (categoryIds.length) await db.insert(postCategories).values(categoryIds.map(categoryId => ({ postId: post.id, categoryId })))
+  if (tagIds.length) await db.insert(postTags).values(tagIds.map(tagId => ({ postId: post.id, tagId })))
+  if (data.isFeatured) await setFeaturedPosts(db, post.id, true)
 
-  return post
+  return getPostById(db, post.id)
 }
 
 export async function updatePost(db: any, id: number, data: UpdatePostData) {
   const [existing] = await db.select().from(posts).where(eq(posts.id, id)).limit(1)
   if (!existing) throw new NotFoundError('Post')
 
-  const updateData: any = { ...data, updatedAt: new Date().toISOString() }
-  delete updateData.categoryIds
-  delete updateData.tagIds
-  delete updateData.isFeatured
+  // Explicit allow-list: never spread the request body into the update (authorId, viewCount, etc. stay untouched).
+  const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() }
 
-  await db.update(posts).set(updateData).where(eq(posts.id, id))
-
-  // Handle featured toggle with max-5 enforcement
-  if (data.isFeatured !== undefined && data.isFeatured !== existing.isFeatured) {
-    await setFeaturedPosts(db, id, data.isFeatured)
+  if (data.title !== undefined) {
+    const title = String(data.title).trim()
+    if (!title) throw new ValidationError('Title cannot be empty')
+    if (title.length > MAX_TITLE_LENGTH) throw new ValidationError(`Title too long (max ${MAX_TITLE_LENGTH} chars)`)
+    patch.title = title
+  }
+  if (data.content !== undefined) {
+    if (!data.content) throw new ValidationError('Content cannot be empty')
+    patch.content = sanitizeHtml(data.content)
+  }
+  if (data.excerpt !== undefined) patch.excerpt = data.excerpt ? sanitizeHtml(data.excerpt) : null
+  if (data.featuredImageUrl !== undefined) patch.featuredImageUrl = validateImageUrl(data.featuredImageUrl)
+  if (data.slug !== undefined && data.slug !== existing.slug) {
+    const slug = toSlug(data.slug)
+    if (!slug) throw new ValidationError('Invalid slug')
+    if (await slugTaken(db, slug, id)) throw new ConflictError('Slug already in use')
+    patch.slug = slug
+  }
+  if (data.status !== undefined) {
+    patch.status = validateStatus(data.status)
+    if (patch.status === 'publish' && !existing.publishedAt) patch.publishedAt = patch.updatedAt
   }
 
-  if (data.categoryIds) {
+  const categoryIds = data.categoryIds !== undefined ? validateIdList(data.categoryIds, 'categoryIds') : null
+  const tagIds = data.tagIds !== undefined ? validateIdList(data.tagIds, 'tagIds') : null
+  if (categoryIds) await assertAllExist(db, categories, categoryIds, 'categories')
+  if (tagIds) await assertAllExist(db, tags, tagIds, 'tags')
+
+  await db.update(posts).set(patch).where(eq(posts.id, id))
+
+  if (data.isFeatured !== undefined && Boolean(data.isFeatured) !== Boolean(existing.isFeatured)) {
+    await setFeaturedPosts(db, id, Boolean(data.isFeatured))
+  }
+
+  if (categoryIds) {
     await db.delete(postCategories).where(eq(postCategories.postId, id))
-    for (const catId of data.categoryIds) {
-      await db.insert(postCategories).values({ postId: id, categoryId: catId })
-    }
+    if (categoryIds.length) await db.insert(postCategories).values(categoryIds.map(categoryId => ({ postId: id, categoryId })))
   }
-
-  if (data.tagIds) {
+  if (tagIds) {
     await db.delete(postTags).where(eq(postTags.postId, id))
-    for (const tagId of data.tagIds) {
-      await db.insert(postTags).values({ postId: id, tagId: tagId })
-    }
+    if (tagIds.length) await db.insert(postTags).values(tagIds.map(tagId => ({ postId: id, tagId })))
   }
 }
 
 export async function deletePost(db: any, id: number) {
+  const [existing] = await db.select({ id: posts.id }).from(posts).where(eq(posts.id, id)).limit(1)
+  if (!existing) throw new NotFoundError('Post')
   await db.delete(posts).where(eq(posts.id, id))
 }
 
@@ -145,15 +247,13 @@ export async function incrementViewCount(db: any, id: number) {
 }
 
 export async function getRelatedPosts(db: any, postId: number) {
-  const data = await db.select().from(posts)
+  return db.select().from(posts)
     .where(and(
       eq(posts.status, 'publish'),
       sql`${posts.id} != ${postId}`,
-      sql`EXISTS (SELECT 1 FROM post_categories pc1 WHERE pc1.post_id = ${posts.id} AND pc1.category_id IN (SELECT pc2.category_id FROM post_categories pc2 WHERE pc2.post_id = ${postId}))`
+      sql`EXISTS (SELECT 1 FROM post_categories pc1 WHERE pc1.post_id = ${posts.id} AND pc1.category_id IN (SELECT pc2.category_id FROM post_categories pc2 WHERE pc2.post_id = ${postId}))`,
     ))
     .orderBy(sql`RANDOM()`).limit(3)
-
-  return data
 }
 
 export async function getPopularPosts(db: any, limit: number = 5) {
@@ -163,30 +263,27 @@ export async function getPopularPosts(db: any, limit: number = 5) {
     .limit(limit)
 }
 
-export async function getFeaturedPosts(db: any, limit: number = 5) {
+export async function getFeaturedPosts(db: any, limit: number = MAX_FEATURED) {
   return db.select().from(posts)
-    .where(eq(posts.isFeatured, true))
-    .orderBy(desc(posts.publishedAt))
+    .where(and(eq(posts.isFeatured, true), eq(posts.status, 'publish')))
+    .orderBy(desc(sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`))
     .limit(limit)
 }
 
+/** Mark/unmark a post as featured, keeping at most MAX_FEATURED published posts featured (oldest is dropped). */
 export async function setFeaturedPosts(db: any, postId: number, isFeatured: boolean) {
   if (isFeatured) {
-    // Count current featured posts
-    const [{ count }] = await db.select({ count: sql<number>`count(*)` })
-      .from(posts)
-      .where(eq(posts.isFeatured, true))
+    const featured = and(eq(posts.isFeatured, true), eq(posts.status, 'publish'))
+    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(posts).where(featured)
+    const [alreadyFeatured] = await db.select({ id: posts.id }).from(posts).where(and(featured, eq(posts.id, postId))).limit(1)
 
-    // If already 5, unmark the oldest
-    if (count >= 5) {
-      const oldest = await db.select({ id: posts.id })
-        .from(posts)
-        .where(eq(posts.isFeatured, true))
-        .orderBy(asc(posts.publishedAt))
-        .limit(1)
-      if (oldest.length) {
-        await db.update(posts).set({ isFeatured: false }).where(eq(posts.id, oldest[0].id))
-      }
+    if (!alreadyFeatured && count >= MAX_FEATURED) {
+      const overflow = count - MAX_FEATURED + 1
+      const oldest = await db.select({ id: posts.id }).from(posts)
+        .where(and(featured, sql`${posts.id} != ${postId}`))
+        .orderBy(asc(sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`), asc(posts.id))
+        .limit(overflow)
+      for (const row of oldest) await db.update(posts).set({ isFeatured: false }).where(eq(posts.id, row.id))
     }
   }
 

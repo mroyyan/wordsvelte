@@ -1,11 +1,11 @@
-import { verifyAuth } from '$lib/server/auth'
+import { requireUser } from '$lib/server/auth'
 import { ok, catchError } from '$lib/server/response'
 import { getPreview } from '$lib/server/services/migrate.service'
 import { ValidationError } from '$lib/server/errors'
 
 export async function POST(event: any) {
   try {
-    await verifyAuth(event)
+    await requireUser(event, 'admin')
     const formData = await event.request.formData()
     const file = formData.get('file') as File | null
     if (!file) throw new ValidationError('No file provided')

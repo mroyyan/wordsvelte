@@ -1,3 +1,4 @@
+import { error } from '@sveltejs/kit'
 import { eq, desc, and, asc } from 'drizzle-orm'
 import { getDb } from '$lib/server/db'
 import { posts, tags, postTags, categories } from '@wordsvelte/shared'
@@ -10,7 +11,7 @@ export async function load(event) {
     .where(eq(tags.slug, params.slug))
     .limit(1)
 
-  if (!tag) throw new Error('Tag not found')
+  if (!tag) throw error(404, 'Tag not found')
 
   const tagPosts = await db.select()
     .from(posts)

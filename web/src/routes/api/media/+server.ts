@@ -1,40 +1,42 @@
 import { getDb } from '$lib/server/db'
-import { verifyAuth } from '$lib/server/auth'
+import { requireUser } from '$lib/server/auth'
 import { listMedia, createMedia } from '$lib/server/services/media.service'
 import { ok, created, catchError } from '$lib/server/response'
-import { ValidationError } from '$lib/server/errors'
+import { AppError, ValidationError } from '$lib/server/errors'
+import { MAX_UPLOAD_BYTES, validateImageUpload, buildMediaKey } from '$lib/server/uploads'
 
 export async function GET(event: any) {
 	try {
-		await verifyAuth(event)
-		const db = getDb(event)
-		const data = await listMedia(db)
-		return ok(data)
+		await requireUser(event, 'author')
+		return ok(await listMedia(getDb(event)))
 	} catch (e) { return catchError(e) }
 }
 
 export async function POST(event: any) {
 	try {
-		const user = await verifyAuth(event)
+		const user = await requireUser(event, 'author')
+		const r2 = event.platform?.env?.R2
+		if (!r2) throw new AppError('Media storage is not configured', 503)
+
 		const formData = await event.request.formData()
-		const file = formData.get('file') as File | null
-		if (!file) throw new ValidationError('No file')
-		if (file.size > 20 * 1024 * 1024) throw new ValidationError('File too large (max 20MB)')
+		const file = formData.get('file')
+		if (!(file instanceof File)) throw new ValidationError('No file')
+		if (file.size > MAX_UPLOAD_BYTES) throw new ValidationError('File too large (max 20MB)')
 
-		const now = new Date()
-		const ext = file.name.split('.').pop()
-		const r2Key = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${crypto.randomUUID()}.${ext}`
-		const buffer = await file.arrayBuffer()
-		await event.platform.env.R2.put(r2Key, buffer, { httpMetadata: { contentType: file.type } })
+		// Trust the bytes, not the client-supplied name/type.
+		const bytes = new Uint8Array(await file.arrayBuffer())
+		const { mimeType, ext } = validateImageUpload(bytes)
+		const r2Key = buildMediaKey(ext)
+		await r2.put(r2Key, bytes, { httpMetadata: { contentType: mimeType } })
 
-		const db = getDb(event)
-		const record = await createMedia(db, {
-			r2Key,
-			originalName: file.name,
-			mimeType: file.type,
-			size: file.size,
-			uploadedBy: user.userId,
-		})
-		return created(record)
+		try {
+			const record = await createMedia(getDb(event), {
+				r2Key, originalName: file.name || `upload.${ext}`, mimeType, size: bytes.byteLength, uploadedBy: user.userId,
+			})
+			return created(record)
+		} catch (e) {
+			await r2.delete(r2Key).catch(() => {})
+			throw e
+		}
 	} catch (e) { return catchError(e) }
 }

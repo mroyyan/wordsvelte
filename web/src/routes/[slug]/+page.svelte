@@ -17,7 +17,7 @@
   let commentEmail = $state('')
 
   onMount(() => {
-    document.querySelectorAll('.post-content pre').forEach((pre) => {
+    document.querySelectorAll<HTMLElement>('.post-content pre').forEach((pre) => {
       const btn = document.createElement('button')
       btn.className = 'copy-btn'
       btn.textContent = 'Copy'
@@ -147,7 +147,7 @@
                     {#if comment.parentId}<span class="text-xs text-red-500 font-medium">• Balasan</span>{/if}
                     <span class="text-xs text-gray-400">{formatDate(comment.createdAt)}</span>
                   </div>
-                  <div class="mt-1 text-sm text-gray-700 leading-relaxed">{@html comment.content?.replace(/\n/g, '<br>')}</div>
+                  <div class="mt-1 text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{comment.content}</div>
                   <button class="text-xs text-gray-500 hover:text-red-600 font-medium mt-2">Balas</button>
                 </div>
               </div>

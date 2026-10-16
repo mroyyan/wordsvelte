@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createInterface } from 'node:readline'
 import { execSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 
@@ -123,12 +123,13 @@ ok('Repository cloned')
 // ---- Step 4: Write wrangler.toml ----
 
 const isWin = process.platform === 'win32'
-const migratePath = isWin ? 'web\\\\drizzle\\\\0000_far_pandemic.sql' : 'web/drizzle/0000_far_pandemic.sql'
+const migrationFiles = () => readdirSync(join(projectPath, 'web', 'drizzle')).filter(f => f.endsWith('.sql')).sort().map(f => 'web/drizzle/' + f)
 // Generate a random JWT secret
 const jwtSecret = randomBytes(32).toString('hex')
 
 const wranglerContent = `name = "wordsvelte-web"
 compatibility_date = "${new Date().toISOString().split('T')[0]}"
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".svelte-kit/cloudflare"
 
 [[d1_databases]]
@@ -140,8 +141,8 @@ database_id = "wordsvelte-db-prod"
 binding = "R2"
 bucket_name = "wordsvelte-media"
 
-# For production, set JWT_SECRET via: wrangler secret put JWT_SECRET
-# In local dev, a random secret will be auto-generated and persisted in the DB.
+# Required in production: npx wrangler pages secret put JWT_SECRET --project-name wordsvelte-web
+# In local dev, a random secret is auto-generated and persisted in the local DB.
 `
 
 writeFileSync(join(projectPath, 'web', 'wrangler.toml'), wranglerContent)
@@ -176,12 +177,19 @@ if (authChoice === '1' || authChoice === '2') {
     if (r2Result) { ok('R2 bucket: wordsvelte-media'); r2Created = true }
     else { warn('R2 creation skipped (may already exist)') }
 
-    step('Applying database migration...')
-    const migrateResult = run(`npx wrangler d1 execute wordsvelte-db --file=${migratePath}`, { cwd: projectPath, silent: true })
-    if (migrateResult) { ok('Migration applied'); migrationApplied = true }
-    else { warn('Migration failed — apply manually with: npx wrangler d1 execute wordsvelte-db --file=web/drizzle/0000_far_pandemic.sql') }
+    step('Applying database migrations...')
+    const files = migrationFiles()
+    migrationApplied = files.length > 0
+    for (const file of files) {
+      if (!run(`npx wrangler d1 execute wordsvelte-db --remote --file=${file}`, { cwd: projectPath, silent: true })) {
+        migrationApplied = false
+        warn(`Migration failed: ${file} — apply the files in web/drizzle manually, in order`)
+        break
+      }
+    }
+    if (migrationApplied) ok('Migrations applied')
 
-    step(`Generated JWT secret: ${c(C.yellow, jwtSecret)}  ${c(C.dim, '(save this!)')}`)
+    step(`Generated JWT secret: ${c(C.yellow, jwtSecret)}  ${c(C.dim, '(set it with: npx wrangler pages secret put JWT_SECRET --project-name wordsvelte-web)')}`)
   }
 }
 
@@ -202,11 +210,11 @@ if (!dbCreated || !r2Created) {
   console.log(`\n  ${c(C.yellow, '⚠')}  Cloudflare resources need manual setup:`)
   console.log(`     ${c(C.dim, 'npx wrangler d1 create wordsvelte-db')}`)
   console.log(`     ${c(C.dim, 'npx wrangler r2 bucket create wordsvelte-media')}`)
-  console.log(`     ${c(C.dim, 'npx wrangler d1 execute wordsvelte-db --file=web/drizzle/0000_far_pandemic.sql')}`)
+  console.log(`     ${c(C.dim, 'npx wrangler d1 execute wordsvelte-db --remote --file=web/drizzle/<each .sql file, in order>')}`)
 }
 
 console.log(`\n  ${c(C.cyan, '3')}. Deploy to Cloudflare:`)
-console.log(`     ${c(C.dim, 'npx wrangler secret put JWT_SECRET')}`)
+console.log(`     ${c(C.dim, 'npx wrangler pages secret put JWT_SECRET --project-name wordsvelte-web')}`)
 console.log(`     ${c(C.dim, 'npm run deploy -w web')}`)
 
 console.log(`\n  ${c(C.dim, 'Docs: https://github.com/mroyyan/wordsvelte')}\n`)
