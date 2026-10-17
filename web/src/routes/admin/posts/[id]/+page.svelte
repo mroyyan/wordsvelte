@@ -167,7 +167,7 @@
 {#if mounted}
 <div class="flex flex-1 flex-col gap-6">
   <div class="flex flex-wrap items-end justify-between gap-2">
-    <div><h2 class="text-2xl font-bold tracking-tight">Edit Post</h2><p class="text-muted-foreground">Modify your article</p></div>
+    <div><h2 class="text-xl font-bold tracking-tight sm:text-2xl">Edit Post</h2><p class="text-sm text-muted-foreground sm:text-base">Modify your article</p></div>
     <Button type="submit" form="post-form" disabled={saving}>
       {#if saving}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
       <Save class="mr-2 h-4 w-4" /> {saving ? 'Updating...' : status === 'scheduled' ? 'Update Schedule' : 'Update Post'}
@@ -178,8 +178,8 @@
     <div class="flex items-center justify-center h-64 text-muted-foreground">Loading post data...</div>
   {:else}
     <form id="post-form" onsubmit={handleSubmit}>
-      <div class="grid grid-cols-3 gap-6">
-        <div class="col-span-2 space-y-6">
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="min-w-0 space-y-6 lg:col-span-2">
           <Card>
             <CardHeader><CardTitle>Content</CardTitle></CardHeader>
             <CardContent class="space-y-3">
@@ -209,7 +209,7 @@
           </Card>
         </div>
 
-        <div class="col-span-1 space-y-6">
+        <div class="min-w-0 space-y-6 lg:col-span-1">
           <Card>
             <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
             <CardContent>

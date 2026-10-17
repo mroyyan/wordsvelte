@@ -8,8 +8,8 @@
 </script>
 
 <div class="space-y-0.5">
-  <h1 class="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
-  <p class="text-muted-foreground">{description}</p>
+  <h1 class="text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">{title}</h1>
+  <p class="text-sm text-muted-foreground sm:text-base">{description}</p>
 </div>
 <Separator class="my-4 lg:my-6" />
 <div class="flex flex-1 flex-col space-y-2 md:space-y-2 lg:flex-row lg:space-y-0 lg:space-x-12">

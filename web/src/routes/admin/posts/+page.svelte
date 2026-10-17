@@ -46,9 +46,9 @@
   }
   const columns = [
     { id: 'title', title: 'Title' },
-    { id: 'status', title: 'Status' },
-    { id: 'viewCount', title: 'Views' },
-    { id: 'date', title: 'Date' },
+    { id: 'status', title: 'Status', secondary: true },
+    { id: 'viewCount', title: 'Views', secondary: true },
+    { id: 'date', title: 'Date', secondary: true },
   ]
   const postDate = (p: PostRow) => p.publishedAt || p.createdAt
 
@@ -123,7 +123,7 @@
         <TableRow>
           <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" /></TableHead>
           {#each visibleColumns as c (c.id)}
-            <TableHead><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
+            <TableHead class={c.secondary ? 'hidden sm:table-cell' : ''}><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
           {/each}
           <TableHead class="w-10"></TableHead>
         </TableRow>
@@ -138,10 +138,15 @@
             <TableRow data-state={table.isSelected(post) ? 'selected' : undefined}>
               <TableCell><Checkbox checked={table.isSelected(post)} onCheckedChange={() => table.toggleRow(post)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as c (c.id)}
-                <TableCell class={c.id === 'title' ? 'max-w-xs truncate font-medium' : 'text-nowrap'}>
+                <TableCell class={[c.id === 'title' ? 'max-w-[15rem] font-medium sm:max-w-xs' : 'text-nowrap', c.secondary && 'hidden sm:table-cell']}>
                   {#if c.id === 'title'}
                     {#if post.isFeatured}<StarIcon class="mr-1 -mt-0.5 inline-block size-4 fill-yellow-500 text-yellow-500" />{/if}
-                    <a href={`/admin/posts/${post.id}`} class="hover:underline">{post.title}</a>
+                    <a href={`/admin/posts/${post.id}`} class="block truncate hover:underline">{post.title}</a>
+                    <!-- phones: status and date live under the title instead of in their own columns -->
+                    <div class="mt-1 flex items-center gap-2 text-xs font-normal text-muted-foreground sm:hidden">
+                      <Badge variant="outline" class={statusColors[post.status] ?? ''}>{statusLabel(post.status)}</Badge>
+                      <span>{formatDate(postDate(post))}</span>
+                    </div>
                   {:else if c.id === 'status'}
                     <Badge variant="outline" class={statusColors[post.status] ?? ''}>{#if post.status === 'scheduled'}<ClockIcon class="me-1 size-3" />{/if}{statusLabel(post.status)}</Badge>
                   {:else if c.id === 'viewCount'}

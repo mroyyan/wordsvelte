@@ -36,9 +36,9 @@
   const roleIcon = (role: string) => roleOptions.find(r => r.value === role)?.icon ?? PencilLineIcon
   const columns = [
     { id: 'username', title: 'Username' },
-    { id: 'displayName', title: 'Name' },
-    { id: 'email', title: 'Email' },
-    { id: 'role', title: 'Role' },
+    { id: 'displayName', title: 'Name', secondary: true },
+    { id: 'email', title: 'Email', secondary: true },
+    { id: 'role', title: 'Role', secondary: true },
   ]
 
   const table = new DataTableState<UserRow>({
@@ -149,7 +149,7 @@
             <Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" />
           </TableHead>
           {#each visibleColumns as c (c.id)}
-            <TableHead><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
+            <TableHead class={c.secondary ? 'hidden sm:table-cell' : ''}><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
           {/each}
           <TableHead class="w-10"></TableHead>
         </TableRow>
@@ -165,9 +165,13 @@
             <TableRow data-state={table.isSelected(user) ? 'selected' : undefined}>
               <TableCell><Checkbox checked={table.isSelected(user)} onCheckedChange={() => table.toggleRow(user)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as c (c.id)}
-                <TableCell class={c.id === 'username' ? 'max-w-40 truncate font-medium' : c.id === 'email' ? 'text-nowrap' : 'max-w-40 truncate'}>
+                <TableCell class={[c.id === 'username' ? 'max-w-[15rem] font-medium sm:max-w-40' : c.id === 'email' ? 'text-nowrap' : 'max-w-40 truncate', c.secondary && 'hidden sm:table-cell']}>
                   {#if c.id === 'role'}
                     <Badge variant="outline" class="flex w-fit items-center gap-1 capitalize"><RoleIcon class="size-3 text-muted-foreground" />{user.role}</Badge>
+                  {:else if c.id === 'username'}
+                    <div class="truncate">{user.username}</div>
+                    <div class="mt-0.5 truncate text-xs font-normal text-muted-foreground sm:hidden">{user.displayName} · {user.email}</div>
+                    <Badge variant="outline" class="mt-1 flex w-fit items-center gap-1 capitalize sm:hidden"><RoleIcon class="size-3 text-muted-foreground" />{user.role}</Badge>
                   {:else}
                     {user[c.id as 'username' | 'displayName' | 'email']}
                   {/if}

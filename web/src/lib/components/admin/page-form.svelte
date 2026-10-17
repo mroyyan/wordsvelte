@@ -68,8 +68,8 @@
 <div class="flex flex-1 flex-col gap-6">
   <div class="flex flex-wrap items-end justify-between gap-2">
     <div>
-      <h2 class="text-2xl font-bold tracking-tight">{page ? 'Edit Page' : 'New Page'}</h2>
-      <p class="text-muted-foreground">{page ? 'Update this static page' : 'Create a static page such as About or Contact'}</p>
+      <h2 class="text-xl font-bold tracking-tight sm:text-2xl">{page ? 'Edit Page' : 'New Page'}</h2>
+      <p class="text-sm text-muted-foreground sm:text-base">{page ? 'Update this static page' : 'Create a static page such as About or Contact'}</p>
     </div>
     <div class="flex items-center gap-2">
       {#if page && page.status === 'publish'}
@@ -85,8 +85,8 @@
   </div>
 
   <form id="page-form" onsubmit={handleSubmit}>
-    <div class="grid grid-cols-3 gap-6">
-      <div class="col-span-2 space-y-6">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="min-w-0 space-y-6 lg:col-span-2">
         <Card>
           <CardHeader><CardTitle>Content</CardTitle></CardHeader>
           <CardContent class="space-y-3">
@@ -140,7 +140,7 @@
         </Card>
       </div>
 
-      <div class="col-span-1 space-y-6">
+      <div class="min-w-0 space-y-6 lg:col-span-1">
         <Card>
           <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
           <CardContent class="space-y-3">

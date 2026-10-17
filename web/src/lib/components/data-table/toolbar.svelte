@@ -16,15 +16,15 @@
 </script>
 
 <div class="flex items-center justify-between">
-  <div class="flex flex-1 flex-col-reverse items-start gap-y-2 sm:flex-row sm:items-center sm:gap-x-2">
+  <div class="flex flex-1 flex-col items-stretch gap-y-2 sm:flex-row sm:items-center sm:gap-x-2">
     <Input
       placeholder={searchPlaceholder}
       value={table.search}
       oninput={(e) => table.setSearch(e.currentTarget.value)}
-      class="h-8 w-[150px] lg:w-[250px]"
+      class="h-8 w-full sm:w-[150px] lg:w-[250px]"
       aria-label={searchPlaceholder}
     />
-    <div class="flex gap-x-2">{@render filters?.()}</div>
+    <div class="flex flex-wrap gap-2">{@render filters?.()}</div>
     {#if table.isFiltered}
       <Button variant="ghost" onclick={() => table.reset()} class="h-8 px-2 lg:px-3">
         Reset <XIcon class="ms-2 size-4" />

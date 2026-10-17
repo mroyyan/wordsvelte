@@ -41,9 +41,9 @@
   }
   const columns = [
     { id: 'authorName', title: 'Author' },
-    { id: 'content', title: 'Comment' },
-    { id: 'status', title: 'Status' },
-    { id: 'createdAt', title: 'Date' },
+    { id: 'content', title: 'Comment', secondary: true },
+    { id: 'status', title: 'Status', secondary: true },
+    { id: 'createdAt', title: 'Date', secondary: true },
   ]
 
   const table = new DataTableState<CommentRow>({
@@ -113,7 +113,7 @@
         <TableRow>
           <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" /></TableHead>
           {#each visibleColumns as c (c.id)}
-            <TableHead><DataTableColumnHeader {table} column={c.id} title={c.title} sortable={c.id !== 'content'} /></TableHead>
+            <TableHead class={c.secondary ? 'hidden sm:table-cell' : ''}><DataTableColumnHeader {table} column={c.id} title={c.title} sortable={c.id !== 'content'} /></TableHead>
           {/each}
           <TableHead class="w-10"></TableHead>
         </TableRow>
@@ -128,10 +128,15 @@
             <TableRow data-state={table.isSelected(c) ? 'selected' : undefined}>
               <TableCell><Checkbox checked={table.isSelected(c)} onCheckedChange={() => table.toggleRow(c)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as col (col.id)}
-                <TableCell class={col.id === 'content' ? 'max-w-xs truncate text-sm' : 'text-nowrap'}>
+                <TableCell class={[col.id === 'content' ? 'max-w-xs truncate text-sm' : col.id === 'authorName' ? 'max-w-[15rem] sm:max-w-none' : 'text-nowrap', col.secondary && 'hidden sm:table-cell']}>
                   {#if col.id === 'authorName'}
                     <div class="font-medium">{c.authorName}</div>
-                    <div class="text-xs text-muted-foreground">{c.authorEmail}</div>
+                    <div class="truncate text-xs text-muted-foreground">{c.authorEmail}</div>
+                    <!-- phones: the comment and its status sit under the author -->
+                    <div class="mt-1 space-y-1 sm:hidden">
+                      <p class="line-clamp-2 text-sm whitespace-normal">{c.content}</p>
+                      <Badge variant="outline" class={statusColors[c.status] ?? ''}>{statusOptions.find(o => o.value === c.status)?.label ?? c.status}</Badge>
+                    </div>
                   {:else if col.id === 'content'}
                     {c.content}
                   {:else if col.id === 'status'}

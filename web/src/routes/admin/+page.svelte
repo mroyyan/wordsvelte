@@ -75,7 +75,7 @@
 {#if error}
   <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
 {:else if !data}
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
     {#each Array(4) as _, i (i)}<Skeleton class="h-32 rounded-xl" />{/each}
   </div>
   <div class="mt-4 grid gap-4 lg:grid-cols-7">
@@ -84,7 +84,7 @@
 {:else}
   <div class="space-y-4">
     <!-- headline numbers -->
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       <Card>
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Total Views</CardTitle>
@@ -206,7 +206,7 @@
 
     <!-- shortcuts to the rest of the site -->
     {#if shortcuts.length}
-      <div class="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
         {#each shortcuts as s (s.label)}
           <a href={s.href} class="flex items-center gap-3 rounded-xl border bg-card p-4 transition-shadow hover:shadow-md">
             <span class="flex size-9 items-center justify-center rounded-lg bg-muted"><s.icon class="size-4" /></span>

@@ -11,6 +11,8 @@
 
   let { table, pageSizes = [10, 20, 30, 40, 50], class: className }: { table: DataTableState<any>; pageSizes?: number[]; class?: string } = $props()
   const numbers = $derived(pageNumbers(table.page, table.pages))
+  // phones: current page, first and last only, so the row never outgrows the screen
+  const compact = $derived(pageNumbers(table.page, table.pages, 0))
 </script>
 
 <div class={cn('flex items-center justify-between overflow-clip px-2 @max-2xl/content:flex-col-reverse @max-2xl/content:gap-4', className)} style="overflow-clip-margin: 1px">
@@ -38,15 +40,19 @@
       <Button variant="outline" class="size-8 p-0" onclick={() => table.goTo(table.page - 1)} disabled={table.page <= 1}>
         <span class="sr-only">Go to previous page</span><ChevronLeftIcon class="size-4" />
       </Button>
-      {#each numbers as n, i (i)}
-        {#if n === '…'}
-          <span class="px-1 text-sm text-muted-foreground">…</span>
-        {:else}
-          <Button variant={n === table.page ? 'default' : 'outline'} class="h-8 min-w-8 px-2" onclick={() => table.goTo(n)} aria-current={n === table.page ? 'page' : undefined}>
-            <span class="sr-only">Go to page </span>{n}
-          </Button>
-        {/if}
-      {/each}
+      {#snippet pageButtons(list: (number | '…')[])}
+        {#each list as n, i (i)}
+          {#if n === '…'}
+            <span class="px-1 text-sm text-muted-foreground">…</span>
+          {:else}
+            <Button variant={n === table.page ? 'default' : 'outline'} class="h-8 min-w-8 px-2" onclick={() => table.goTo(n)} aria-current={n === table.page ? 'page' : undefined}>
+              <span class="sr-only">Go to page </span>{n}
+            </Button>
+          {/if}
+        {/each}
+      {/snippet}
+      <div class="flex items-center space-x-2 @md/content:hidden">{@render pageButtons(compact)}</div>
+      <div class="hidden items-center space-x-2 @md/content:flex">{@render pageButtons(numbers)}</div>
       <Button variant="outline" class="size-8 p-0" onclick={() => table.goTo(table.page + 1)} disabled={table.page >= table.pages}>
         <span class="sr-only">Go to next page</span><ChevronRightIcon class="size-4" />
       </Button>

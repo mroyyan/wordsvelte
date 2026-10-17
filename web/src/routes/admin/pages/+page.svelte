@@ -36,9 +36,9 @@
   }
   const columns = [
     { id: 'title', title: 'Title' },
-    { id: 'slug', title: 'Address' },
-    { id: 'status', title: 'Status' },
-    { id: 'updatedAt', title: 'Updated' },
+    { id: 'slug', title: 'Address', secondary: true },
+    { id: 'status', title: 'Status', secondary: true },
+    { id: 'updatedAt', title: 'Updated', secondary: true },
   ]
 
   const table = new DataTableState<PageRow>({
@@ -103,7 +103,7 @@
         <TableRow>
           <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" /></TableHead>
           {#each visibleColumns as c (c.id)}
-            <TableHead><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
+            <TableHead class={c.secondary ? 'hidden sm:table-cell' : ''}><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
           {/each}
           <TableHead class="w-10"></TableHead>
         </TableRow>
@@ -118,9 +118,13 @@
             <TableRow data-state={table.isSelected(row) ? 'selected' : undefined}>
               <TableCell><Checkbox checked={table.isSelected(row)} onCheckedChange={() => table.toggleRow(row)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as c (c.id)}
-                <TableCell class={c.id === 'title' ? 'max-w-80 truncate font-medium' : 'text-nowrap'}>
+                <TableCell class={[c.id === 'title' ? 'max-w-[15rem] font-medium sm:max-w-80' : 'text-nowrap', c.secondary && 'hidden sm:table-cell']}>
                   {#if c.id === 'title'}
-                    <a href={`/admin/pages/${row.id}`} class="hover:underline">{row.title}</a>
+                    <a href={`/admin/pages/${row.id}`} class="block truncate hover:underline">{row.title}</a>
+                    <div class="mt-1 flex items-center gap-2 text-xs font-normal text-muted-foreground sm:hidden">
+                      <Badge variant="outline" class={statusColors[row.status]}>{row.status === 'publish' ? 'Published' : 'Draft'}</Badge>
+                      <span class="font-mono">/{row.slug}</span>
+                    </div>
                   {:else if c.id === 'slug'}
                     <span class="font-mono text-xs text-muted-foreground">/{row.slug}</span>
                   {:else if c.id === 'status'}
