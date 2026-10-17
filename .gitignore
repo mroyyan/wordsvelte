@@ -5,8 +5,12 @@ build/
 *.local
 .wrangler/
 .env
+.dev.vars
 !.env.example
 .local.db*/
 
 # one-off local helper for importing a pre-migration dev database (not part of the project)
 web/scripts/import-legacy-db.mjs
+
+# copied from the root README by the installer package's prepublishOnly script
+packages/wordsvelte/README.md

@@ -10,5 +10,15 @@
     "build": "npm run build -w web",
     "deploy": "npm run build -w web && npm run deploy -w web",
     "test": "npm run test -w web"
+  },
+  "name": "wordsvelte-monorepo",
+  "version": "0.1.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mroyyan/wordsvelte.git"
   }
 }
