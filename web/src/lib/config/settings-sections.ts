@@ -21,6 +21,8 @@ export type Field = {
   options?: Option[]
   /** Textareas: show in a monospace font and with this many rows. */
   mono?: boolean
+  /** URL fields: add a Browse button that picks an image from the media library. */
+  media?: boolean
   rows?: number
   /** Adds an "Insert default" button that fills the field with this text (given the site address). */
   defaultText?: (siteOrigin: string) => string
@@ -64,8 +66,8 @@ export function buildSections(values: Record<string, string> = {}): Section[] {
       id: 'general', title: 'General', desc: 'Site title, tagline and regional settings.', icon: GlobeIcon,
       fields: [
         { key: 'site_name', type: 'text', label: 'Site title', placeholder: 'My Website' },
-        { key: 'site_url', type: 'url', label: 'Site URL', placeholder: 'https://news.example.com', desc: 'Your main address, used for canonical links, sitemaps, share cards and the RSS feed. Leave empty to detect it automatically.' },
         { key: 'site_description', type: 'textarea', label: 'Tagline', placeholder: 'A short description of your site' },
+        { key: 'site_url', type: 'url', label: 'Site URL', placeholder: 'https://news.example.com', desc: 'Your main address, used for canonical links, sitemaps, share cards and the RSS feed. Leave empty to detect it automatically.' },
         { key: 'admin_email', type: 'email', label: 'Admin email', placeholder: 'admin@example.com', desc: 'Only visible to administrators.' },
         { key: 'language', type: 'select', label: 'Language', options: LANGUAGES.map(l => ({ value: l.value, label: l.label })), default: 'id', desc: 'Used for month and day names on the site.' },
         { key: 'timezone', type: 'combobox', label: 'Timezone', options: zones, default: DEFAULT_TIMEZONE, desc: 'Publication dates are shown in this timezone.' },
@@ -76,17 +78,16 @@ export function buildSections(values: Record<string, string> = {}): Section[] {
       id: 'reading', title: 'Reading', desc: 'How posts are listed and found.', icon: FileTextIcon,
       fields: [
         { key: 'posts_per_page', type: 'select', label: 'Posts per page', options: perPage, default: '20' },
-        { key: 'search_engine_visible', type: 'switch', label: 'Allow search engines', desc: 'When off, a "noindex" tag asks search engines not to list this site.', default: 'true' },
-        { key: 'rss_content', type: 'select', label: 'RSS feed content', options: [{ value: 'full', label: 'Full text' }, { value: 'summary', label: 'Summary only' }], default: 'full', desc: 'Full text lets readers read the whole article in their feed reader. A summary sends only the excerpt, so they come to the site for the rest. The feed is at /rss.xml.' },
         { key: 'sticky_sidebar', type: 'switch', label: 'Sticky sidebar', desc: 'The sidebar stays in view while scrolling.', default: 'false' },
+        { key: 'rss_content', type: 'select', label: 'RSS feed content', options: [{ value: 'full', label: 'Full text' }, { value: 'summary', label: 'Summary only' }], default: 'full', desc: 'Full text lets readers read the whole article in their feed reader. A summary sends only the excerpt, so they come to the site for the rest. The feed is at /rss.xml.' },
       ],
     },
     {
       id: 'comments', title: 'Comments', desc: 'Who can comment, and how it is moderated.', icon: MessageSquareIcon,
       fields: [
         { key: 'comments_enabled', type: 'switch', label: 'Enable comments', desc: 'Allow visitors to leave comments.', default: 'true' },
-        { key: 'comments_auto_approve', type: 'switch', label: 'Auto-approve', desc: 'Publish new comments without review.', default: 'false' },
         { key: 'comments_require_name_email', type: 'switch', label: 'Require name & email', desc: 'When off, visitors can comment anonymously.', default: 'true' },
+        { key: 'comments_auto_approve', type: 'switch', label: 'Auto-approve', desc: 'Publish new comments without review.', default: 'false' },
         { key: 'comments_close_after_days', type: 'select', label: 'Close comments', options: closeAfter, default: '30', desc: 'Counted from the day the post was published.' },
       ],
     },
@@ -102,16 +103,17 @@ export function buildSections(values: Record<string, string> = {}): Section[] {
     {
       id: 'footer', title: 'Footer', desc: 'Footer text and copyright.', icon: PanelBottomIcon,
       fields: [
-        { key: 'footer_copyright_text', type: 'text', label: 'Copyright text', placeholder: '© 2026 My Website' },
         { key: 'footer_description', type: 'textarea', label: 'Footer description', placeholder: 'A few words about your publication...' },
+        { key: 'footer_copyright_text', type: 'text', label: 'Copyright text', placeholder: '© 2026 My Website' },
       ],
     },
     {
       id: 'seo', title: 'SEO', desc: 'Defaults for search engines and link previews.', icon: SearchIcon,
       fields: [
+        { key: 'search_engine_visible', type: 'switch', label: 'Allow search engines', desc: 'When off, a "noindex" tag asks search engines not to list this site.', default: 'true' },
         { key: 'default_meta_description', type: 'textarea', label: 'Default meta description', placeholder: 'Describe your site for search engines...', desc: 'Up to 300 characters.' },
-        { key: 'robots_txt', type: 'textarea', label: 'robots.txt', mono: true, rows: 10, placeholder: 'Leave empty to use the automatic robots.txt', defaultText: (origin) => buildRobotsTxt(origin, false), desc: 'Tells search engine crawlers what they may visit, served at /robots.txt. Empty uses the automatic file (blocks the admin, API and search results, and lists the sitemaps). Turning off "Allow search engines" under Reading always blocks everything, whatever is written here.' },
-        { key: 'default_og_image', type: 'url', label: 'Default share image', placeholder: 'https://example.com/image.jpg', desc: 'Shown when a page without its own image is shared.' },
+        { key: 'default_og_image', type: 'url', media: true, label: 'Default share image', placeholder: 'https://example.com/image.jpg', desc: 'Shown when a page without its own image is shared.' },
+        { key: 'robots_txt', type: 'textarea', label: 'robots.txt', mono: true, rows: 10, placeholder: 'Leave empty to use the automatic robots.txt', defaultText: (origin) => buildRobotsTxt(origin, false), desc: 'Tells search engine crawlers what they may visit, served at /robots.txt. Empty uses the automatic file (blocks the admin, API and search results, and lists the sitemaps). Turning off "Allow search engines" above always blocks everything, whatever is written here.' },
       ],
     },
     {

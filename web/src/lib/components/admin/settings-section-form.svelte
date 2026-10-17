@@ -3,6 +3,7 @@
   import { page } from '$app/stores'
   import { toast } from 'svelte-sonner'
   import Loader2Icon from '@lucide/svelte/icons/loader-2'
+  import ImageIcon from '@lucide/svelte/icons/image'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
   import { Textarea } from '$lib/components/ui/textarea'
@@ -12,6 +13,7 @@
   import { Skeleton } from '$lib/components/ui/skeleton'
   import * as Select from '$lib/components/ui/select'
   import Combobox from '$lib/components/admin/combobox.svelte'
+  import MediaLibrary from '$lib/components/admin/media/media-library.svelte'
   import { api, errorMessage } from '$lib/client/admin-api'
   import { buildSections, type Field } from '$lib/config/settings-sections'
 
@@ -25,6 +27,9 @@
   let loading = $state(true)
   let saving = $state(false)
   let error = $state('')
+  // the field whose Browse button opened the media library
+  let libraryOpen = $state(false)
+  let libraryKey = $state('')
 
   // Rebuilt from the current values: the date-format previews follow the chosen language and timezone.
   const section = $derived(buildSections(settings).find(s => s.id === sectionId)!)
@@ -95,6 +100,12 @@
             </Select.Root>
           {:else if field.type === 'combobox'}
             <Combobox id={field.key} options={optionsFor(field)} bind:value={settings[field.key]} placeholder="Select a timezone" searchPlaceholder="Search timezones..." class="w-full" />
+          {:else if field.media}
+            <div class="flex gap-2">
+              <Input id={field.key} type="text" inputmode="url" bind:value={settings[field.key]} placeholder={field.placeholder} class="min-w-0 flex-1" />
+              <Button type="button" variant="outline" class="h-8" onclick={() => { libraryKey = field.key; libraryOpen = true }}><ImageIcon /> Browse</Button>
+            </div>
+            {#if settings[field.key]}<img src={settings[field.key]} alt="" class="max-h-32 rounded-md border object-contain" />{/if}
           {:else}
             <Input id={field.key} type={field.type} bind:value={settings[field.key]} placeholder={field.placeholder} />
           {/if}
@@ -110,3 +121,5 @@
     </Button>
   </form>
 {/if}
+
+<MediaLibrary bind:open={libraryOpen} onSelect={(url: string) => { if (libraryKey) settings[libraryKey] = url }} />

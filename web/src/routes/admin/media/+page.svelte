@@ -16,8 +16,8 @@
   } from '$lib/components/ui/alert-dialog'
   import PageHeader from '$lib/components/layout/page-header.svelte'
   import PrimaryButton from '$lib/components/layout/primary-button.svelte'
-  import { DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableBulkActions } from '$lib/components/data-table'
-  import { api, errorMessage, runBulk } from '$lib/client/admin-api'
+  import { DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableBulkActions, DataTablePagination } from '$lib/components/data-table'
+  import { api, errorMessage, fetchAll, runBulk } from '$lib/client/admin-api'
 
   interface MediaRow { id: number; r2Key: string; originalName: string; mimeType: string; size: number; width: number | null; height: number | null; createdAt: string }
 
@@ -34,7 +34,7 @@
     searchFields: [m => m.originalName],
     filterAccessors: { type: m => m.mimeType },
     sortAccessors: { name: m => m.originalName, size: m => m.size, date: m => Date.parse(m.createdAt) || 0 },
-    pageSize: 1000, // a grid shows everything that matches; there is no pager here
+    pageSize: 24, // three rows of the widest grid
   })
   table.sort = { id: 'date', desc: true }
 
@@ -51,7 +51,8 @@
 
   // only offer types that actually exist in the library
   const presentTypes = $derived(typeOptions.filter(o => table.rows.some(r => r.mimeType === o.value)))
-  const visible = $derived(table.sorted)
+  // the files on this page (search, filters and sort apply to every file; the pager then cuts the result)
+  const visible = $derived(table.pageRows)
   const allSelected = $derived(visible.length > 0 && visible.every(m => table.selected.has(m.id)))
   const someSelected = $derived(!allSelected && visible.some(m => table.selected.has(m.id)))
 
@@ -64,7 +65,7 @@
 
   async function load() {
     loading = true; error = ''
-    try { table.setRows(await api<MediaRow[]>('/api/media')) }
+    try { table.setRows(await fetchAll<MediaRow>('/api/media')) }
     catch (e) { error = errorMessage(e) } finally { loading = false }
   }
   onMount(load)
@@ -128,7 +129,7 @@
   {:else}
     <div class="flex items-center gap-2 text-sm text-muted-foreground">
       <Checkbox checked={allSelected} indeterminate={someSelected} onCheckedChange={toggleAllVisible} aria-label="Select all files" />
-      <span>{allSelected ? 'Deselect all' : 'Select all'} ({visible.length})</span>
+      <span>{allSelected ? 'Deselect all' : 'Select all'} on this page ({visible.length})</span>
     </div>
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
       {#each visible as item (item.id)}
@@ -148,6 +149,8 @@
       {/each}
     </div>
   {/if}
+
+  <DataTablePagination {table} pageSizes={[24, 48, 96]} class="mt-auto" />
 </div>
 
 <DataTableBulkActions {table} entityName="file">

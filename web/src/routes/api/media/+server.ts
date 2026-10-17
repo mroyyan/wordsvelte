@@ -1,14 +1,20 @@
 import { getDb } from '$lib/server/db'
 import { requireUser } from '$lib/server/auth'
 import { listMedia, createMedia } from '$lib/server/services/content/media.service'
-import { ok, created, catchError } from '$lib/server/http/response'
+import { okPaginated, created, catchError, parseIntParam } from '$lib/server/http/response'
 import { AppError, ValidationError } from '$lib/server/core/errors'
 import { MAX_UPLOAD_BYTES, validateImageUpload, buildMediaKey } from '$lib/server/storage/uploads'
 
 export async function GET(event: any) {
 	try {
 		await requireUser(event, 'author')
-		return ok(await listMedia(getDb(event)))
+		const url = event.url
+		const { data, total, page, limit } = await listMedia(getDb(event), {
+			page: parseIntParam(url.searchParams.get('page'), 1),
+			limit: parseIntParam(url.searchParams.get('limit'), 24, { max: 100 }),
+			search: url.searchParams.get('q') ?? undefined,
+		})
+		return okPaginated(data, total, page, limit)
 	} catch (e) { return catchError(e) }
 }
 

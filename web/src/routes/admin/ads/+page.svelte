@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { goto } from '$app/navigation'
   import { toast } from 'svelte-sonner'
   import MegaphoneIcon from '@lucide/svelte/icons/megaphone'
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis'
@@ -19,6 +18,7 @@
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
     AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   } from '$lib/components/ui/alert-dialog'
+  import AdDialog from '$lib/components/admin/ad-dialog.svelte'
   import PageHeader from '$lib/components/layout/page-header.svelte'
   import PrimaryButton from '$lib/components/layout/primary-button.svelte'
   import {
@@ -34,7 +34,7 @@
   }
 
   const placementLabel = (v: string) => AD_PLACEMENT_OPTIONS.find(o => o.value === v)?.label ?? v
-  const statusOptions = [{ label: 'Running', value: 'running' }, { label: 'Scheduled', value: 'scheduled' }, { label: 'Ended', value: 'ended' }, { label: 'Paused', value: 'paused' }]
+  const statusOptions = [{ label: 'Running', value: 'running' }, { label: 'Scheduled', value: 'scheduled' }, { label: 'Ended', value: 'ended' }, { label: 'Disabled', value: 'paused' }]
   const typeOptions = [{ label: 'Banner', value: 'banner' }, { label: 'Ad code', value: 'code' }]
   const stateColors: Record<string, string> = {
     running: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900',
@@ -72,6 +72,10 @@
   let error = $state('')
   let busy = $state(false)
   let deleting = $state<AdRow[] | null>(null)
+  let dialogOpen = $state(false)
+  let editingId = $state<number | null>(null)
+  const openCreate = () => { editingId = null; dialogOpen = true }
+  const openEdit = (id: number) => { editingId = id; dialogOpen = true }
   const visibleColumns = $derived(columns.filter(c => table.isVisible(c.id)))
 
   async function load() {
@@ -86,7 +90,7 @@
     const { ok, failed, firstError } = await runBulk(rows, r => api(`/api/ads/${r.id}`, { method: 'PATCH', body: { status } }))
     await load(); table.clearSelection(); busy = false
     if (failed) toast.error(`${ok} updated, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} ad${ok === 1 ? '' : 's'} ${status === 'active' ? 'resumed' : 'paused'}`)
+    else toast.success(`${ok} ad${ok === 1 ? '' : 's'} ${status === 'active' ? 'enabled' : 'disabled'}`)
   }
 
   async function confirmDelete() {
@@ -105,9 +109,9 @@
 <svelte:head><title>Ads</title></svelte:head>
 
 <div class="flex flex-1 flex-col gap-4">
-  <PageHeader title="Ads" description="Banners and ad-network code shown on the public site. Turn all ads off, or edit ads.txt, under Settings.">
+  <PageHeader title="Ads" description="Banners and ad-network code shown on the public site.">
     {#snippet actions()}
-      <PrimaryButton label="Add Ad" icon={MegaphoneIcon} onclick={() => goto('/admin/ads/new')} />
+      <PrimaryButton label="Add Ad" icon={MegaphoneIcon} onclick={openCreate} />
     {/snippet}
   </PageHeader>
 
@@ -143,7 +147,7 @@
               {#each visibleColumns as c (c.id)}
                 <TableCell class={[c.id === 'name' ? 'max-w-[15rem] font-medium sm:max-w-xs' : 'text-nowrap', c.secondary && 'hidden sm:table-cell']}>
                   {#if c.id === 'name'}
-                    <a href={`/admin/ads/${ad.id}`} class="block truncate hover:underline">{ad.name}</a>
+                    <button type="button" class="block max-w-full truncate text-start hover:underline" onclick={() => openEdit(ad.id)}>{ad.name}</button>
                     <div class="mt-0.5 truncate text-xs font-normal text-muted-foreground">{runWindow(ad)}</div>
                     <!-- phones: status and place sit under the name -->
                     <div class="mt-1 flex items-center gap-2 text-xs font-normal text-muted-foreground sm:hidden">
@@ -169,11 +173,11 @@
                     {/snippet}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" class="w-44">
-                    <DropdownMenuItem onclick={() => goto(`/admin/ads/${ad.id}`)}><PencilIcon /> Edit</DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => openEdit(ad.id)}><PencilIcon /> Edit</DropdownMenuItem>
                     {#if ad.status === 'active'}
-                      <DropdownMenuItem onclick={() => setStatus([ad], 'paused')}><PauseIcon /> Pause</DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => setStatus([ad], 'paused')}><PauseIcon /> Disable</DropdownMenuItem>
                     {:else}
-                      <DropdownMenuItem onclick={() => setStatus([ad], 'active')}><PlayIcon /> Resume</DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => setStatus([ad], 'active')}><PlayIcon /> Enable</DropdownMenuItem>
                     {/if}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem variant="destructive" onclick={() => (deleting = [ad])}><Trash2Icon /> Delete</DropdownMenuItem>
@@ -192,17 +196,19 @@
 
 <DataTableBulkActions {table} entityName="ad">
   {#snippet actions()}
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'active')}><PlayIcon class="size-4" /> Resume</Button>
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'paused')}><PauseIcon class="size-4" /> Pause</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'active')}><PlayIcon class="size-4" /> Enable</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'paused')}><PauseIcon class="size-4" /> Disable</Button>
     <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> Delete</Button>
   {/snippet}
 </DataTableBulkActions>
+
+<AdDialog bind:open={dialogOpen} adId={editingId} onsaved={load} />
 
 <AlertDialog open={deleting !== null} onOpenChange={(o) => { if (!o) deleting = null }}>
   <AlertDialogContent>
     <AlertDialogHeader>
       <AlertDialogTitle>Delete {deleting?.length === 1 ? 'this ad' : `${deleting?.length} ads`}?</AlertDialogTitle>
-      <AlertDialogDescription>It disappears from the site right away and its click count is lost. To hide it for a while, pause it instead.</AlertDialogDescription>
+      <AlertDialogDescription>It disappears from the site right away and its click count is lost. To hide it for a while, disable it instead.</AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
       <AlertDialogCancel>Cancel</AlertDialogCancel>

@@ -2,8 +2,12 @@ import type { DbInstance } from '$lib/server/db'
 import { createMediaRepository } from '$lib/server/repositories/media.repository'
 import { NotFoundError } from '$lib/server/core/errors'
 
-export async function listMedia(db: DbInstance, opts: { uploadedBy?: number } = {}) {
-	return createMediaRepository(db).list(opts)
+export async function listMedia(db: DbInstance, opts: { page?: number; limit?: number; search?: string; uploadedBy?: number } = {}) {
+	const page = Math.max(1, Math.floor(opts.page || 1))
+	const limit = Math.min(100, Math.max(1, Math.floor(opts.limit || 24)))
+	const search = opts.search?.trim() || undefined
+	const { rows, total } = await createMediaRepository(db).list({ uploadedBy: opts.uploadedBy, search, limit, offset: (page - 1) * limit })
+	return { data: rows, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) }
 }
 
 export async function getMedia(db: DbInstance, id: number) {

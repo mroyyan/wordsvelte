@@ -187,7 +187,7 @@ describe('media listing, reading and deleting', () => {
   it('listMedia returns newest first', async () => {
     const { user } = await seedUser('author')
     for (const n of ['a', 'b', 'c']) await createMedia(getDb(), { r2Key: n, originalName: n, mimeType: 'image/png', size: 1, uploadedBy: user.id })
-    expect((await listMedia(getDb())).map((m: any) => m.r2Key)).toEqual(['c', 'b', 'a'])
+    expect((await listMedia(getDb())).data.map((m: any) => m.r2Key)).toEqual(['c', 'b', 'a'])
   })
 
   it('createMedia truncates absurd file names', async () => {
@@ -229,5 +229,48 @@ describe('GET /api/media/[...path] (public file serving)', () => {
     expect((await serve('nope.png', r2)).status).toBe(404)
     expect((await call(serveRoute, { params: { path: 'a.png' }, platform: { env: {} } })).status).toBe(404)
     expect((await call(serveRoute, { params: {}, platform: withR2(r2) })).status).toBe(404)
+  })
+})
+
+describe('media list: pagination and search', () => {
+  async function seedFiles(n: number, names: (i: number) => string = i => `file-${String(i).padStart(2, '0')}.png`) {
+    const { user, token } = await seedUser('author')
+    for (let i = 1; i <= n; i++) await createMedia(getDb(), { r2Key: `k${i}`, originalName: names(i), mimeType: 'image/png', size: 1, uploadedBy: user.id })
+    return token
+  }
+  const list = (token: string, query: Record<string, string> = {}) => call(listRoute, makeEvent({ token, query }))
+
+  it('returns one page at a time with the totals', async () => {
+    const token = await seedFiles(30)
+    const first = await list(token)
+    expect(first.json).toMatchObject({ total: 30, page: 1, limit: 24, totalPages: 2 })
+    expect(first.json.data).toHaveLength(24)
+    expect(first.json.data[0].r2Key).toBe('k30') // newest first
+    const second = await list(token, { page: '2' })
+    expect(second.json.data.map((m: any) => m.r2Key)).toEqual(['k6', 'k5', 'k4', 'k3', 'k2', 'k1'])
+  })
+
+  it('honours the page size, caps it, and survives silly input', async () => {
+    const token = await seedFiles(12)
+    expect((await list(token, { limit: '5' })).json).toMatchObject({ limit: 5, totalPages: 3 })
+    expect((await list(token, { limit: '5000' })).json.limit).toBe(100)
+    expect((await list(token, { page: '0' })).json.page).toBe(1)
+    expect((await list(token, { page: 'abc', limit: 'x' })).json).toMatchObject({ page: 1, limit: 24 })
+    expect((await list(token, { page: '99' })).json.data).toEqual([]) // past the end: empty, not an error
+  })
+
+  it('searches file names on the server and counts only the matches', async () => {
+    const token = await seedFiles(30, i => (i % 3 === 0 ? `banner-${i}.png` : `photo-${i}.png`))
+    const r = await list(token, { q: 'BANNER', limit: '4' })
+    expect(r.json.total).toBe(10)
+    expect(r.json.totalPages).toBe(3)
+    expect(r.json.data.every((m: any) => m.originalName.startsWith('banner'))).toBe(true)
+    expect((await list(token, { q: 'nothing-like-this' })).json).toMatchObject({ total: 0, data: [], totalPages: 0 })
+  })
+
+  it('treats % and _ in the search as plain characters', async () => {
+    const token = await seedFiles(3, i => ['100%.png', 'a_b.png', 'plain.png'][i - 1])
+    expect((await list(token, { q: '%' })).json.data.map((m: any) => m.originalName)).toEqual(['100%.png'])
+    expect((await list(token, { q: '_' })).json.data.map((m: any) => m.originalName)).toEqual(['a_b.png'])
   })
 })
