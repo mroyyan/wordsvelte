@@ -15,7 +15,7 @@
 <Seo title={query ? `Cari: ${query}` : 'Pencarian'} noindex />
 
 <div class="max-w-3xl mx-auto">
-  <h1 class="text-2xl font-bold mb-6">Pencarian</h1>
+  <h1 class="mb-4 text-xl font-bold md:mb-6 md:text-2xl">Pencarian</h1>
 
   <form method="GET" class="mb-8">
     <div class="flex gap-2">
@@ -32,9 +32,9 @@
     {#if results.length === 0}
       <p class="text-gray-500">Tidak ada hasil untuk pencarian ini.</p>
     {:else}
-      <div class="space-y-4">
+      <div class="md:space-y-4">
         {#each results as post}
-          <article class="bg-white rounded-lg border p-4">
+          <article class="border-b py-4 md:rounded-lg md:border md:bg-white md:p-4">
             <h2 class="font-bold text-base"><a href="/{post.slug}" class="hover:text-red-600">{post.title}</a></h2>
             <p class="text-xs text-gray-500 mt-1">{formatDate(post.publishedAt || post.createdAt)}</p>
             <p class="text-sm text-gray-600 mt-2">{formatExcerpt(post.excerpt || post.content, 200)}</p>

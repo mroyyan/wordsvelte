@@ -43,7 +43,7 @@
         <span class="mx-1">/</span>
         <span class="text-gray-700 font-medium">{category.name}</span>
       </div>
-      <h1 class="text-2xl font-bold text-gray-900">{category.name}</h1>
+      <h1 class="text-xl font-bold text-gray-900 md:text-2xl">{category.name}</h1>
     </div>
     <select class="text-xs border rounded px-2 py-1.5 bg-white text-gray-600">
       <option>Terbaru</option>
@@ -98,15 +98,16 @@
     {#if rest.length === 0 && posts.length <= 5}
       <p class="text-gray-500 text-sm py-8">Tidak ada artikel dalam kategori ini.</p>
     {:else if rest.length > 0 || subFeatured.length === 0}
-      <div class="grid md:grid-cols-2 gap-4">
+      <div class="grid gap-0 md:grid-cols-2 md:gap-4">
         {#each (rest.length > 0 ? rest : posts.slice(0)) as post}
-          <article class="bg-white rounded-lg border overflow-hidden hover:shadow-md transition-shadow">
-            <a href="/{post.slug}" class="aspect-video overflow-hidden bg-gray-100 block">
+          <!-- phones: a plain row (thumbnail + text); md and up: a card -->
+          <article class="flex gap-3 border-b py-4 transition-shadow md:block md:overflow-hidden md:rounded-lg md:border md:bg-white md:py-0 md:hover:shadow-md">
+            <a href="/{post.slug}" class="block aspect-square w-24 shrink-0 self-start overflow-hidden rounded-md bg-gray-100 md:aspect-video md:w-full md:rounded-none">
               {#if post.featuredImageUrl}
                 <img src={post.featuredImageUrl} alt={post.title} class="w-full h-full object-cover hover:scale-105 transition-transform" />
               {/if}
             </a>
-            <div class="p-4">
+            <div class="min-w-0 md:p-4">
               <h3 class="font-bold text-sm leading-snug mb-1">
                 <a href="/{post.slug}" class="hover:text-red-600 transition-colors">{post.title}</a>
               </h3>
@@ -124,12 +125,12 @@
   </div>
 
   <!-- Sidebar -->
-  <aside class="space-y-6">
-    <div class="bg-white rounded-lg border">
-      <h3 class="font-bold text-sm uppercase text-gray-900 px-4 pt-4 pb-2">Berita Populer</h3>
+  <aside class="space-y-6 max-md:border-t max-md:pt-6">
+    <div class="panel">
+      <h3 class="font-bold text-sm uppercase text-gray-900 pb-2 md:px-4 md:pt-4">Berita Populer</h3>
       <div class="divide-y">
         {#each posts.slice(0, 5) as pop, i}
-          <a href="/{pop.slug}" class="flex gap-3 px-4 py-3 hover:bg-gray-50">
+          <a href="/{pop.slug}" class="flex gap-3 py-3 md:px-4 hover:bg-gray-50">
             <span class="text-2xl font-bold text-gray-200 shrink-0 w-8">{i + 1}</span>
             <div class="min-w-0">
               <h4 class="text-sm font-medium leading-snug line-clamp-2 hover:text-red-600">{pop.title}</h4>

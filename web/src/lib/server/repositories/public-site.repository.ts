@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 import { categories, postCategories, postTags, posts, tags, users, widgets } from '@wordsvelte/shared'
 import type { DbInstance } from '$lib/server/db'
 
@@ -103,6 +103,19 @@ export function createPublicSiteRepository(db: DbInstance) {
         .where(published)
         .orderBy(desc(publishedAtOrCreated), desc(posts.id))
         .limit(limit)
+    },
+
+    /** The alphabetically first category of each given post (what the home page shows as its label). */
+    async firstCategoryNames(postIds: number[]): Promise<Map<number, string>> {
+      const out = new Map<number, string>()
+      for (let i = 0; i < postIds.length; i += 50) {
+        const rows = await db.select({ postId: postCategories.postId, name: categories.name })
+          .from(postCategories).innerJoin(categories, eq(categories.id, postCategories.categoryId))
+          .where(inArray(postCategories.postId, postIds.slice(i, i + 50))).orderBy(desc(categories.name))
+        // ordered Z..A, so the last write per post is the alphabetically first name
+        for (const r of rows) out.set(r.postId, r.name)
+      }
+      return out
     },
 
     categoryNamesByPost() {

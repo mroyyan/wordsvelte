@@ -178,3 +178,21 @@ html {
 @custom-variant data-selected { &:where([data-selected]:not([data-selected="false"])) { @slot; } }
 @custom-variant data-horizontal { &:where([data-orientation="horizontal"]) { @slot; } }
 @custom-variant data-vertical { &:where([data-orientation="vertical"]) { @slot; } }
+
+/*
+ * The public site's boxed sections. From md up they are white cards; on phones they are flat: the content sits straight on
+ * the page and a hairline separates it from what is above (no border, background or rounded corners around it).
+ */
+@utility panel {
+  @media (width >= 48rem) {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    background-color: #fff;
+  }
+  @media (width < 48rem) {
+    &:not(:first-child) {
+      border-top: 1px solid var(--color-border);
+      padding-top: 1.5rem;
+    }
+  }
+}

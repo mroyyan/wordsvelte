@@ -85,25 +85,25 @@
 {#if data.kind === 'page'}
   <div class="grid lg:grid-cols-3 gap-8">
     <div class="lg:col-span-2">
-      <article class="bg-white rounded-lg border overflow-hidden">
-        <div class="px-6 pt-6 pb-2">
+      <article class="panel overflow-hidden">
+        <div class="md:px-6 pt-6 pb-2">
           <nav class="flex items-center gap-1 text-xs text-gray-500 mb-3">
             <a href="/" class="hover:text-red-600">Beranda</a>
             <ChevronRight class="h-3 w-3" />
             <span class="text-gray-400 truncate max-w-[200px]">{data.page.title}</span>
           </nav>
-          <h1 class="text-2xl md:text-3xl font-bold leading-tight text-gray-900 pb-4 border-b">{data.page.title}</h1>
+          <h1 class="text-xl md:text-3xl font-bold leading-tight text-gray-900 pb-4 border-b">{data.page.title}</h1>
         </div>
-        <div class="px-6 py-6">
-          <div class="post-content text-gray-800 leading-relaxed text-[15px] space-y-4">
+        <div class="md:px-6 py-6">
+          <div class="post-content text-gray-800 leading-relaxed text-[14px] md:text-[15px] space-y-4">
             {@html data.page.content}
           </div>
         </div>
       </article>
     </div>
-    <aside class="space-y-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
+    <aside class="space-y-6 max-md:border-t max-md:pt-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
       {#each sidebarWidgets as widget (widget.id)}
-        <div class="bg-white rounded-lg border p-4">
+        <div class="panel md:p-4">
           <WidgetRenderer {widget} posts={data.popular || []} categories={data.categories || []} tags={data.tags || []} />
         </div>
       {/each}
@@ -112,14 +112,14 @@
 {:else}
 <div class="grid lg:grid-cols-3 gap-8">
   <div class="lg:col-span-2">
-    <article class="bg-white rounded-lg border overflow-hidden">
-      <div class="px-6 pt-6 pb-2">
+    <article class="panel overflow-hidden">
+      <div class="md:px-6 pt-6 pb-2">
         <nav class="flex items-center gap-1 text-xs text-gray-500 mb-3">
           <a href="/" class="hover:text-red-600">Beranda</a>
           <ChevronRight class="h-3 w-3" />
           <span class="text-gray-400 truncate max-w-[200px]">{post.title}</span>
         </nav>
-        <h1 class="text-2xl md:text-3xl font-bold leading-tight text-gray-900">{post.title}</h1>
+        <h1 class="text-xl md:text-3xl font-bold leading-tight text-gray-900">{post.title}</h1>
         <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-3 pb-4 border-b">
           <span class="font-medium text-gray-700">Penulis: <span class="text-red-600 font-normal">WordSvelte</span></span>
           <span class="flex items-center gap-1"><Clock class="h-3 w-3" /> {formatDate(post.publishedAt || post.createdAt)}</span>
@@ -129,13 +129,13 @@
       </div>
 
       {#if post.featuredImageUrl}
-        <div class="px-6 pt-4">
+        <div class="md:px-6 pt-4">
           <img src={post.featuredImageUrl} alt={post.title} class="w-full rounded-lg" />
         </div>
       {/if}
 
-      <div class="px-6 py-6">
-        <div class="post-content text-gray-800 leading-relaxed text-[15px] space-y-4">
+      <div class="md:px-6 py-6">
+        <div class="post-content text-gray-800 leading-relaxed text-[14px] md:text-[15px] space-y-4">
           {@html post.content}
         </div>
 
@@ -156,7 +156,7 @@
           <button class="bg-[#25d366] text-white text-xs px-3 py-1.5 rounded font-medium hover:opacity-90">WhatsApp</button>
         </div>
 
-        <div class="flex gap-4 mt-8 p-4 bg-gray-50 rounded-lg border">
+        <div class="mt-8 flex gap-4 max-md:border-t max-md:pt-6 md:rounded-lg md:border md:bg-gray-50 md:p-4">
           <div class="w-16 h-16 rounded-full bg-gray-200 shrink-0 overflow-hidden">
             <img src="https://secure.gravatar.com/avatar/94b1f7ab91df21de82cc1bbfedb4bd1859bf805a9c3e841d8aeaf6702257ed36?s=96&d=mm&r=g" alt="WordSvelte" class="w-full h-full object-cover" />
           </div>
@@ -174,29 +174,34 @@
       </div>
     </article>
 
-    <div class="bg-white rounded-lg border mt-6">
-      <div class="px-6 py-4 border-b"><h3 class="font-bold text-sm uppercase text-gray-900">Artikel Terkait</h3></div>
-      <div class="grid md:grid-cols-3 divide-x">
+    <div class="panel mt-6">
+      <div class="md:px-6 py-4 border-b"><h3 class="font-bold text-sm uppercase text-gray-900">Artikel Terkait</h3></div>
+      <div class="grid divide-y md:grid-cols-3 md:divide-x md:divide-y-0">
         {#each data.related || [] as related}
-          <a href="/{related.slug}" class="p-4 hover:bg-gray-50 group">
-            <div class="aspect-video bg-gray-100 rounded-md overflow-hidden mb-2">
-              <img src={related.featuredImageUrl} alt={related.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+          <!-- phones: thumbnail beside the title; wider screens: card with the image on top -->
+          <a href="/{related.slug}" class="group flex gap-3 p-4 hover:bg-gray-50 md:block">
+            <div class="mb-0 aspect-square w-24 shrink-0 self-start overflow-hidden rounded-md bg-gray-100 md:mb-2 md:aspect-video md:w-full">
+              {#if related.featuredImageUrl}
+                <img src={related.featuredImageUrl} alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+              {/if}
             </div>
-            <h4 class="text-sm font-medium leading-snug line-clamp-2 group-hover:text-red-600">{related.title}</h4>
-            <span class="text-xs text-gray-500 mt-1 block">{formatDate(related.publishedAt || related.createdAt)}</span>
+            <div class="min-w-0">
+              <h4 class="text-sm font-medium leading-snug line-clamp-3 group-hover:text-red-600 md:line-clamp-2">{related.title}</h4>
+              <span class="text-xs text-gray-500 mt-1 block">{formatDate(related.publishedAt || related.createdAt)}</span>
+            </div>
           </a>
         {/each}
       </div>
     </div>
 
-    <section class="bg-white rounded-lg border mt-6">
-      <div class="px-6 py-4 border-b"><h3 class="font-bold text-sm uppercase text-gray-900">{comments.length} Komentar</h3></div>
+    <section class="panel mt-6">
+      <div class="md:px-6 py-4 border-b"><h3 class="font-bold text-sm uppercase text-gray-900">{comments.length} Komentar</h3></div>
       {#if comments.length === 0}
-        <p class="px-6 py-8 text-sm text-gray-500 text-center">Belum ada komentar. Jadilah yang pertama!</p>
+        <p class="md:px-6 py-8 text-sm text-gray-500 text-center">Belum ada komentar. Jadilah yang pertama!</p>
       {:else}
         <div class="divide-y">
           {#each comments as comment}
-            <div class="px-6 py-5 {comment.parentId ? 'ml-10 border-l-2 border-red-100' : ''}">
+            <div class="md:px-6 py-5 {comment.parentId ? 'ml-10 border-l-2 border-red-100' : ''}">
               <div class="flex items-start gap-3">
                 <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-sm font-bold text-red-600 shrink-0">{comment.authorName?.charAt(0)?.toUpperCase() || '?'}</div>
                 <div class="flex-1 min-w-0">
@@ -213,7 +218,7 @@
           {/each}
         </div>
       {/if}
-      <div class="px-6 py-6 border-t bg-gray-50 rounded-b-lg">
+      <div class="py-6 border-t md:px-6 md:bg-gray-50 rounded-b-lg">
         <div class="flex items-center gap-2 mb-4">
           <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">K</div>
           <h4 class="font-bold text-sm text-gray-900">Tinggalkan Komentar</h4>
@@ -237,9 +242,9 @@
       </div>
     </section>
   </div>
-  <aside class="space-y-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
+  <aside class="space-y-6 max-md:border-t max-md:pt-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
     {#each sidebarWidgets as widget (widget.id)}
-      <div class="bg-white rounded-lg border p-4">
+      <div class="panel md:p-4">
         <WidgetRenderer {widget} posts={data.popular || []} categories={data.categories || []} tags={data.tags || []} />
       </div>
     {/each}

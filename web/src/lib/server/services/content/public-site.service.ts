@@ -37,13 +37,17 @@ export async function getHomePage(db: DbInstance, opts: { page?: unknown }) {
   const perPage = Math.min(MAX_PER_PAGE, Math.max(1, parseInt(settings.posts_per_page || '') || DEFAULT_PER_PAGE))
   const page = Math.max(1, parseInt(String(opts.page ?? '')) || 1)
 
-  const [featuredPosts, total, posts, categories, tags] = await Promise.all([
+  const [featuredRows, total, postRows, categories, tags] = await Promise.all([
     getFeaturedPosts(db, 5),
     site.countPublished(),
     site.listPublished(perPage, (page - 1) * perPage),
     site.allCategories(),
     site.allTags(),
   ])
+  const labels = await site.firstCategoryNames([...new Set([...featuredRows, ...postRows].map(p => p.id))])
+  const withLabel = <T extends { id: number }>(rows: T[]) => rows.map(r => ({ ...r, categoryName: labels.get(r.id) ?? null }))
+  const posts = withLabel(postRows)
+  const featuredPosts = withLabel(featuredRows)
   return { posts, featuredPosts, categories, tags, pagination: { page, perPage, total, totalPages: Math.ceil(total / perPage) } }
 }
 
