@@ -4,6 +4,7 @@
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check'
   import ZapIcon from '@lucide/svelte/icons/zap'
   import GlobeIcon from '@lucide/svelte/icons/globe'
+  import { tr, msg } from '$lib/i18n/admin'
 
   let {
     title,
@@ -14,10 +15,10 @@
   }: { title: string; description?: string; siteName?: string; children: Snippet; footer?: Snippet } = $props()
 
   const highlights = [
-    { icon: NewspaperIcon, text: 'Write, schedule and publish news with a rich editor' },
-    { icon: ShieldCheckIcon, text: 'Roles for authors, editors and admins' },
-    { icon: ZapIcon, text: 'Runs on the edge with Cloudflare D1 and R2' },
-    { icon: GlobeIcon, text: 'Import your existing WordPress site in minutes' },
+    { icon: NewspaperIcon, text: msg('Write, schedule and publish news with a rich editor') },
+    { icon: ShieldCheckIcon, text: msg('Roles for authors, editors and admins') },
+    { icon: ZapIcon, text: msg('Runs on the edge with Cloudflare D1 and R2') },
+    { icon: GlobeIcon, text: msg('Import your existing WordPress site in minutes') },
   ]
 </script>
 
@@ -25,7 +26,7 @@
   <!-- Form column -->
   <div class="lg:p-8">
     <div class="mx-auto flex w-full flex-col justify-center gap-6 px-4 py-8 sm:w-[28rem] sm:p-8">
-      <a href="/" class="flex items-center justify-center gap-2" aria-label="{siteName} home">
+      <a href="/" class="flex items-center justify-center gap-2" aria-label={tr('{siteName} home', { siteName })}>
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" height="24" width="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
           <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
         </svg>
@@ -57,17 +58,17 @@
     </div>
 
     <div class="relative flex max-w-md flex-col gap-8">
-      <h3 class="text-3xl leading-tight font-semibold tracking-tight">The newsroom CMS that stays out of your way.</h3>
+      <h3 class="text-3xl leading-tight font-semibold tracking-tight">{tr('The newsroom CMS that stays out of your way.')}</h3>
       <ul class="flex flex-col gap-4">
         {#each highlights as h (h.text)}
           <li class="flex items-start gap-3 text-sm text-zinc-300">
             <span class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/10"><h.icon class="size-4" /></span>
-            <span class="pt-1.5">{h.text}</span>
+            <span class="pt-1.5">{tr(h.text)}</span>
           </li>
         {/each}
       </ul>
     </div>
 
-    <p class="relative text-sm text-zinc-400">© {new Date().getFullYear()} {siteName}. All rights reserved.</p>
+    <p class="relative text-sm text-zinc-400">{tr('© {year} {siteName}. All rights reserved.', { year: new Date().getFullYear(), siteName })}</p>
   </div>
 </div>

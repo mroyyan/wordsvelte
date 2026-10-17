@@ -18,6 +18,7 @@
   import Eye from '@lucide/svelte/icons/eye'
   import Pencil from '@lucide/svelte/icons/pencil'
   import Trash2 from '@lucide/svelte/icons/trash-2'
+  import { tr, msg } from '$lib/i18n/admin'
 
 
   let mounted = $state(false)
@@ -37,19 +38,19 @@
   let formSettings = $state('')
 
   const widgetTypes = [
-    { value: 'html', label: 'Custom HTML' },
-    { value: 'popular_posts', label: 'Popular Posts' },
-    { value: 'recent_posts', label: 'Recent Posts' },
-    { value: 'tag_cloud', label: 'Tag Cloud' },
-    { value: 'categories', label: 'Categories' },
+    { value: 'html', label: msg('Custom HTML') },
+    { value: 'popular_posts', label: msg('Popular Posts') },
+    { value: 'recent_posts', label: msg('Recent Posts') },
+    { value: 'tag_cloud', label: msg('Tag Cloud') },
+    { value: 'categories', label: msg('Categories') },
   ]
 
   const areaLabels: Record<string, string> = {
-    'sidebar-1': 'Sidebar',
-    'header': 'Header',
-    'footer-1': 'Footer Kiri',
-    'footer-2': 'Footer Tengah',
-    'footer-3': 'Footer Kanan',
+    'sidebar-1': msg('Sidebar'),
+    'header': msg('Header'),
+    'footer-1': msg('Footer Left'),
+    'footer-2': msg('Footer Center'),
+    'footer-3': msg('Footer Right'),
   }
 
   function t() { return localStorage.getItem('wordsvelte_token') }
@@ -120,7 +121,8 @@
   }
 
   function getWidgetLabel(type: string) {
-    return widgetTypes.find(w => w.value === type)?.label || type
+    const label = widgetTypes.find(w => w.value === type)?.label
+    return label ? tr(label) : type
   }
 
   async function toggleStatus(w: any) {
@@ -159,12 +161,12 @@
 {#if mounted}
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <div><h1 class="text-2xl font-bold tracking-tight">Widgets</h1><p class="text-muted-foreground">Manage sidebar widgets</p></div>
-    <PrimaryButton label="Add Widget" icon={Plus} onclick={openCreate} />
+    <div><h1 class="text-2xl font-bold tracking-tight">{tr('Widgets')}</h1><p class="text-muted-foreground">{tr('Manage sidebar widgets')}</p></div>
+    <PrimaryButton label={tr('Add Widget')} icon={Plus} onclick={openCreate} />
   </div>
 
   {#if loading}
-    <p class="text-center py-8 text-muted-foreground">Loading...</p>
+    <p class="text-center py-8 text-muted-foreground">{tr('Loading...')}</p>
   {:else}
     <!-- Area tabs -->
     <div class="flex gap-1 border-b mb-6">
@@ -173,7 +175,7 @@
           onclick={() => activeTab = area}
           class="px-4 py-2 text-sm font-medium border-b-2 transition-colors {activeTab === area ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}"
         >
-          {areaLabels[area]}
+          {tr(areaLabels[area])}
         </button>
       {/each}
     </div>
@@ -183,11 +185,11 @@
     <div class="grid lg:grid-cols-3 gap-6">
       <!-- Active widgets in selected area -->
       <div class="lg:col-span-2 space-y-3">
-        <h3 class="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Active Widgets — {areaLabels[activeTab]}</h3>
+        <h3 class="font-semibold text-sm text-muted-foreground uppercase tracking-wider">{tr('Active Widgets - {area}', { area: tr(areaLabels[activeTab]) })}</h3>
         {#if areaWidgets.filter(w => w.status === 'active').length === 0}
           <div class="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
-            <p>No widgets in this area</p>
-            <p class="text-sm">Click "Add Widget" to add one</p>
+            <p>{tr('No widgets in this area')}</p>
+            <p class="text-sm">{tr('Click "Add Widget" to add one')}</p>
           </div>
         {:else}
           {#each areaWidgets.filter(w => w.status === 'active') as w, i (w.id)}
@@ -204,21 +206,21 @@
                         <DropdownMenuTrigger>
                           <Button variant="ghost" class="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
                             <Ellipsis class="h-4 w-4" />
-                            <span class="sr-only">Actions</span>
+                            <span class="sr-only">{tr('Actions')}</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" class="w-40">
                           <DropdownMenuItem onclick={() => toggleStatus(w)}>
-                            {w.status === 'active' ? 'Deactivate' : 'Activate'}
+                            {w.status === 'active' ? tr('Deactivate') : tr('Activate')}
                             <span class="ml-auto">{#if w.status === 'active'}<EyeOff size={16} />{:else}<Eye size={16} />{/if}</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem onclick={() => openEdit(w)}>
-                            Edit
+                            {tr('Edit')}
                             <span class="ml-auto"><Pencil size={16} /></span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem class="text-red-500!" onclick={() => deleteId = w.id}>
-                            Delete
+                            {tr('Delete')}
                             <span class="ml-auto"><Trash2 size={16} /></span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -226,10 +228,10 @@
                     </div>
                   </div>
                   {#if i > 0}
-                    <button onclick={() => moveUp(w, i)} class="text-xs text-muted-foreground hover:text-foreground mr-2">↑ Move up</button>
+                    <button onclick={() => moveUp(w, i)} class="text-xs text-muted-foreground hover:text-foreground mr-2">↑ {tr('Move up')}</button>
                   {/if}
                   {#if i < areaWidgets.filter(x => x.status === 'active').length - 1}
-                    <button onclick={() => moveDown(w, i)} class="text-xs text-muted-foreground hover:text-foreground">↓ Move down</button>
+                    <button onclick={() => moveDown(w, i)} class="text-xs text-muted-foreground hover:text-foreground">↓ {tr('Move down')}</button>
                   {/if}
                 </div>
               </div>
@@ -239,7 +241,7 @@
 
         <!-- Inactive widgets -->
         {#if inactiveWidgets.length > 0}
-          <h3 class="font-semibold text-sm text-muted-foreground uppercase tracking-wider mt-8">Inactive Widgets</h3>
+          <h3 class="font-semibold text-sm text-muted-foreground uppercase tracking-wider mt-8">{tr('Inactive Widgets')}</h3>
           <div class="space-y-2">
             {#each inactiveWidgets as w (w.id)}
               <Card>
@@ -252,21 +254,21 @@
                     <DropdownMenuTrigger>
                       <Button variant="ghost" class="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
                         <Ellipsis class="h-4 w-4" />
-                        <span class="sr-only">Actions</span>
+                        <span class="sr-only">{tr('Actions')}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" class="w-40">
                       <DropdownMenuItem onclick={() => toggleStatus(w)}>
-                        Activate
+                        {tr('Activate')}
                         <span class="ml-auto"><Eye size={16} /></span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onclick={() => { editItem = w; openEdit(w) }}>
-                        Edit
+                        {tr('Edit')}
                         <span class="ml-auto"><Pencil size={16} /></span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem class="text-red-500!" onclick={() => deleteId = w.id}>
-                        Delete
+                        {tr('Delete')}
                         <span class="ml-auto"><Trash2 size={16} /></span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -281,22 +283,22 @@
       <!-- Presets — hide individual buttons once that widget type is used -->
       <div class="lg:col-span-1 space-y-3">
         <Card>
-          <CardHeader><CardTitle class="text-sm">Quick Add</CardTitle></CardHeader>
+          <CardHeader><CardTitle class="text-sm">{tr('Quick Add')}</CardTitle></CardHeader>
           <CardContent class="space-y-2">
             {#if activeTab === 'sidebar-1'}
-              {#if !usedTypes.has('popular_posts')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'popular_posts', title: 'Berita Populer', settings: '{"limit":5}', sidebarArea: activeTab }) }); load() }}>+ Berita Populer</Button>{/if}
-              {#if !usedTypes.has('recent_posts')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'recent_posts', title: 'Berita Terbaru', settings: '{"limit":5}', sidebarArea: activeTab }) }); load() }}>+ Berita Terbaru</Button>{/if}
-              {#if !usedTypes.has('categories')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'categories', title: 'Kategori', sidebarArea: activeTab }) }); load() }}>+ Kategori</Button>{/if}
-              {#if !usedTypes.has('tag_cloud')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'tag_cloud', title: 'Tag', sidebarArea: activeTab }) }); load() }}>+ Tag Cloud</Button>{/if}
-              {#if !usedTypes.has('html')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'html', title: 'Custom HTML', content: '', sidebarArea: activeTab }) }); load() }}>+ Custom HTML</Button>{/if}
+              {#if !usedTypes.has('popular_posts')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'popular_posts', title: 'Berita Populer', settings: '{"limit":5}', sidebarArea: activeTab }) }); load() }}>{tr('+ Popular Posts')}</Button>{/if}
+              {#if !usedTypes.has('recent_posts')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'recent_posts', title: 'Berita Terbaru', settings: '{"limit":5}', sidebarArea: activeTab }) }); load() }}>{tr('+ Recent Posts')}</Button>{/if}
+              {#if !usedTypes.has('categories')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'categories', title: 'Kategori', sidebarArea: activeTab }) }); load() }}>{tr('+ Categories')}</Button>{/if}
+              {#if !usedTypes.has('tag_cloud')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'tag_cloud', title: 'Tag', sidebarArea: activeTab }) }); load() }}>{tr('+ Tag Cloud')}</Button>{/if}
+              {#if !usedTypes.has('html')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'html', title: 'Custom HTML', content: '', sidebarArea: activeTab }) }); load() }}>{tr('+ Custom HTML')}</Button>{/if}
             {:else if activeTab === 'header'}
-              <p class="text-xs text-muted-foreground">Header widgets appear above the main content.</p>
-              {#if !usedTypes.has('html')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'html', title: 'Header Banner', content: '<div class=&quot;bg-blue-100 p-4 text-center&quot;>Header Banner</div>', sidebarArea: activeTab }) }); load() }}>+ Header Banner</Button>{/if}
+              <p class="text-xs text-muted-foreground">{tr('Header widgets appear above the main content.')}</p>
+              {#if !usedTypes.has('html')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'html', title: 'Header Banner', content: '<div class=&quot;bg-blue-100 p-4 text-center&quot;>Header Banner</div>', sidebarArea: activeTab }) }); load() }}>{tr('+ Header Banner')}</Button>{/if}
             {:else if activeTab.startsWith('footer-')}
-              {#if !usedTypes.has('html')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'html', title: 'Tentang Kami', content: '<p class=&quot;text-sm&quot;>WordSvelte adalah sebuah blog yang dibuat dengan SvelteKit.</p>', sidebarArea: activeTab }) }); load() }}>+ Tentang Kami</Button>{/if}
-              {#if !usedTypes.has('categories')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'categories', title: 'Kategori', sidebarArea: activeTab }) }); load() }}>+ Kategori</Button>{/if}
-              {#if !usedTypes.has('tag_cloud')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'tag_cloud', title: 'Tag', sidebarArea: activeTab }) }); load() }}>+ Tag Cloud</Button>{/if}
-              {#if !usedTypes.has('popular_posts')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'popular_posts', title: 'Berita Populer', settings: '{"limit":3}', sidebarArea: activeTab }) }); load() }}>+ Berita Populer</Button>{/if}
+              {#if !usedTypes.has('html')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'html', title: 'Tentang Kami', content: '<p class=&quot;text-sm&quot;>WordSvelte adalah sebuah blog yang dibuat dengan SvelteKit.</p>', sidebarArea: activeTab }) }); load() }}>{tr('+ About Us')}</Button>{/if}
+              {#if !usedTypes.has('categories')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'categories', title: 'Kategori', sidebarArea: activeTab }) }); load() }}>{tr('+ Categories')}</Button>{/if}
+              {#if !usedTypes.has('tag_cloud')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'tag_cloud', title: 'Tag', sidebarArea: activeTab }) }); load() }}>{tr('+ Tag Cloud')}</Button>{/if}
+              {#if !usedTypes.has('popular_posts')}<Button size="sm" variant="outline" class="w-full justify-start text-xs h-8" onclick={async () => { const tok = t(); if (!tok) return; await fetch('/api/widgets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ widgetType: 'popular_posts', title: 'Berita Populer', settings: '{"limit":3}', sidebarArea: activeTab }) }); load() }}>{tr('+ Popular Posts')}</Button>{/if}
             {/if}
           </CardContent>
         </Card>
@@ -307,62 +309,62 @@
 
 <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) dialogOpen = false }}>
   <DialogContent class="sm:max-w-lg">
-    <DialogHeader><DialogTitle>{editItem ? 'Edit' : 'Add'} Widget</DialogTitle></DialogHeader>
+    <DialogHeader><DialogTitle>{editItem ? tr('Edit Widget') : tr('Add Widget')}</DialogTitle></DialogHeader>
     <div class="space-y-4 py-4">
       <div class="space-y-1">
-        <span class="text-sm font-medium">Widget Type</span>
+        <span class="text-sm font-medium">{tr('Widget Type')}</span>
         <Select type="single" bind:value={formType}>
-          <SelectTrigger aria-label="Widget Type"><SelectValue placeholder="Select type" /></SelectTrigger>
+          <SelectTrigger aria-label={tr('Widget Type')}><SelectValue placeholder={tr('Select type')} /></SelectTrigger>
           <SelectContent>
             {#each widgetTypes as wt}
-              <SelectItem value={wt.value}>{wt.label}</SelectItem>
+              <SelectItem value={wt.value}>{tr(wt.label)}</SelectItem>
             {/each}
           </SelectContent>
         </Select>
       </div>
       <div class="space-y-1">
-        <span class="text-sm font-medium">Title</span>
-        <Input bind:value={formTitle} placeholder="Widget title" aria-label="Title" />
+        <span class="text-sm font-medium">{tr('Title')}</span>
+        <Input bind:value={formTitle} placeholder={tr('Widget title')} aria-label={tr('Title')} />
       </div>
       <div class="space-y-1">
-        <span class="text-sm font-medium">Area</span>
+        <span class="text-sm font-medium">{tr('Area')}</span>
         <Select type="single" bind:value={formArea}>
-          <SelectTrigger aria-label="Area"><SelectValue placeholder="Select area" /></SelectTrigger>
+          <SelectTrigger aria-label={tr('Area')}><SelectValue placeholder={tr('Select area')} /></SelectTrigger>
           <SelectContent>
             {#each Object.entries(areaLabels) as [key, label]}
-              <SelectItem value={key}>{label}</SelectItem>
+              <SelectItem value={key}>{tr(label)}</SelectItem>
             {/each}
           </SelectContent>
         </Select>
       </div>
       {#if formType === 'html'}
         <div class="space-y-1">
-          <span class="text-sm font-medium">HTML Content</span>
-          <Textarea bind:value={formContent} placeholder={'<div>Your HTML here</div>'} class="min-h-32 font-mono text-xs" aria-label="HTML Content" />
+          <span class="text-sm font-medium">{tr('HTML Content')}</span>
+          <Textarea bind:value={formContent} placeholder={'<div>Your HTML here</div>'} class="min-h-32 font-mono text-xs" aria-label={tr('HTML Content')} />
         </div>
       {:else if formType === 'popular_posts' || formType === 'recent_posts'}
         <div class="space-y-1">
-          <span class="text-sm font-medium">Settings (JSON)</span>
-          <Textarea bind:value={formSettings} placeholder={'{"limit": 5}'} class="min-h-20 font-mono text-xs" aria-label="Settings (JSON)" />
-          <p class="text-xs text-muted-foreground">Configure {'{"limit": 5}'} to set number of posts</p>
+          <span class="text-sm font-medium">{tr('Settings (JSON)')}</span>
+          <Textarea bind:value={formSettings} placeholder={'{"limit": 5}'} class="min-h-20 font-mono text-xs" aria-label={tr('Settings (JSON)')} />
+          <p class="text-xs text-muted-foreground">{tr('Configure {example} to set number of posts', { example: '{"limit": 5}' })}</p>
         </div>
       {:else if formType === 'tag_cloud' || formType === 'categories'}
         <div class="space-y-1">
-          <span class="text-sm font-medium">Settings (JSON)</span>
-          <Textarea bind:value={formSettings} placeholder={'{"limit": 10}'} class="min-h-20 font-mono text-xs" aria-label="Settings (JSON)" />
+          <span class="text-sm font-medium">{tr('Settings (JSON)')}</span>
+          <Textarea bind:value={formSettings} placeholder={'{"limit": 10}'} class="min-h-20 font-mono text-xs" aria-label={tr('Settings (JSON)')} />
         </div>
       {/if}
     </div>
     <DialogFooter>
-      <Button variant="outline" onclick={() => dialogOpen = false}>Cancel</Button>
-      <Button onclick={handleSave}>Save</Button>
+      <Button variant="outline" onclick={() => dialogOpen = false}>{tr('Cancel')}</Button>
+      <Button onclick={handleSave}>{tr('Save')}</Button>
     </DialogFooter>
   </DialogContent>
 </Dialog>
 
 <AlertDialog open={deleteId !== null} onOpenChange={(o) => { if (!o) deleteId = null }}>
-  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete widget?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onclick={handleDelete}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{tr('Delete widget?')}</AlertDialogTitle><AlertDialogDescription>{tr('This cannot be undone.')}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{tr('Cancel')}</AlertDialogCancel><AlertDialogAction onclick={handleDelete}>{tr('Delete')}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
 </AlertDialog>
 {:else}
-  <div class="flex items-center justify-center h-24 text-muted-foreground">Loading...</div>
+  <div class="flex items-center justify-center h-24 text-muted-foreground">{tr('Loading...')}</div>
 {/if}

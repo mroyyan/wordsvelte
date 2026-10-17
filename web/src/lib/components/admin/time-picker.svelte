@@ -3,6 +3,7 @@
   import { Button } from '$lib/components/ui/button'
   import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover'
   import { cn } from '$lib/utils'
+  import { tr, msg } from '$lib/i18n/admin'
 
   /** "HH:mm" on a 24-hour clock. */
   let { value = $bindable('09:00'), id, class: className, onchange }: { value?: string; id?: string; class?: string; onchange?: (value: string) => void } = $props()
@@ -45,7 +46,7 @@
     data-col
     class="relative flex h-56 w-14 flex-col gap-0.5 overflow-y-auto p-1"
     role="listbox"
-    aria-label={label}
+    aria-label={tr(label)}
   >
     {#each items as item (item)}
       <Button
@@ -67,7 +68,7 @@
 <Popover bind:open>
   <PopoverTrigger>
     {#snippet child({ props })}
-      <Button {...props} {id} type="button" variant="outline" class={cn('justify-start font-normal tabular-nums', className)} aria-label="Time">
+      <Button {...props} {id} type="button" variant="outline" class={cn('justify-start font-normal tabular-nums', className)} aria-label={tr('Time')}>
         <ClockIcon class="size-4 shrink-0" />
         {value}
       </Button>
@@ -75,8 +76,8 @@
   </PopoverTrigger>
   <PopoverContent class="w-auto p-0" align="end">
     <div class="flex divide-x" bind:this={listsEl}>
-      {@render column(hours, hour, (h) => set(h, minute || '00'), 'Hour')}
-      {@render column(minutes, minute, (m) => set(hour || '00', m), 'Minute')}
+      {@render column(hours, hour, (h) => set(h, minute || '00'), msg('Hour'))}
+      {@render column(minutes, minute, (m) => set(hour || '00', m), msg('Minute'))}
     </div>
   </PopoverContent>
 </Popover>

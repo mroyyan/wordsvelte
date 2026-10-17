@@ -4,6 +4,7 @@ export interface SessionUser {
   email: string
   username: string
   displayName: string
+  language?: string | null
 }
 
 /** Store the session for the admin pages, which call the API with a Bearer token from localStorage. */

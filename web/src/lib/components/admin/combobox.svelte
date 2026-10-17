@@ -5,10 +5,11 @@
   import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover'
   import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '$lib/components/ui/command'
   import { cn } from '$lib/utils'
+  import { tr } from '$lib/i18n/admin'
 
   /** A searchable single-choice dropdown, for lists too long for a plain Select (e.g. timezones). */
   let {
-    options, value = $bindable(''), id, placeholder = 'Select...', searchPlaceholder = 'Search...', emptyText = 'Nothing found.', class: className,
+    options, value = $bindable(''), id, placeholder, searchPlaceholder, emptyText, class: className,
   }: {
     options: { value: string; label: string }[]
     value?: string
@@ -27,16 +28,16 @@
   <PopoverTrigger>
     {#snippet child({ props })}
       <Button {...props} {id} variant="outline" role="combobox" aria-expanded={open} class={cn('w-full justify-between font-normal', className)}>
-        <span class="truncate">{current?.label ?? (value || placeholder)}</span>
+        <span class="truncate">{current?.label ?? (value || (placeholder ? tr(placeholder) : tr('Select...')))}</span>
         <ChevronsUpDownIcon class="ms-2 size-4 shrink-0 opacity-50" />
       </Button>
     {/snippet}
   </PopoverTrigger>
   <PopoverContent class="w-(--bits-popover-anchor-width) min-w-64 p-0" align="start">
     <Command>
-      <CommandInput placeholder={searchPlaceholder} />
+      <CommandInput placeholder={searchPlaceholder ? tr(searchPlaceholder) : tr('Search...')} />
       <CommandList>
-        <CommandEmpty>{emptyText}</CommandEmpty>
+        <CommandEmpty>{emptyText ? tr(emptyText) : tr('Nothing found.')}</CommandEmpty>
         <CommandGroup>
           {#each options as o (o.value)}
             <CommandItem value={o.label} onSelect={() => { value = o.value; open = false }}>

@@ -6,27 +6,29 @@
   import { Button } from '$lib/components/ui/button'
   import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '$lib/components/ui/dropdown-menu'
 
+  import { tr, msg } from '$lib/i18n/admin'
+
   const options = [
-    { value: 'light', label: 'Light' },
-    { value: 'dark', label: 'Dark' },
-    { value: 'system', label: 'System' },
+    { value: 'light', label: msg('Light') },
+    { value: 'dark', label: msg('Dark') },
+    { value: 'system', label: msg('System') },
   ] as const
 </script>
 
 <DropdownMenu>
   <DropdownMenuTrigger>
     {#snippet child({ props })}
-      <Button {...props} variant="ghost" size="icon" class="scale-95 rounded-full" aria-label="Toggle theme">
+      <Button {...props} variant="ghost" size="icon" class="scale-95 rounded-full" aria-label={tr('Toggle theme')}>
         <SunIcon class="size-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
         <MoonIcon class="absolute size-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-        <span class="sr-only">Toggle theme</span>
+        <span class="sr-only">{tr('Toggle theme')}</span>
       </Button>
     {/snippet}
   </DropdownMenuTrigger>
   <DropdownMenuContent align="end">
     {#each options as o (o.value)}
       <DropdownMenuItem onclick={() => setMode(o.value)}>
-        {o.label}
+        {tr(o.label)}
         <CheckIcon class="ms-auto size-4 {userPrefersMode.current === o.value ? '' : 'hidden'}" />
       </DropdownMenuItem>
     {/each}

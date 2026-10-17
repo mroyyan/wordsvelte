@@ -4,7 +4,7 @@ import type { DbInstance } from '$lib/server/db'
 
 export type UserRow = typeof users.$inferSelect
 export type NewUser = Pick<typeof users.$inferInsert, 'email' | 'username' | 'passwordHash' | 'displayName' | 'role'>
-export type UserPatch = Partial<Pick<UserRow, 'displayName' | 'email' | 'role' | 'avatarUrl'>>
+export type UserPatch = Partial<Pick<UserRow, 'displayName' | 'email' | 'role' | 'avatarUrl' | 'language'>>
 
 /** Everything about a user that is safe to show; never the password hash or two-factor secrets. */
 const publicColumns = {

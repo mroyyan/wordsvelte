@@ -8,10 +8,11 @@
   import TimePicker from '$lib/components/admin/time-picker.svelte'
   import { Label } from '$lib/components/ui/label'
   import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover'
+  import { tr, msg } from '$lib/i18n/admin'
   import { DEFAULT_TIMEZONE, formatDateWith, localeFor, utcToZonedLocal, zonedLocalToUtc } from '$lib/shared/format-date'
 
   /** The chosen moment as an ISO instant (UTC), or '' while nothing valid is picked. */
-  let { value = $bindable(''), id = 'publishAt', label = 'Publish on', verb = 'Goes live', allowPast = false, clearable = false }: {
+  let { value = $bindable(''), id = 'publishAt', label = msg('Publish on'), verb = msg('Goes live'), allowPast = false, clearable = false }: {
     value?: string; id?: string; label?: string
     /** Words in front of the confirmed date, e.g. "Goes live Sunday, 18 October 09:30". */
     verb?: string
@@ -51,11 +52,11 @@
   }
 
   const past = $derived(!allowPast && !!value && Date.parse(value) <= Date.now())
-  const dateLabel = $derived(date ? formatDateWith(`${date}T12:00:00Z`, { language: settings.language, date_format: 'l, d F Y', timezone: 'UTC' }) : 'Pick a date')
+  const dateLabel = $derived(date ? formatDateWith(`${date}T12:00:00Z`, { language: settings.language, date_format: 'l, d F Y', timezone: 'UTC' }) : tr('Pick a date'))
 </script>
 
 <div class="space-y-2">
-  <Label for={id}>{label}</Label>
+  <Label for={id}>{tr(label)}</Label>
   <div class="flex gap-2">
     <Popover bind:open>
       <PopoverTrigger>
@@ -72,16 +73,16 @@
     </Popover>
     <TimePicker bind:value={time} onchange={commit} class="w-28 shrink-0" />
     {#if clearable && value}
-      <Button type="button" variant="ghost" size="icon" aria-label="Clear" onclick={() => { date = ''; value = '' }}><XIcon class="size-4" /></Button>
+      <Button type="button" variant="ghost" size="icon" aria-label={tr('Clear')} onclick={() => { date = ''; value = '' }}><XIcon class="size-4" /></Button>
     {/if}
   </div>
   {#if value && !past}
     <p class="text-xs text-muted-foreground">
-      {verb} {formatDateWith(value, { ...settings, date_format: 'l, d F Y H:i' })} ({timezone}).
+      {tr(verb)} {formatDateWith(value, { ...settings, date_format: 'l, d F Y H:i' })} ({timezone}).
     </p>
   {:else if past}
-    <p class="text-xs text-destructive">Pick a time in the future.</p>
+    <p class="text-xs text-destructive">{tr('Pick a time in the future.')}</p>
   {:else}
-    <p class="text-xs text-muted-foreground">Time in {timezone}, the timezone from Settings.</p>
+    <p class="text-xs text-muted-foreground">{tr('Time in {timezone}, the timezone from Settings.', { timezone })}</p>
   {/if}
 </div>

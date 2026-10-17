@@ -13,6 +13,8 @@ export const users = sqliteTable('users', {
   displayName: text('display_name').notNull(),
   role: text('role').notNull().default('author'),
   avatarUrl: text('avatar_url'),
+  /** Language of the admin panel for this person (a code such as 'id' or 'en'); empty means follow the site language. */
+  language: text('language'),
   /** Bumped on password change/reset and security changes; tokens carry the value they were issued under, so a bump signs every other device out. */
   sessionVersion: integer('session_version').notNull().default(0),
   /** AES-GCM encrypted TOTP secret (see secret-box). Set during setup, only trusted once totpEnabled is 1. */
@@ -238,4 +240,15 @@ export const ads = sqliteTable('ads', {
   updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
 }, (table) => ({
   placementIdx: index('idx_ads_placement_status').on(table.placement, table.status),
+}))
+
+/** Article views per post and day (UTC), behind the "Page views" chart of the dashboard. `posts.viewCount` stays the all-time total. */
+export const postViews = sqliteTable('post_views', {
+  postId: integer('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+  /** YYYY-MM-DD, UTC. */
+  day: text('day').notNull(),
+  views: integer('views').notNull().default(0),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.postId, table.day] }),
+  dayIdx: index('idx_post_views_day').on(table.day),
 }))

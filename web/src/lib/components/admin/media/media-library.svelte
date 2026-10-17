@@ -3,6 +3,7 @@
   import * as Dialog from '$lib/components/ui/dialog'
   import { ChevronLeft, ChevronRight, Loader2, Search, X, UploadCloud } from '@lucide/svelte'
   import { Input } from '$lib/components/ui/input'
+  import { tr } from '$lib/i18n/admin'
 
   let { open = $bindable(false), onSelect } = $props()
 
@@ -97,19 +98,19 @@
     <Dialog.Header class="px-6 py-4 border-b">
       <div class="flex items-center justify-between gap-4">
         <div>
-          <Dialog.Title>Media Library</Dialog.Title>
+          <Dialog.Title>{tr('Media Library')}</Dialog.Title>
         </div>
         <div class="flex items-center gap-2 flex-1 max-w-md ml-auto">
           <div class="relative flex-1">
             <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search media..." class="pl-9 h-9" bind:value={search} oninput={onSearchInput} />
+            <Input placeholder={tr('Search media...')} class="pl-9 h-9" bind:value={search} oninput={onSearchInput} />
           </div>
           <input type="file" accept="image/*" class="hidden" bind:this={fileInput} onchange={handleUpload} disabled={uploading} />
           <Button variant="default" size="sm" class="h-9 gap-2" disabled={uploading} onclick={() => fileInput?.click()}>
             {#if uploading}<Loader2 class="h-4 w-4 animate-spin" />{:else}<UploadCloud class="h-4 w-4" />{/if}
-            Upload
+            {tr('Upload')}
           </Button>
-          <Button type="button" variant="outline" size="icon" class="h-9 w-9 shrink-0" onclick={() => open = false}>
+          <Button type="button" variant="outline" size="icon" class="h-9 w-9 shrink-0" onclick={() => open = false} aria-label={tr('Close')}>
             <X class="h-4 w-4" />
           </Button>
         </div>
@@ -121,13 +122,13 @@
         <div class="flex items-center justify-center h-full"><Loader2 class="animate-spin h-8 w-8 text-primary" /></div>
       {:else if failed}
         <div class="flex flex-col items-center justify-center h-full py-12 text-destructive">
-          <p>Could not load the media.</p>
-          <Button variant="outline" size="sm" class="mt-3" onclick={() => fetchMedia()}>Try again</Button>
+          <p>{tr('Could not load the media.')}</p>
+          <Button variant="outline" size="sm" class="mt-3" onclick={() => fetchMedia()}>{tr('Try again')}</Button>
         </div>
       {:else if items.length === 0}
         <div class="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
           <UploadCloud class="h-12 w-12 mb-4 opacity-20" />
-          <p>{search.trim() ? 'No files match your search.' : 'No media yet. Upload an image.'}</p>
+          <p>{search.trim() ? tr('No files match your search.') : tr('No media yet. Upload an image.')}</p>
         </div>
       {:else}
         <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 transition-opacity {loading ? 'opacity-50' : ''}">
@@ -150,11 +151,11 @@
 
     {#if total > 0}
       <div class="flex items-center justify-between gap-3 border-t px-6 py-3 text-sm">
-        <span class="text-muted-foreground">{from}-{to} of {total}</span>
+        <span class="text-muted-foreground">{tr('{from}-{to} of {total}', { from, to, total })}</span>
         <div class="flex items-center gap-2">
-          <Button type="button" variant="outline" size="icon" class="size-8" aria-label="Previous page" disabled={page <= 1 || loading} onclick={() => (page -= 1)}><ChevronLeft class="size-4" /></Button>
-          <span class="min-w-24 text-center font-medium">Page {page} of {totalPages}</span>
-          <Button type="button" variant="outline" size="icon" class="size-8" aria-label="Next page" disabled={page >= totalPages || loading} onclick={() => (page += 1)}><ChevronRight class="size-4" /></Button>
+          <Button type="button" variant="outline" size="icon" class="size-8" aria-label={tr('Previous page')} disabled={page <= 1 || loading} onclick={() => (page -= 1)}><ChevronLeft class="size-4" /></Button>
+          <span class="min-w-24 text-center font-medium">{tr('Page {page} of {totalPages}', { page, totalPages })}</span>
+          <Button type="button" variant="outline" size="icon" class="size-8" aria-label={tr('Next page')} disabled={page >= totalPages || loading} onclick={() => (page += 1)}><ChevronRight class="size-4" /></Button>
         </div>
       </div>
     {/if}

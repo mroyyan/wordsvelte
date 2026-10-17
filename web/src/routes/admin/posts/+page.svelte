@@ -27,17 +27,18 @@
     DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableColumnHeader, DataTablePagination, DataTableBulkActions,
   } from '$lib/components/data-table'
   import { api, errorMessage, fetchAll, runBulk } from '$lib/client/admin-api'
-  import { formatDate } from '$lib/utils'
+  import { tr, msg, formatAdminDate } from '$lib/i18n/admin'
 
   interface PostRow { id: number; title: string; slug: string; status: 'draft' | 'pending' | 'scheduled' | 'publish'; isFeatured: boolean; viewCount: number; createdAt: string; publishedAt: string | null }
 
-  const statusOptions = [
-    { label: 'Published', value: 'publish' },
-    { label: 'Scheduled', value: 'scheduled' },
-    { label: 'Pending review', value: 'pending' },
-    { label: 'Draft', value: 'draft' },
+  const statusOptionDefs = [
+    { label: msg('Published'), value: 'publish' },
+    { label: msg('Scheduled'), value: 'scheduled' },
+    { label: msg('Pending review'), value: 'pending' },
+    { label: msg('Draft'), value: 'draft' },
   ]
-  const statusLabel = (s: string) => statusOptions.find(o => o.value === s)?.label ?? s
+  const statusOptions = $derived(statusOptionDefs.map(o => ({ ...o, label: tr(o.label) })))
+  const statusLabel = (s: string) => { const l = statusOptionDefs.find(o => o.value === s)?.label; return l ? tr(l) : s }
   const statusColors: Record<string, string> = {
     publish: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900',
     scheduled: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-900',
@@ -45,10 +46,10 @@
     draft: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-900',
   }
   const columns = [
-    { id: 'title', title: 'Title' },
-    { id: 'status', title: 'Status', secondary: true },
-    { id: 'viewCount', title: 'Views', secondary: true },
-    { id: 'date', title: 'Date', secondary: true },
+    { id: 'title', title: msg('Title') },
+    { id: 'status', title: msg('Status'), secondary: true },
+    { id: 'viewCount', title: msg('Views'), secondary: true },
+    { id: 'date', title: msg('Date'), secondary: true },
   ]
   const postDate = (p: PostRow) => p.publishedAt || p.createdAt
 
@@ -76,7 +77,7 @@
     try {
       await api(`/api/posts-admin/${post.id}`, { method: 'PATCH', body: { status } })
       table.setRows(table.rows.map(r => (r.id === post.id ? { ...r, status } : r)))
-      toast.success(status === 'publish' ? 'Post published' : 'Moved to draft')
+      toast.success(status === 'publish' ? tr('Post published') : tr('Moved to draft'))
     } catch (e) { toast.error(errorMessage(e)) }
   }
 
@@ -85,8 +86,9 @@
     const rows = table.selectedRows
     const { ok, failed, firstError } = await runBulk(rows, r => api(`/api/posts-admin/${r.id}`, { method: 'PATCH', body: { status } }))
     await load(); table.clearSelection(); busy = false
-    if (failed) toast.error(`${ok} updated, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} post${ok === 1 ? '' : 's'} ${status === 'publish' ? 'published' : 'moved to draft'}`)
+    if (failed) toast.error(tr('{ok} updated, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else if (status === 'publish') toast.success(ok === 1 ? tr('1 post published') : tr('{n} posts published', { n: ok }))
+    else toast.success(ok === 1 ? tr('1 post moved to draft') : tr('{n} posts moved to draft', { n: ok }))
   }
 
   async function confirmDelete() {
@@ -95,23 +97,23 @@
     deleting = null; busy = true
     const { ok, failed, firstError } = await runBulk(targets, r => api(`/api/posts-admin/${r.id}`, { method: 'DELETE' }))
     await load(); table.clearSelection(); busy = false
-    if (failed) toast.error(`${ok} deleted, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} post${ok === 1 ? '' : 's'} deleted`)
+    if (failed) toast.error(tr('{ok} deleted, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else toast.success(ok === 1 ? tr('1 post deleted') : tr('{n} posts deleted', { n: ok }))
   }
 </script>
 
-<svelte:head><title>Posts</title></svelte:head>
+<svelte:head><title>{tr('Posts')}</title></svelte:head>
 
 <div class="flex flex-1 flex-col gap-4">
-  <PageHeader title="Posts" description="Manage articles">
+  <PageHeader title={tr('Posts')} description={tr('Manage articles')}>
     {#snippet actions()}
-      <PrimaryButton label="Add Post" icon={PlusIcon} onclick={() => goto('/admin/posts/new')} />
+      <PrimaryButton label={tr('Add Post')} icon={PlusIcon} onclick={() => goto('/admin/posts/new')} />
     {/snippet}
   </PageHeader>
 
-  <DataTableToolbar {table} searchPlaceholder="Filter by title..." {columns}>
+  <DataTableToolbar {table} searchPlaceholder={msg('Filter by title...')} {columns}>
     {#snippet filters()}
-      <DataTableFacetedFilter title="Status" options={statusOptions} selected={table.filters.status ?? []} counts={table.counts('status')} onChange={(v) => table.setFilter('status', v)} />
+      <DataTableFacetedFilter title={msg('Status')} options={statusOptions} selected={table.filters.status ?? []} counts={table.counts('status')} onChange={(v) => table.setFilter('status', v)} />
     {/snippet}
   </DataTableToolbar>
 
@@ -121,7 +123,7 @@
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" /></TableHead>
+          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label={tr('Select all')} class="translate-y-0.5" /></TableHead>
           {#each visibleColumns as c (c.id)}
             <TableHead class={c.secondary ? 'hidden sm:table-cell' : ''}><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
           {/each}
@@ -132,11 +134,11 @@
         {#if loading}
           <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center"><Loader2Icon class="mx-auto size-4 animate-spin text-muted-foreground" /></TableCell></TableRow>
         {:else if table.pageRows.length === 0}
-          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? 'No posts match your filters.' : 'No posts yet.'}</TableCell></TableRow>
+          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? tr('No posts match your filters.') : tr('No posts yet.')}</TableCell></TableRow>
         {:else}
           {#each table.pageRows as post (post.id)}
             <TableRow data-state={table.isSelected(post) ? 'selected' : undefined}>
-              <TableCell><Checkbox checked={table.isSelected(post)} onCheckedChange={() => table.toggleRow(post)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
+              <TableCell><Checkbox checked={table.isSelected(post)} onCheckedChange={() => table.toggleRow(post)} aria-label={tr('Select row')} class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as c (c.id)}
                 <TableCell class={[c.id === 'title' ? 'max-w-[15rem] font-medium sm:max-w-xs' : 'text-nowrap', c.secondary && 'hidden sm:table-cell']}>
                   {#if c.id === 'title'}
@@ -145,14 +147,14 @@
                     <!-- phones: status and date live under the title instead of in their own columns -->
                     <div class="mt-1 flex items-center gap-2 text-xs font-normal text-muted-foreground sm:hidden">
                       <Badge variant="outline" class={statusColors[post.status] ?? ''}>{statusLabel(post.status)}</Badge>
-                      <span>{formatDate(postDate(post))}</span>
+                      <span>{formatAdminDate(postDate(post))}</span>
                     </div>
                   {:else if c.id === 'status'}
                     <Badge variant="outline" class={statusColors[post.status] ?? ''}>{#if post.status === 'scheduled'}<ClockIcon class="me-1 size-3" />{/if}{statusLabel(post.status)}</Badge>
                   {:else if c.id === 'viewCount'}
                     <span class="text-sm text-muted-foreground">{post.viewCount}</span>
                   {:else}
-                    <span class="text-sm text-muted-foreground">{formatDate(postDate(post))}</span>
+                    <span class="text-sm text-muted-foreground">{formatAdminDate(postDate(post))}</span>
                   {/if}
                 </TableCell>
               {/each}
@@ -160,19 +162,19 @@
                 <DropdownMenu>
                   <DropdownMenuTrigger>
                     {#snippet child({ props })}
-                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">Open menu</span></Button>
+                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">{tr('Open menu')}</span></Button>
                     {/snippet}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" class="w-44">
-                    <DropdownMenuItem onclick={() => goto(`/admin/posts/${post.id}`)}><PencilIcon /> Edit</DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => goto(`/admin/posts/${post.id}`)}><PencilIcon /> {tr('Edit')}</DropdownMenuItem>
                     {#if post.status !== 'publish'}
-                      <DropdownMenuItem onclick={() => setStatus(post, 'publish')}><SendIcon /> {post.status === 'scheduled' ? 'Publish now' : 'Publish'}</DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => setStatus(post, 'publish')}><SendIcon /> {post.status === 'scheduled' ? tr('Publish now') : tr('Publish')}</DropdownMenuItem>
                     {/if}
                     {#if post.status !== 'draft'}
-                      <DropdownMenuItem onclick={() => setStatus(post, 'draft')}><FileTextIcon /> Back to Draft</DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => setStatus(post, 'draft')}><FileTextIcon /> {tr('Back to Draft')}</DropdownMenuItem>
                     {/if}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [post])}><Trash2Icon /> Delete</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [post])}><Trash2Icon /> {tr('Delete')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -186,26 +188,26 @@
   <DataTablePagination {table} class="mt-auto" />
 </div>
 
-<DataTableBulkActions {table} entityName="post">
+<DataTableBulkActions {table} entityName={msg('post')}>
   {#snippet actions()}
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => bulkStatus('publish')}><SendIcon class="size-4" /> Publish</Button>
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => bulkStatus('draft')}><FileTextIcon class="size-4" /> Draft</Button>
-    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> Delete</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => bulkStatus('publish')}><SendIcon class="size-4" /> {tr('Publish')}</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => bulkStatus('draft')}><FileTextIcon class="size-4" /> {tr('Draft')}</Button>
+    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> {tr('Delete')}</Button>
   {/snippet}
 </DataTableBulkActions>
 
 <AlertDialog open={deleting !== null} onOpenChange={(o) => { if (!o) deleting = null }}>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete {deleting?.length === 1 ? 'this post' : `${deleting?.length} posts`}?</AlertDialogTitle>
+      <AlertDialogTitle>{deleting?.length === 1 ? tr('Delete this post?') : tr('Delete {n} posts?', { n: deleting?.length ?? 0 })}</AlertDialogTitle>
       <AlertDialogDescription>
-        {#if deleting?.length === 1}"{deleting[0].title}" and its comments will be permanently deleted.{:else}The selected posts and their comments will be permanently deleted.{/if}
-        This cannot be undone.
+        {#if deleting?.length === 1}{tr('"{title}" and its comments will be permanently deleted.', { title: deleting[0].title })}{:else}{tr('The selected posts and their comments will be permanently deleted.')}{/if}
+        {tr('This cannot be undone.')}
       </AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction onclick={confirmDelete}>Delete</AlertDialogAction>
+      <AlertDialogCancel>{tr('Cancel')}</AlertDialogCancel>
+      <AlertDialogAction onclick={confirmDelete}>{tr('Delete')}</AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
 </AlertDialog>

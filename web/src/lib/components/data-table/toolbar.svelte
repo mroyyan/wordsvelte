@@ -3,10 +3,11 @@
   import XIcon from '@lucide/svelte/icons/x'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
+  import { tr, msg } from '$lib/i18n/admin'
   import ViewOptions from './view-options.svelte'
   import type { DataTableState } from './data-table-state.svelte'
 
-  let { table, searchPlaceholder = 'Filter...', columns, filters }: {
+  let { table, searchPlaceholder = msg('Filter...'), columns, filters }: {
     table: DataTableState<any>
     searchPlaceholder?: string
     /** Columns offered in the "View" menu. Omit to hide the menu. */
@@ -18,16 +19,16 @@
 <div class="flex items-center justify-between">
   <div class="flex flex-1 flex-col items-stretch gap-y-2 sm:flex-row sm:items-center sm:gap-x-2">
     <Input
-      placeholder={searchPlaceholder}
+      placeholder={tr(searchPlaceholder)}
       value={table.search}
       oninput={(e) => table.setSearch(e.currentTarget.value)}
       class="h-8 w-full sm:w-[150px] lg:w-[250px]"
-      aria-label={searchPlaceholder}
+      aria-label={tr(searchPlaceholder)}
     />
     <div class="flex flex-wrap gap-2">{@render filters?.()}</div>
     {#if table.isFiltered}
       <Button variant="ghost" onclick={() => table.reset()} class="h-8 px-2 lg:px-3">
-        Reset <XIcon class="ms-2 size-4" />
+        {tr('Reset')} <XIcon class="ms-2 size-4" />
       </Button>
     {/if}
   </div>

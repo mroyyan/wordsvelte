@@ -7,6 +7,7 @@
   } from '$lib/components/ui/sidebar'
   import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '$lib/components/ui/collapsible'
   import { isCollapsible, isActivePath, activeSubHref, type NavGroupConfig } from '$lib/config/admin-nav'
+  import { tr } from '$lib/i18n/admin'
 
   let { group }: { group: NavGroupConfig } = $props()
   const sidebar = useSidebar()
@@ -15,7 +16,7 @@
 </script>
 
 <SidebarGroup>
-  <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+  <SidebarGroupLabel>{tr(group.title)}</SidebarGroupLabel>
   <SidebarMenu class="gap-0.5">
     {#each group.items as item (item.title)}
       <SidebarMenuItem>
@@ -25,9 +26,9 @@
           <Collapsible {open} class="group/collapsible">
             <CollapsibleTrigger>
               {#snippet child({ props }: { props: any })}
-                <SidebarMenuButton {...props} tooltipContent={item.title}>
+                <SidebarMenuButton {...props} tooltipContent={tr(item.title)}>
                   {#if item.icon}<item.icon />{/if}
-                  <span>{item.title}</span>
+                  <span>{tr(item.title)}</span>
                   <ChevronRightIcon class="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 rtl:rotate-180" />
                 </SidebarMenuButton>
               {/snippet}
@@ -38,7 +39,7 @@
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton isActive={sub.href === activeSub}>
                       {#snippet child({ props }: { props: any })}
-                        <a href={sub.href} {...props} onclick={closeMobile}><span>{sub.title}</span></a>
+                        <a href={sub.href} {...props} onclick={closeMobile}><span>{tr(sub.title)}</span></a>
                       {/snippet}
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
@@ -47,11 +48,11 @@
             </CollapsibleContent>
           </Collapsible>
         {:else}
-          <SidebarMenuButton isActive={isActivePath(pathname, item.href)} tooltipContent={item.title}>
+          <SidebarMenuButton isActive={isActivePath(pathname, item.href)} tooltipContent={tr(item.title)}>
             {#snippet child({ props }: { props: any })}
               <a href={item.href} {...props} onclick={closeMobile}>
                 {#if item.icon}<item.icon />{/if}
-                <span>{item.title}</span>
+                <span>{tr(item.title)}</span>
               </a>
             {/snippet}
           </SidebarMenuButton>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tr } from "$lib/i18n/admin";
 	import * as Sheet from "$lib/components/ui/sheet/index.js";
 	import { cn, type WithElementRef } from "$lib/utils.js";
 	import type { HTMLAttributes } from "svelte/elements";
@@ -51,8 +52,8 @@
 			{side}
 		>
 			<Sheet.Header class="sr-only">
-				<Sheet.Title>Sidebar</Sheet.Title>
-				<Sheet.Description>Displays the mobile sidebar.</Sheet.Description>
+				<Sheet.Title>{tr("Sidebar")}</Sheet.Title>
+				<Sheet.Description>{tr("Displays the mobile sidebar.")}</Sheet.Description>
 			</Sheet.Header>
 			<div class="flex h-full w-full flex-col">
 				{@render children?.()}

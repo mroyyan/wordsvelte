@@ -12,6 +12,7 @@ import MenuIcon from '@lucide/svelte/icons/menu'
 import WrenchIcon from '@lucide/svelte/icons/wrench'
 import MegaphoneIcon from '@lucide/svelte/icons/megaphone'
 import type { Role } from '@wordsvelte/shared'
+import { msg } from '$lib/i18n/admin'
 
 export interface NavLink {
   title: string
@@ -38,47 +39,47 @@ const RANK: Record<Role, number> = { author: 1, editor: 2, admin: 3 }
 
 export const adminNav: NavGroupConfig[] = [
   {
-    title: 'General',
+    title: msg('General'),
     items: [
-      { title: 'Dashboard', href: '/admin', icon: LayoutDashboardIcon },
+      { title: msg('Dashboard'), href: '/admin', icon: LayoutDashboardIcon },
       {
-        title: 'Posts',
+        title: msg('Posts'),
         icon: FileTextIcon,
         items: [
-          { title: 'All Posts', href: '/admin/posts' },
-          { title: 'New Post', href: '/admin/posts/new' },
-          { title: 'Categories', href: '/admin/categories', minRole: 'editor' },
-          { title: 'Tags', href: '/admin/tags', minRole: 'editor' },
+          { title: msg('All Posts'), href: '/admin/posts' },
+          { title: msg('New Post'), href: '/admin/posts/new' },
+          { title: msg('Categories'), href: '/admin/categories', minRole: 'editor' },
+          { title: msg('Tags'), href: '/admin/tags', minRole: 'editor' },
         ],
       },
       {
-        title: 'Pages',
+        title: msg('Pages'),
         icon: FileStackIcon,
         minRole: 'editor',
         items: [
-          { title: 'All Pages', href: '/admin/pages' },
-          { title: 'New Page', href: '/admin/pages/new' },
+          { title: msg('All Pages'), href: '/admin/pages' },
+          { title: msg('New Page'), href: '/admin/pages/new' },
         ],
       },
-      { title: 'Media', href: '/admin/media', icon: ImageIcon },
-      { title: 'Comments', href: '/admin/comments', icon: MessageSquareIcon, minRole: 'editor' },
+      { title: msg('Media'), href: '/admin/media', icon: ImageIcon },
+      { title: msg('Comments'), href: '/admin/comments', icon: MessageSquareIcon, minRole: 'editor' },
     ],
   },
   {
-    title: 'Appearance',
+    title: msg('Appearance'),
     items: [
-      { title: 'Themes', href: '/admin/appearance/themes', icon: PaletteIcon, minRole: 'admin' },
-      { title: 'Widgets', href: '/admin/appearance/widgets', icon: LayoutTemplateIcon, minRole: 'admin' },
-      { title: 'Menus', href: '/admin/appearance/menus', icon: MenuIcon, minRole: 'admin' },
+      { title: msg('Themes'), href: '/admin/appearance/themes', icon: PaletteIcon, minRole: 'admin' },
+      { title: msg('Widgets'), href: '/admin/appearance/widgets', icon: LayoutTemplateIcon, minRole: 'admin' },
+      { title: msg('Menus'), href: '/admin/appearance/menus', icon: MenuIcon, minRole: 'admin' },
     ],
   },
   {
-    title: 'Administration',
+    title: msg('Administration'),
     items: [
-      { title: 'Ads', href: '/admin/ads', icon: MegaphoneIcon, minRole: 'admin' },
-      { title: 'Users', href: '/admin/users', icon: UsersIcon, minRole: 'admin' },
-      { title: 'Migrate', href: '/admin/tools/migrate', icon: WrenchIcon, minRole: 'admin' },
-      { title: 'Settings', href: '/admin/settings', icon: SettingsIcon, minRole: 'admin' },
+      { title: msg('Ads'), href: '/admin/ads', icon: MegaphoneIcon, minRole: 'admin' },
+      { title: msg('Users'), href: '/admin/users', icon: UsersIcon, minRole: 'admin' },
+      { title: msg('Migrate'), href: '/admin/tools/migrate', icon: WrenchIcon, minRole: 'admin' },
+      { title: msg('Settings'), href: '/admin/settings', icon: SettingsIcon, minRole: 'admin' },
     ],
   },
 ]

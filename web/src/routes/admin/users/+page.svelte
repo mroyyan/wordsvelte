@@ -21,6 +21,7 @@
   import PageHeader from '$lib/components/layout/page-header.svelte'
   import PrimaryButton from '$lib/components/layout/primary-button.svelte'
   import { fetchAll } from '$lib/client/admin-api'
+  import { tr } from '$lib/i18n/admin'
   import PasswordInput from '$lib/components/auth/password-input.svelte'
   import {
     DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableColumnHeader, DataTablePagination,
@@ -28,18 +29,19 @@
 
   interface UserRow { id: number; email: string; username: string; displayName: string; role: 'admin' | 'editor' | 'author'; createdAt: string }
 
-  const roleOptions = [
-    { label: 'Admin', value: 'admin', icon: ShieldIcon },
-    { label: 'Editor', value: 'editor', icon: UserCheckIcon },
-    { label: 'Author', value: 'author', icon: PencilLineIcon },
-  ]
+  const roleOptions = $derived([
+    { label: tr('Admin'), value: 'admin', icon: ShieldIcon },
+    { label: tr('Editor'), value: 'editor', icon: UserCheckIcon },
+    { label: tr('Author'), value: 'author', icon: PencilLineIcon },
+  ])
+  const roleLabel = (role: string) => roleOptions.find(r => r.value === role)?.label ?? role
   const roleIcon = (role: string) => roleOptions.find(r => r.value === role)?.icon ?? PencilLineIcon
-  const columns = [
-    { id: 'username', title: 'Username' },
-    { id: 'displayName', title: 'Name', secondary: true },
-    { id: 'email', title: 'Email', secondary: true },
-    { id: 'role', title: 'Role', secondary: true },
-  ]
+  const columns = $derived([
+    { id: 'username', title: tr('Username') },
+    { id: 'displayName', title: tr('Name'), secondary: true },
+    { id: 'email', title: tr('Email'), secondary: true },
+    { id: 'role', title: tr('Role'), secondary: true },
+  ])
 
   const table = new DataTableState<UserRow>({
     getId: u => u.id,
@@ -86,10 +88,10 @@
     try {
       const res = await fetch('/api/users', { method: 'POST', headers: authHeaders(), body: JSON.stringify(form) })
       const json = await res.json()
-      if (!json.success) { createError = json.error || 'Failed to create user'; return }
+      if (!json.success) { createError = json.error || tr('Failed to create user'); return }
       table.setRows([json.data.user, ...table.rows])
       createOpen = false
-      toast.success(`Created ${json.data.user.username}`)
+      toast.success(tr('Created {name}', { name: json.data.user.username }))
     } catch (err: any) { createError = err.message } finally { saving = false }
   }
 
@@ -106,9 +108,9 @@
     try {
       const res = await fetch(`/api/users/${editUser.id}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(edit) })
       const json = await res.json()
-      if (!json.success) { editError = json.error || 'Failed to update user'; return }
+      if (!json.success) { editError = json.error || tr('Failed to update user'); return }
       table.setRows(table.rows.map(r => (r.id === json.data.id ? { ...r, ...json.data } : r)))
-      toast.success('User updated')
+      toast.success(tr('User updated'))
       editUser = null
     } catch (err: any) { editError = err.message } finally { saving = false }
   }
@@ -116,19 +118,19 @@
   const visibleColumns = $derived(columns.filter(c => table.isVisible(c.id)))
 </script>
 
-<svelte:head><title>Users</title></svelte:head>
+<svelte:head><title>{tr('Users')}</title></svelte:head>
 
 <div class="flex flex-1 flex-col gap-4">
-  <PageHeader title="User List" description="Manage your users and their roles here.">
+  <PageHeader title={tr('User List')} description={tr('Manage your users and their roles here.')}>
     {#snippet actions()}
-      <PrimaryButton label="Add User" icon={UserPlusIcon} onclick={openCreate} />
+      <PrimaryButton label={tr('Add User')} icon={UserPlusIcon} onclick={openCreate} />
     {/snippet}
   </PageHeader>
 
-  <DataTableToolbar {table} searchPlaceholder="Filter users..." {columns}>
+  <DataTableToolbar {table} searchPlaceholder={tr('Filter users...')} {columns}>
     {#snippet filters()}
       <DataTableFacetedFilter
-        title="Role"
+        title={tr('Role')}
         options={roleOptions}
         selected={table.filters.role ?? []}
         counts={table.counts('role')}
@@ -146,7 +148,7 @@
       <TableHeader>
         <TableRow>
           <TableHead class="w-10">
-            <Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" />
+            <Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label={tr('Select all')} class="translate-y-0.5" />
           </TableHead>
           {#each visibleColumns as c (c.id)}
             <TableHead class={c.secondary ? 'hidden sm:table-cell' : ''}><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
@@ -158,20 +160,20 @@
         {#if loading}
           <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground"><Loader2Icon class="mx-auto size-4 animate-spin" /></TableCell></TableRow>
         {:else if table.pageRows.length === 0}
-          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">No results.</TableCell></TableRow>
+          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{tr('No results.')}</TableCell></TableRow>
         {:else}
           {#each table.pageRows as user (user.id)}
             {@const RoleIcon = roleIcon(user.role)}
             <TableRow data-state={table.isSelected(user) ? 'selected' : undefined}>
-              <TableCell><Checkbox checked={table.isSelected(user)} onCheckedChange={() => table.toggleRow(user)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
+              <TableCell><Checkbox checked={table.isSelected(user)} onCheckedChange={() => table.toggleRow(user)} aria-label={tr('Select row')} class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as c (c.id)}
                 <TableCell class={[c.id === 'username' ? 'max-w-[15rem] font-medium sm:max-w-40' : c.id === 'email' ? 'text-nowrap' : 'max-w-40 truncate', c.secondary && 'hidden sm:table-cell']}>
                   {#if c.id === 'role'}
-                    <Badge variant="outline" class="flex w-fit items-center gap-1 capitalize"><RoleIcon class="size-3 text-muted-foreground" />{user.role}</Badge>
+                    <Badge variant="outline" class="flex w-fit items-center gap-1 capitalize"><RoleIcon class="size-3 text-muted-foreground" />{roleLabel(user.role)}</Badge>
                   {:else if c.id === 'username'}
                     <div class="truncate">{user.username}</div>
                     <div class="mt-0.5 truncate text-xs font-normal text-muted-foreground sm:hidden">{user.displayName} · {user.email}</div>
-                    <Badge variant="outline" class="mt-1 flex w-fit items-center gap-1 capitalize sm:hidden"><RoleIcon class="size-3 text-muted-foreground" />{user.role}</Badge>
+                    <Badge variant="outline" class="mt-1 flex w-fit items-center gap-1 capitalize sm:hidden"><RoleIcon class="size-3 text-muted-foreground" />{roleLabel(user.role)}</Badge>
                   {:else}
                     {user[c.id as 'username' | 'displayName' | 'email']}
                   {/if}
@@ -183,12 +185,12 @@
                     <DropdownMenuTrigger>
                       {#snippet child({ props })}
                         <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted">
-                          <EllipsisIcon class="size-4" /><span class="sr-only">Open menu</span>
+                          <EllipsisIcon class="size-4" /><span class="sr-only">{tr('Open menu')}</span>
                         </Button>
                       {/snippet}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" class="w-40">
-                      <DropdownMenuItem onclick={() => openEdit(user)}>Edit <span class="ms-auto"><UserPenIcon class="size-4" /></span></DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => openEdit(user)}>{tr('Edit')} <span class="ms-auto"><UserPenIcon class="size-4" /></span></DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 {/if}
@@ -207,18 +209,18 @@
 <Dialog open={createOpen} onOpenChange={(o) => (createOpen = o)}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
-      <DialogTitle>Add User</DialogTitle>
-      <DialogDescription>They can sign in right away with this password; ask them to change it via Forgot password.</DialogDescription>
+      <DialogTitle>{tr('Add User')}</DialogTitle>
+      <DialogDescription>{tr('They can sign in right away with this password; ask them to change it via Forgot password.')}</DialogDescription>
     </DialogHeader>
     <form onsubmit={handleCreate} class="grid gap-4">
-      <div class="grid gap-2"><Label for="nu-display">Display name</Label><Input id="nu-display" bind:value={form.displayName} required /></div>
-      <div class="grid gap-2"><Label for="nu-username">Username</Label><Input id="nu-username" bind:value={form.username} autocomplete="off" required /></div>
-      <div class="grid gap-2"><Label for="nu-email">Email</Label><Input id="nu-email" type="email" bind:value={form.email} autocomplete="off" required /></div>
-      <div class="grid gap-2"><Label for="nu-password">Password</Label><PasswordInput id="nu-password" bind:value={form.password} autocomplete="new-password" minlength={8} placeholder="At least 8 characters" /></div>
+      <div class="grid gap-2"><Label for="nu-display">{tr('Display name')}</Label><Input id="nu-display" bind:value={form.displayName} required /></div>
+      <div class="grid gap-2"><Label for="nu-username">{tr('Username')}</Label><Input id="nu-username" bind:value={form.username} autocomplete="off" required /></div>
+      <div class="grid gap-2"><Label for="nu-email">{tr('Email')}</Label><Input id="nu-email" type="email" bind:value={form.email} autocomplete="off" required /></div>
+      <div class="grid gap-2"><Label for="nu-password">{tr('Password')}</Label><PasswordInput id="nu-password" bind:value={form.password} autocomplete="new-password" minlength={8} placeholder={tr('At least 8 characters')} /></div>
       <div class="grid gap-2">
-        <Label>Role</Label>
+        <Label>{tr('Role')}</Label>
         <Select.Root type="single" bind:value={form.role}>
-          <Select.Trigger class="w-full capitalize">{form.role}</Select.Trigger>
+          <Select.Trigger class="w-full capitalize">{roleLabel(form.role)}</Select.Trigger>
           <Select.Content>
             {#each roleOptions as o (o.value)}<Select.Item value={o.value} label={o.label}>{o.label}</Select.Item>{/each}
           </Select.Content>
@@ -226,8 +228,8 @@
       </div>
       {#if createError}<Alert variant="destructive"><AlertDescription>{createError}</AlertDescription></Alert>{/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={() => (createOpen = false)}>Cancel</Button>
-        <Button type="submit" disabled={saving}>{#if saving}<Loader2Icon class="animate-spin" />{/if} Create</Button>
+        <Button type="button" variant="outline" onclick={() => (createOpen = false)}>{tr('Cancel')}</Button>
+        <Button type="submit" disabled={saving}>{#if saving}<Loader2Icon class="animate-spin" />{/if} {tr('Create')}</Button>
       </DialogFooter>
     </form>
   </DialogContent>
@@ -236,16 +238,16 @@
 <!-- Edit user -->
 <Dialog open={editUser !== null} onOpenChange={(o) => { if (!o) editUser = null }}>
   <DialogContent class="sm:max-w-md">
-    <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
+    <DialogHeader><DialogTitle>{tr('Edit User')}</DialogTitle></DialogHeader>
     {#if editUser}
       <form onsubmit={handleEdit} class="grid gap-4">
-        <div class="grid gap-2"><Label>Username</Label><Input value={editUser.username} disabled class="opacity-60" /></div>
-        <div class="grid gap-2"><Label for="ed-display">Display name</Label><Input id="ed-display" bind:value={edit.displayName} required /></div>
-        <div class="grid gap-2"><Label for="ed-email">Email</Label><Input id="ed-email" type="email" bind:value={edit.email} required /></div>
+        <div class="grid gap-2"><Label>{tr('Username')}</Label><Input value={editUser.username} disabled class="opacity-60" /></div>
+        <div class="grid gap-2"><Label for="ed-display">{tr('Display name')}</Label><Input id="ed-display" bind:value={edit.displayName} required /></div>
+        <div class="grid gap-2"><Label for="ed-email">{tr('Email')}</Label><Input id="ed-email" type="email" bind:value={edit.email} required /></div>
         <div class="grid gap-2">
-          <Label>Role</Label>
+          <Label>{tr('Role')}</Label>
           <Select.Root type="single" bind:value={edit.role}>
-            <Select.Trigger class="w-full capitalize">{edit.role}</Select.Trigger>
+            <Select.Trigger class="w-full capitalize">{roleLabel(edit.role)}</Select.Trigger>
             <Select.Content>
               {#each roleOptions as o (o.value)}<Select.Item value={o.value} label={o.label}>{o.label}</Select.Item>{/each}
             </Select.Content>
@@ -253,8 +255,8 @@
         </div>
         {#if editError}<Alert variant="destructive"><AlertDescription>{editError}</AlertDescription></Alert>{/if}
         <DialogFooter>
-          <Button type="button" variant="outline" onclick={() => (editUser = null)}>Cancel</Button>
-          <Button type="submit" disabled={saving}>{#if saving}<Loader2Icon class="animate-spin" />{/if} Save</Button>
+          <Button type="button" variant="outline" onclick={() => (editUser = null)}>{tr('Cancel')}</Button>
+          <Button type="submit" disabled={saving}>{#if saving}<Loader2Icon class="animate-spin" />{/if} {tr('Save')}</Button>
         </DialogFooter>
       </form>
     {/if}

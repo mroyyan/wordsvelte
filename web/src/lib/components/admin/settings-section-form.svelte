@@ -16,6 +16,7 @@
   import MediaLibrary from '$lib/components/admin/media/media-library.svelte'
   import { api, errorMessage } from '$lib/client/admin-api'
   import { buildSections, type Field } from '$lib/config/settings-sections'
+  import { tr } from '$lib/i18n/admin'
 
   let { sectionId }: { sectionId: string } = $props()
 
@@ -41,7 +42,10 @@
     const v = settings[field.key]
     return v && !options.some(o => o.value === v) ? [{ value: v, label: v }, ...options] : options
   }
-  const labelOf = (field: Field) => optionsFor(field).find(o => o.value === settings[field.key])?.label ?? 'Select...'
+  const labelOf = (field: Field) => {
+    const o = optionsFor(field).find(o => o.value === settings[field.key])
+    return o ? tr(o.label, o.params) : tr('Select...')
+  }
 
   onMount(async () => {
     try {
@@ -62,7 +66,7 @@
     try {
       await api('/api/settings', { method: 'PUT', body })
       initial = { ...initial, ...body }
-      toast.success(`${section.title} settings updated`)
+      toast.success(tr('{section} settings updated', { section: tr(section.title) }))
     } catch (err) {
       error = errorMessage(err)
       toast.error(error)
@@ -78,38 +82,38 @@
       {#if field.type === 'switch'}
         <div class="flex flex-row items-center justify-between rounded-lg border p-4">
           <div class="space-y-0.5 pe-4">
-            <Label for={field.key} class="text-base">{field.label}</Label>
-            {#if field.desc}<p class="text-sm text-muted-foreground">{field.desc}</p>{/if}
+            <Label for={field.key} class="text-base">{tr(field.label)}</Label>
+            {#if field.desc}<p class="text-sm text-muted-foreground">{tr(field.desc)}</p>{/if}
           </div>
           <Switch id={field.key} checked={settings[field.key] === 'true'} onCheckedChange={(v) => (settings[field.key] = v ? 'true' : 'false')} />
         </div>
       {:else}
         <div class="space-y-2">
-          <Label for={field.key}>{field.label}</Label>
+          <Label for={field.key}>{tr(field.label)}</Label>
           {#if field.type === 'textarea'}
-            <Textarea id={field.key} bind:value={settings[field.key]} placeholder={field.placeholder} class="resize-y {field.mono ? 'font-mono text-xs' : ''}" rows={field.rows ?? 4} />
+            <Textarea id={field.key} bind:value={settings[field.key]} placeholder={field.placeholder ? tr(field.placeholder) : undefined} class="resize-y {field.mono ? 'font-mono text-xs' : ''}" rows={field.rows ?? 4} />
             {#if field.defaultText}
-              <Button type="button" variant="outline" size="sm" onclick={() => (settings[field.key] = field.defaultText!(siteOrigin))}>Insert default</Button>
+              <Button type="button" variant="outline" size="sm" onclick={() => (settings[field.key] = field.defaultText!(siteOrigin))}>{tr('Insert default')}</Button>
             {/if}
           {:else if field.type === 'select'}
             <Select.Root type="single" value={settings[field.key] ?? ''} onValueChange={(v) => (settings[field.key] = v)}>
               <Select.Trigger id={field.key} class="w-full">{labelOf(field)}</Select.Trigger>
               <Select.Content class="max-h-72">
-                {#each optionsFor(field) as o (o.value)}<Select.Item value={o.value} label={o.label}>{o.label}</Select.Item>{/each}
+                {#each optionsFor(field) as o (o.value)}<Select.Item value={o.value} label={tr(o.label, o.params)}>{tr(o.label, o.params)}</Select.Item>{/each}
               </Select.Content>
             </Select.Root>
           {:else if field.type === 'combobox'}
-            <Combobox id={field.key} options={optionsFor(field)} bind:value={settings[field.key]} placeholder="Select a timezone" searchPlaceholder="Search timezones..." class="w-full" />
+            <Combobox id={field.key} options={optionsFor(field)} bind:value={settings[field.key]} placeholder={tr('Select a timezone')} searchPlaceholder={tr('Search timezones...')} class="w-full" />
           {:else if field.media}
             <div class="flex gap-2">
-              <Input id={field.key} type="text" inputmode="url" bind:value={settings[field.key]} placeholder={field.placeholder} class="min-w-0 flex-1" />
-              <Button type="button" variant="outline" class="h-8" onclick={() => { libraryKey = field.key; libraryOpen = true }}><ImageIcon /> Browse</Button>
+              <Input id={field.key} type="text" inputmode="url" bind:value={settings[field.key]} placeholder={field.placeholder ? tr(field.placeholder) : undefined} class="min-w-0 flex-1" />
+              <Button type="button" variant="outline" class="h-8" onclick={() => { libraryKey = field.key; libraryOpen = true }}><ImageIcon /> {tr('Browse')}</Button>
             </div>
             {#if settings[field.key]}<img src={settings[field.key]} alt="" class="max-h-32 rounded-md border object-contain" />{/if}
           {:else}
-            <Input id={field.key} type={field.type} bind:value={settings[field.key]} placeholder={field.placeholder} />
+            <Input id={field.key} type={field.type} bind:value={settings[field.key]} placeholder={field.placeholder ? tr(field.placeholder) : undefined} />
           {/if}
-          {#if field.desc}<p class="text-sm text-muted-foreground">{field.desc}</p>{/if}
+          {#if field.desc}<p class="text-sm text-muted-foreground">{tr(field.desc)}</p>{/if}
         </div>
       {/if}
     {/each}
@@ -117,7 +121,7 @@
     {#if error}<Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>{/if}
     <Button type="submit" disabled={saving || !dirtyKeys.length}>
       {#if saving}<Loader2Icon class="animate-spin" />{/if}
-      Update {section.title.toLowerCase()}
+      {tr('Update {section}', { section: tr(section.title).toLowerCase() })}
     </Button>
   </form>
 {/if}

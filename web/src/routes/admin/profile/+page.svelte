@@ -13,6 +13,7 @@
   import PasswordInput from '$lib/components/auth/password-input.svelte'
   import { api, errorMessage } from '$lib/client/admin-api'
   import { saveSession } from '$lib/client/auth-client'
+  import { tr, roleName } from '$lib/i18n/admin'
 
   let loading = $state(true)
   let loadError = $state('')
@@ -47,14 +48,14 @@
       currentPassword = ''
       refreshStoredUser(p)
       await invalidateAll()
-      toast.success('Profile updated')
+      toast.success(tr('Profile updated'))
     } catch (err) { error = errorMessage(err) } finally { busy = false }
   }
 </script>
 
-<svelte:head><title>Profile</title></svelte:head>
+<svelte:head><title>{tr('Profile')}</title></svelte:head>
 
-<ContentSection title="Profile" desc="This is how others will see you on the site.">
+<ContentSection title={tr('Profile')} desc={tr('This is how others will see you on the site.')}>
   {#if loading}
     <div class="space-y-8"><Skeleton class="h-16 w-full" /><Skeleton class="h-16 w-full" /><Skeleton class="h-16 w-full" /></div>
   {:else if loadError}
@@ -62,36 +63,36 @@
   {:else}
     <form onsubmit={save} class="space-y-8">
       <div class="space-y-2">
-        <Label for="username">Username</Label>
+        <Label for="username">{tr('Username')}</Label>
         <Input id="username" value={profile.username} disabled />
         <p class="text-sm text-muted-foreground">
-          Your sign-in name. Only an administrator can change it. Your role is
-          <Badge variant="secondary" class="ms-0.5 capitalize">{profile.role}</Badge>
+          {tr('Your sign-in name. Only an administrator can change it. Your role is')}
+          <Badge variant="secondary" class="ms-0.5 capitalize">{roleName(profile.role)}</Badge>
         </p>
       </div>
 
       <div class="space-y-2">
-        <Label for="displayName">Display name</Label>
-        <Input id="displayName" bind:value={profile.displayName} required maxlength={100} placeholder="Your name" />
-        <p class="text-sm text-muted-foreground">This is the name shown as the author of your articles. It can be your real name or a pseudonym.</p>
+        <Label for="displayName">{tr('Display name')}</Label>
+        <Input id="displayName" bind:value={profile.displayName} required maxlength={100} placeholder={tr('Your name')} />
+        <p class="text-sm text-muted-foreground">{tr('This is the name shown as the author of your articles. It can be your real name or a pseudonym.')}</p>
       </div>
 
       <div class="space-y-2">
-        <Label for="email">Email</Label>
+        <Label for="email">{tr('Email')}</Label>
         <Input id="email" type="email" bind:value={profile.email} required />
-        <p class="text-sm text-muted-foreground">Used to sign in and to receive password reset links and verification codes.</p>
+        <p class="text-sm text-muted-foreground">{tr('Used to sign in and to receive password reset links and verification codes.')}</p>
       </div>
 
       {#if profile.email !== originalEmail}
         <div class="space-y-2">
-          <Label for="profilePassword">Current password</Label>
+          <Label for="profilePassword">{tr('Current password')}</Label>
           <PasswordInput id="profilePassword" bind:value={currentPassword} />
-          <p class="text-sm text-muted-foreground">Needed to change your email address.</p>
+          <p class="text-sm text-muted-foreground">{tr('Needed to change your email address.')}</p>
         </div>
       {/if}
 
       {#if error}<Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>{/if}
-      <Button type="submit" disabled={busy}>{#if busy}<Loader2Icon class="animate-spin" />{/if}Update profile</Button>
+      <Button type="submit" disabled={busy}>{#if busy}<Loader2Icon class="animate-spin" />{/if}{tr('Update profile')}</Button>
     </form>
   {/if}
 </ContentSection>

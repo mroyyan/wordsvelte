@@ -7,6 +7,15 @@ project uses [Semantic Versioning](https://semver.org/) (while the major version
 
 ## [Unreleased]
 
+### Added
+- The admin panel is available in Indonesian and English: each person chooses under Profile > Appearance (migration `0006_user_language.sql`), otherwise it follows the site language.
+- Language setting now also switches the public site's texts between Indonesian and English (and sets `<html lang>`); more languages can be added as message catalogs.
+- Ads are created and edited in a dialog; the media library and the Media page are paginated, and `/api/media` pages and searches on the server.
+
+### Changed
+- The dashboard chart now shows article views per day for the last 30 days instead of posts per month (migration `0007_post_views.sql`; counting starts after the upgrade, earlier views are only in the all-time totals).
+- Settings fields were reordered; "Allow search engines" moved from Reading to SEO; the default share image has a media picker.
+
 ## [0.1.0] - 2026-10-17
 
 First versioned release. Fresh installs apply migrations `0000` to `0005` (all files in `web/drizzle/`).

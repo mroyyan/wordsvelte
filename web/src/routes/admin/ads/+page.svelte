@@ -26,16 +26,16 @@
   } from '$lib/components/data-table'
   import { api, errorMessage, runBulk } from '$lib/client/admin-api'
   import { AD_PLACEMENT_OPTIONS } from '$lib/config/ads'
-  import { formatDate } from '$lib/utils'
+  import { tr, msg, formatAdminDate } from '$lib/i18n/admin'
 
   interface AdRow {
     id: number; name: string; placement: string; type: 'banner' | 'code'; devices: string
     status: 'active' | 'paused'; startsAt: string | null; endsAt: string | null; clicks: number
   }
 
-  const placementLabel = (v: string) => AD_PLACEMENT_OPTIONS.find(o => o.value === v)?.label ?? v
-  const statusOptions = [{ label: 'Running', value: 'running' }, { label: 'Scheduled', value: 'scheduled' }, { label: 'Ended', value: 'ended' }, { label: 'Disabled', value: 'paused' }]
-  const typeOptions = [{ label: 'Banner', value: 'banner' }, { label: 'Ad code', value: 'code' }]
+  const placementLabel = (v: string) => tr(AD_PLACEMENT_OPTIONS.find(o => o.value === v)?.label ?? v)
+  const statusOptions = $derived([{ label: tr('Running'), value: 'running' }, { label: tr('Scheduled'), value: 'scheduled' }, { label: tr('Ended'), value: 'ended' }, { label: tr('Disabled'), value: 'paused' }])
+  const typeOptions = $derived([{ label: tr('Banner'), value: 'banner' }, { label: tr('Ad code'), value: 'code' }])
   const stateColors: Record<string, string> = {
     running: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900',
     scheduled: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-900',
@@ -53,13 +53,13 @@
   }
   const stateLabel = (ad: AdRow) => statusOptions.find(o => o.value === stateOf(ad))!.label
 
-  const columns = [
-    { id: 'name', title: 'Name' },
-    { id: 'placement', title: 'Placement', secondary: true },
-    { id: 'type', title: 'Type', secondary: true },
-    { id: 'state', title: 'Status', secondary: true },
-    { id: 'clicks', title: 'Clicks', secondary: true },
-  ]
+  const columns = $derived([
+    { id: 'name', title: tr('Name') },
+    { id: 'placement', title: tr('Placement'), secondary: true },
+    { id: 'type', title: tr('Type'), secondary: true },
+    { id: 'state', title: tr('Status'), secondary: true },
+    { id: 'clicks', title: tr('Clicks'), secondary: true },
+  ])
 
   const table = new DataTableState<AdRow>({
     getId: a => a.id,
@@ -89,8 +89,9 @@
     busy = true
     const { ok, failed, firstError } = await runBulk(rows, r => api(`/api/ads/${r.id}`, { method: 'PATCH', body: { status } }))
     await load(); table.clearSelection(); busy = false
-    if (failed) toast.error(`${ok} updated, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} ad${ok === 1 ? '' : 's'} ${status === 'active' ? 'enabled' : 'disabled'}`)
+    if (failed) toast.error(tr('{ok} updated, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else if (status === 'active') toast.success(ok === 1 ? tr('1 ad enabled') : tr('{n} ads enabled', { n: ok }))
+    else toast.success(ok === 1 ? tr('1 ad disabled') : tr('{n} ads disabled', { n: ok }))
   }
 
   async function confirmDelete() {
@@ -99,26 +100,28 @@
     deleting = null; busy = true
     const { ok, failed, firstError } = await runBulk(targets, r => api(`/api/ads/${r.id}`, { method: 'DELETE' }))
     await load(); table.clearSelection(); busy = false
-    if (failed) toast.error(`${ok} deleted, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} ad${ok === 1 ? '' : 's'} deleted`)
+    if (failed) toast.error(tr('{ok} deleted, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else toast.success(ok === 1 ? tr('1 ad deleted') : tr('{n} ads deleted', { n: ok }))
   }
 
-  const runWindow = (ad: AdRow) => (ad.startsAt || ad.endsAt ? `${ad.startsAt ? formatDate(ad.startsAt) : 'now'} to ${ad.endsAt ? formatDate(ad.endsAt) : 'no end'}` : 'No time limit')
+  const runWindow = (ad: AdRow) => (ad.startsAt || ad.endsAt
+    ? tr('{from} to {to}', { from: ad.startsAt ? formatAdminDate(ad.startsAt) : tr('now'), to: ad.endsAt ? formatAdminDate(ad.endsAt) : tr('no end') })
+    : tr('No time limit'))
 </script>
 
-<svelte:head><title>Ads</title></svelte:head>
+<svelte:head><title>{tr('Ads')}</title></svelte:head>
 
 <div class="flex flex-1 flex-col gap-4">
-  <PageHeader title="Ads" description="Banners and ad-network code shown on the public site.">
+  <PageHeader title={tr('Ads')} description={tr('Banners and ad-network code shown on the public site.')}>
     {#snippet actions()}
-      <PrimaryButton label="Add Ad" icon={MegaphoneIcon} onclick={openCreate} />
+      <PrimaryButton label={tr('Add Ad')} icon={MegaphoneIcon} onclick={openCreate} />
     {/snippet}
   </PageHeader>
 
-  <DataTableToolbar {table} searchPlaceholder="Filter ads..." {columns}>
+  <DataTableToolbar {table} searchPlaceholder={tr('Filter ads...')} {columns}>
     {#snippet filters()}
-      <DataTableFacetedFilter title="Status" options={statusOptions} selected={table.filters.state ?? []} counts={table.counts('state')} onChange={(v) => table.setFilter('state', v)} />
-      <DataTableFacetedFilter title="Type" options={typeOptions} selected={table.filters.type ?? []} counts={table.counts('type')} onChange={(v) => table.setFilter('type', v)} />
+      <DataTableFacetedFilter title={tr('Status')} options={statusOptions} selected={table.filters.state ?? []} counts={table.counts('state')} onChange={(v) => table.setFilter('state', v)} />
+      <DataTableFacetedFilter title={tr('Type')} options={typeOptions} selected={table.filters.type ?? []} counts={table.counts('type')} onChange={(v) => table.setFilter('type', v)} />
     {/snippet}
   </DataTableToolbar>
 
@@ -128,7 +131,7 @@
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" /></TableHead>
+          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label={tr('Select all')} class="translate-y-0.5" /></TableHead>
           {#each visibleColumns as c (c.id)}
             <TableHead class={c.secondary ? 'hidden sm:table-cell' : ''}><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
           {/each}
@@ -139,11 +142,11 @@
         {#if loading}
           <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center"><Loader2Icon class="mx-auto size-4 animate-spin text-muted-foreground" /></TableCell></TableRow>
         {:else if table.pageRows.length === 0}
-          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? 'No ads match your filters.' : 'No ads yet. Add your first one.'}</TableCell></TableRow>
+          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? tr('No ads match your filters.') : tr('No ads yet. Add your first one.')}</TableCell></TableRow>
         {:else}
           {#each table.pageRows as ad (ad.id)}
             <TableRow data-state={table.isSelected(ad) ? 'selected' : undefined}>
-              <TableCell><Checkbox checked={table.isSelected(ad)} onCheckedChange={() => table.toggleRow(ad)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
+              <TableCell><Checkbox checked={table.isSelected(ad)} onCheckedChange={() => table.toggleRow(ad)} aria-label={tr('Select row')} class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as c (c.id)}
                 <TableCell class={[c.id === 'name' ? 'max-w-[15rem] font-medium sm:max-w-xs' : 'text-nowrap', c.secondary && 'hidden sm:table-cell']}>
                   {#if c.id === 'name'}
@@ -157,7 +160,7 @@
                   {:else if c.id === 'placement'}
                     <span class="text-sm">{placementLabel(ad.placement)}</span>
                   {:else if c.id === 'type'}
-                    <span class="text-sm text-muted-foreground">{ad.type === 'banner' ? 'Banner' : 'Ad code'}</span>
+                    <span class="text-sm text-muted-foreground">{ad.type === 'banner' ? tr('Banner') : tr('Ad code')}</span>
                   {:else if c.id === 'state'}
                     <Badge variant="outline" class={stateColors[stateOf(ad)]}>{stateLabel(ad)}</Badge>
                   {:else}
@@ -169,18 +172,18 @@
                 <DropdownMenu>
                   <DropdownMenuTrigger>
                     {#snippet child({ props })}
-                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">Open menu</span></Button>
+                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">{tr('Open menu')}</span></Button>
                     {/snippet}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" class="w-44">
-                    <DropdownMenuItem onclick={() => openEdit(ad.id)}><PencilIcon /> Edit</DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => openEdit(ad.id)}><PencilIcon /> {tr('Edit')}</DropdownMenuItem>
                     {#if ad.status === 'active'}
-                      <DropdownMenuItem onclick={() => setStatus([ad], 'paused')}><PauseIcon /> Disable</DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => setStatus([ad], 'paused')}><PauseIcon /> {tr('Disable')}</DropdownMenuItem>
                     {:else}
-                      <DropdownMenuItem onclick={() => setStatus([ad], 'active')}><PlayIcon /> Enable</DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => setStatus([ad], 'active')}><PlayIcon /> {tr('Enable')}</DropdownMenuItem>
                     {/if}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [ad])}><Trash2Icon /> Delete</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [ad])}><Trash2Icon /> {tr('Delete')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -194,11 +197,11 @@
   <DataTablePagination {table} class="mt-auto" />
 </div>
 
-<DataTableBulkActions {table} entityName="ad">
+<DataTableBulkActions {table} entityName={msg('ad')}>
   {#snippet actions()}
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'active')}><PlayIcon class="size-4" /> Enable</Button>
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'paused')}><PauseIcon class="size-4" /> Disable</Button>
-    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> Delete</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'active')}><PlayIcon class="size-4" /> {tr('Enable')}</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'paused')}><PauseIcon class="size-4" /> {tr('Disable')}</Button>
+    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> {tr('Delete')}</Button>
   {/snippet}
 </DataTableBulkActions>
 
@@ -207,12 +210,12 @@
 <AlertDialog open={deleting !== null} onOpenChange={(o) => { if (!o) deleting = null }}>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete {deleting?.length === 1 ? 'this ad' : `${deleting?.length} ads`}?</AlertDialogTitle>
-      <AlertDialogDescription>It disappears from the site right away and its click count is lost. To hide it for a while, disable it instead.</AlertDialogDescription>
+      <AlertDialogTitle>{deleting?.length === 1 ? tr('Delete this ad?') : tr('Delete {n} ads?', { n: deleting?.length ?? 0 })}</AlertDialogTitle>
+      <AlertDialogDescription>{tr('It disappears from the site right away and its click count is lost. To hide it for a while, disable it instead.')}</AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction onclick={confirmDelete}>Delete</AlertDialogAction>
+      <AlertDialogCancel>{tr('Cancel')}</AlertDialogCancel>
+      <AlertDialogAction onclick={confirmDelete}>{tr('Delete')}</AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
 </AlertDialog>

@@ -22,7 +22,7 @@
 </script>
 
 <ModeWatcher />
-<Toaster richColors closeButton />
+<Toaster duration={5000} />
 
 {#if authScreen}
   {@render children()}

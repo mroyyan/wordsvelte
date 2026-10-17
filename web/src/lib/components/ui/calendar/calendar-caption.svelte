@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tr } from "$lib/i18n/admin";
 	import { DateFormatter, getLocalTimeZone, type DateValue } from "@internationalized/date";
 	import * as Select from "$lib/components/ui/select";
 	import type Calendar from "./calendar.svelte";
@@ -69,7 +70,7 @@
 
 {#snippet MonthSelect()}
 	<Select.Root type="single" value={String(month.month)} onValueChange={setMonth}>
-		<Select.Trigger size="sm" class="w-auto min-w-0 gap-1 px-2" aria-label="Month">
+		<Select.Trigger size="sm" class="w-auto min-w-0 gap-1 px-2" aria-label={tr("Month")}>
 			{monthItems.find((i) => i.value === String(month.month))?.label}
 		</Select.Trigger>
 		<Select.Content class="max-h-64">
@@ -82,7 +83,7 @@
 
 {#snippet YearSelect()}
 	<Select.Root type="single" value={String(month.year)} onValueChange={setYear}>
-		<Select.Trigger size="sm" class="w-auto min-w-0 gap-1 px-2" aria-label="Year">
+		<Select.Trigger size="sm" class="w-auto min-w-0 gap-1 px-2" aria-label={tr("Year")}>
 			{formatYear(month.year)}
 		</Select.Trigger>
 		<Select.Content class="max-h-64">

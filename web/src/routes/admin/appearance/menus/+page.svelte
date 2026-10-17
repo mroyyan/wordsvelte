@@ -18,6 +18,7 @@
   import Trash2 from '@lucide/svelte/icons/trash-2'
   import ArrowUp from '@lucide/svelte/icons/arrow-up'
   import ArrowDown from '@lucide/svelte/icons/arrow-down'
+  import { tr, msg } from '$lib/i18n/admin'
 
   let mounted = $state(false)
   onMount(() => { mounted = true })
@@ -48,13 +49,13 @@
   let parentItemValue = $state('')
 
   const locationLabels: Record<string, string> = {
-    header: 'Header (Main Navigation)',
-    footer: 'Footer',
-    sidebar: 'Sidebar',
+    header: msg('Header (Main Navigation)'),
+    footer: msg('Footer'),
+    sidebar: msg('Sidebar'),
   }
 
   const presetItems = [
-    { label: 'Home', url: '/', icon: Home },
+    { label: msg('Home'), url: '/', icon: Home },
   ]
 
   const footerPresetItems = [
@@ -83,7 +84,7 @@
     try {
       const r = await fetch(`/api/menus/${activeMenuId}/items`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ itemType: 'page', pageId: Number(pageToAdd), label: page?.title }) })
       const j = await r.json()
-      if (!j.success) { alert(j.error || 'Could not add the page'); return }
+      if (!j.success) { alert(j.error || tr('Could not add the page')); return }
       pageToAdd = ''
       await load()
     } catch (e: any) { alert(e.message) }
@@ -205,30 +206,30 @@
 {#if mounted}
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <div><h1 class="text-2xl font-bold tracking-tight">Menus</h1><p class="text-muted-foreground">Manage navigation menus</p></div>
-    <PrimaryButton label="Add Menu" icon={Plus} onclick={openCreateMenu} />
+    <div><h1 class="text-2xl font-bold tracking-tight">{tr('Menus')}</h1><p class="text-muted-foreground">{tr('Manage navigation menus')}</p></div>
+    <PrimaryButton label={tr('Add Menu')} icon={Plus} onclick={openCreateMenu} />
   </div>
 
   {#if loading}
-    <p class="text-center py-8 text-muted-foreground">Loading...</p>
+    <p class="text-center py-8 text-muted-foreground">{tr('Loading...')}</p>
   {:else if menus.length === 0}
     <div class="border-2 border-dashed rounded-lg p-12 text-center text-muted-foreground">
-      <p class="font-medium">No menus yet</p>
-      <p class="text-sm">Create your first menu to get started</p>
-      <div class="mt-4"><PrimaryButton label="Add Menu" icon={Plus} onclick={openCreateMenu} /></div>
+      <p class="font-medium">{tr('No menus yet')}</p>
+      <p class="text-sm">{tr('Create your first menu to get started')}</p>
+      <div class="mt-4"><PrimaryButton label={tr('Add Menu')} icon={Plus} onclick={openCreateMenu} /></div>
     </div>
   {:else}
     <div class="grid lg:grid-cols-3 gap-6">
       <!-- Menu list sidebar -->
       <div class="space-y-2">
-        <h3 class="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Menus</h3>
+        <h3 class="font-semibold text-sm text-muted-foreground uppercase tracking-wider">{tr('Menus')}</h3>
         {#each menus as menu (menu.id)}
           <button
             onclick={() => activeMenuId = menu.id}
             class="w-full text-left p-3 rounded-lg border transition-colors {activeMenuId === menu.id ? 'border-primary bg-primary/5' : 'hover:bg-muted'}"
           >
             <div class="font-medium text-sm">{menu.name}</div>
-            <div class="text-xs text-muted-foreground">{locationLabels[menu.location] || menu.location} · {menu.items?.length || 0} items</div>
+            <div class="text-xs text-muted-foreground">{tr(locationLabels[menu.location] || menu.location)} · {menu.items?.length === 1 ? tr('1 item') : tr('{n} items', { n: menu.items?.length || 0 })}</div>
           </button>
         {/each}
       </div>
@@ -239,23 +240,23 @@
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-xl font-bold">{activeMenu.name}</h2>
-              <p class="text-sm text-muted-foreground">{locationLabels[activeMenu.location] || activeMenu.location}</p>
+              <p class="text-sm text-muted-foreground">{tr(locationLabels[activeMenu.location] || activeMenu.location)}</p>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger>
                 <Button variant="ghost" class="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
                   <Ellipsis class="h-4 w-4" />
-                  <span class="sr-only">Actions</span>
+                  <span class="sr-only">{tr('Actions')}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" class="w-40">
                 <DropdownMenuItem onclick={() => openEditMenu(activeMenu)}>
-                  Edit
+                  {tr('Edit')}
                   <span class="ml-auto"><Pencil size={16} /></span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem class="text-red-500!" onclick={() => deleteMenuId = activeMenu.id}>
-                  Delete
+                  {tr('Delete')}
                   <span class="ml-auto"><Trash2 size={16} /></span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -264,36 +265,36 @@
 
           <!-- Add links section -->
           <Card>
-            <CardHeader><CardTitle class="text-sm">Add Menu Items</CardTitle></CardHeader>
+            <CardHeader><CardTitle class="text-sm">{tr('Add Menu Items')}</CardTitle></CardHeader>
             <CardContent>
               <div class="space-y-4">
                 <div>
-                  <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Custom Link</h4>
-                  <Button variant="outline" size="sm" onclick={() => openCreateItem('custom')}><Link class="h-4 w-4 mr-1" /> Add Custom Link</Button>
+                  <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{tr('Custom Link')}</h4>
+                  <Button variant="outline" size="sm" onclick={() => openCreateItem('custom')}><Link class="h-4 w-4 mr-1" /> {tr('Add Custom Link')}</Button>
                 </div>
                 <div>
-                  <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Pages</h4>
+                  <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{tr('Pages')}</h4>
                   {#if pagesList.length === 0}
-                    <p class="text-sm text-muted-foreground">No published pages yet. <a href="/admin/pages/new" class="underline underline-offset-4">Create one</a> to add it here.</p>
+                    <p class="text-sm text-muted-foreground">{tr('No published pages yet.')} <a href="/admin/pages/new" class="underline underline-offset-4">{tr('Create one')}</a> {tr('to add it here.')}</p>
                   {:else}
                     <div class="flex flex-wrap items-center gap-2">
                       <Select type="single" bind:value={pageToAdd}>
-                        <SelectTrigger class="w-56" aria-label="Page">{pagesList.find((p: any) => String(p.id) === pageToAdd)?.title ?? 'Select a page'}</SelectTrigger>
+                        <SelectTrigger class="w-56" aria-label={tr('Page')}>{pagesList.find((p: any) => String(p.id) === pageToAdd)?.title ?? tr('Select a page')}</SelectTrigger>
                         <SelectContent>
                           {#each pagesList as pg (pg.id)}<SelectItem value={String(pg.id)} label={pg.title}>{pg.title}</SelectItem>{/each}
                         </SelectContent>
                       </Select>
-                      <Button variant="outline" size="sm" disabled={!pageToAdd} onclick={addPageItem}><Plus class="h-4 w-4 mr-1" /> Add to menu</Button>
+                      <Button variant="outline" size="sm" disabled={!pageToAdd} onclick={addPageItem}><Plus class="h-4 w-4 mr-1" /> {tr('Add to menu')}</Button>
                     </div>
                   {/if}
                 </div>
                 <div>
-                  <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Preset Links</h4>
+                  <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{tr('Preset Links')}</h4>
                   <div class="flex flex-wrap gap-2">
                     {#each presetItems as p, i}
-                      <Button variant="outline" size="sm" onclick={() => openCreatePreset(p.label, p.url)}>
+                      <Button variant="outline" size="sm" onclick={() => openCreatePreset(tr(p.label), p.url)}>
                         {#if i === 0}<Home class="h-4 w-4 mr-1" />{:else if i === 1}<Info class="h-4 w-4 mr-1" />{:else}<Mail class="h-4 w-4 mr-1" />{/if}
-                        {p.label}
+                        {tr(p.label)}
                       </Button>
                     {/each}
                   </div>
@@ -304,10 +305,10 @@
 
           <!-- Menu items tree -->
           <Card>
-            <CardHeader><CardTitle class="text-sm">Menu Structure</CardTitle></CardHeader>
+            <CardHeader><CardTitle class="text-sm">{tr('Menu Structure')}</CardTitle></CardHeader>
             <CardContent>
               {#if rootItems.length === 0}
-                <p class="text-sm text-muted-foreground text-center py-4">No items in this menu. Add links above.</p>
+                <p class="text-sm text-muted-foreground text-center py-4">{tr('No items in this menu. Add links above.')}</p>
               {:else}
                 <div class="space-y-1">
                   {#each rootItems as item (item.id)}
@@ -317,34 +318,34 @@
                           <ExternalLink class="h-4 w-4 shrink-0 text-muted-foreground" />
                           <span class="font-medium text-sm truncate">{item.label}</span>
                           <span class="text-xs text-muted-foreground truncate">{item.url || '/'}</span>
-                          {#if item.itemType === 'page'}<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">page</span>{/if}
-                          {#if item.pageStatus && item.pageStatus !== 'publish'}<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">hidden: page {item.pageStatus === 'missing' ? 'deleted' : 'is a draft'}</span>{/if}
+                          {#if item.itemType === 'page'}<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">{tr('page')}</span>{/if}
+                          {#if item.pageStatus && item.pageStatus !== 'publish'}<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">{item.pageStatus === 'missing' ? tr('hidden: page deleted') : tr('hidden: page is a draft')}</span>{/if}
                         </div>
                         <div class="shrink-0">
                           <DropdownMenu>
                             <DropdownMenuTrigger>
                               <Button variant="ghost" class="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
                                 <Ellipsis class="h-4 w-4" />
-                                <span class="sr-only">Actions</span>
+                                <span class="sr-only">{tr('Actions')}</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" class="w-40">
                               <DropdownMenuItem onclick={() => openEditItem(item)}>
-                                Edit
+                                {tr('Edit')}
                                 <span class="ml-auto"><Pencil size={16} /></span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onclick={() => moveItem(item, 'up')}>
-                                Move Up
+                                {tr('Move Up')}
                                 <span class="ml-auto"><ArrowUp size={16} /></span>
                               </DropdownMenuItem>
                               <DropdownMenuItem onclick={() => moveItem(item, 'down')}>
-                                Move Down
+                                {tr('Move Down')}
                                 <span class="ml-auto"><ArrowDown size={16} /></span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem class="text-red-500!" onclick={() => deleteItemId = item.id}>
-                                Delete
+                                {tr('Delete')}
                                 <span class="ml-auto"><Trash2 size={16} /></span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -360,34 +361,34 @@
                                 <span class="text-muted-foreground">└</span>
                                 <span class="text-sm truncate">{child.label}</span>
                                 <span class="text-xs text-muted-foreground truncate">{child.url || '/'}</span>
-                                {#if child.itemType === 'page'}<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">page</span>{/if}
-                                {#if child.pageStatus && child.pageStatus !== 'publish'}<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">hidden: page {child.pageStatus === 'missing' ? 'deleted' : 'is a draft'}</span>{/if}
+                                {#if child.itemType === 'page'}<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">{tr('page')}</span>{/if}
+                                {#if child.pageStatus && child.pageStatus !== 'publish'}<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">{child.pageStatus === 'missing' ? tr('hidden: page deleted') : tr('hidden: page is a draft')}</span>{/if}
                               </div>
                               <div class="shrink-0">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger>
                                     <Button variant="ghost" class="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
                                       <Ellipsis class="h-4 w-4" />
-                                      <span class="sr-only">Actions</span>
+                                      <span class="sr-only">{tr('Actions')}</span>
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" class="w-40">
                                     <DropdownMenuItem onclick={() => openEditItem(child)}>
-                                      Edit
+                                      {tr('Edit')}
                                       <span class="ml-auto"><Pencil size={16} /></span>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onclick={() => moveItem(child, 'up')}>
-                                      Move Up
+                                      {tr('Move Up')}
                                       <span class="ml-auto"><ArrowUp size={16} /></span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onclick={() => moveItem(child, 'down')}>
-                                      Move Down
+                                      {tr('Move Down')}
                                       <span class="ml-auto"><ArrowDown size={16} /></span>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem class="text-red-500!" onclick={() => deleteItemId = child.id}>
-                                      Delete
+                                      {tr('Delete')}
                                       <span class="ml-auto"><Trash2 size={16} /></span>
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -411,61 +412,61 @@
 
 <!-- Menu dialog -->
 <Dialog open={menuDialogOpen} onOpenChange={(o) => { if (!o) menuDialogOpen = false }}>
-  <DialogContent class="sm:max-w-sm"><DialogHeader><DialogTitle>{editMenu ? 'Edit' : 'New'} Menu</DialogTitle></DialogHeader>
+  <DialogContent class="sm:max-w-sm"><DialogHeader><DialogTitle>{editMenu ? tr('Edit Menu') : tr('New Menu')}</DialogTitle></DialogHeader>
     <div class="space-y-4 py-4">
-      <div class="space-y-1"><span class="text-sm font-medium">Menu Name</span><Input bind:value={menuName} placeholder="Main Menu" aria-label="Menu Name" /></div>
+      <div class="space-y-1"><span class="text-sm font-medium">{tr('Menu Name')}</span><Input bind:value={menuName} placeholder={tr('Main Menu')} aria-label={tr('Menu Name')} /></div>
       <div class="space-y-1">
-        <span class="text-sm font-medium">Location</span>
+        <span class="text-sm font-medium">{tr('Location')}</span>
         <Select type="single" bind:value={menuLocation}>
-          <SelectTrigger aria-label="Location"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label={tr('Location')}><SelectValue /></SelectTrigger>
           <SelectContent>
             {#each Object.entries(locationLabels) as [key, label]}
-              <SelectItem value={key}>{label}</SelectItem>
+              <SelectItem value={key}>{tr(label)}</SelectItem>
             {/each}
           </SelectContent>
         </Select>
       </div>
     </div>
-    <DialogFooter><Button variant="outline" onclick={() => menuDialogOpen = false}>Cancel</Button><Button onclick={handleSaveMenu}>Save</Button></DialogFooter>
+    <DialogFooter><Button variant="outline" onclick={() => menuDialogOpen = false}>{tr('Cancel')}</Button><Button onclick={handleSaveMenu}>{tr('Save')}</Button></DialogFooter>
   </DialogContent>
 </Dialog>
 
 <!-- Item dialog -->
 <Dialog open={itemDialogOpen} onOpenChange={(o) => { if (!o) itemDialogOpen = false }}>
-  <DialogContent class="sm:max-w-sm"><DialogHeader><DialogTitle>{editItem ? 'Edit' : 'Add'} Menu Item</DialogTitle></DialogHeader>
+  <DialogContent class="sm:max-w-sm"><DialogHeader><DialogTitle>{editItem ? tr('Edit Menu Item') : tr('Add Menu Item')}</DialogTitle></DialogHeader>
     <div class="space-y-4 py-4">
-      <div class="space-y-1"><span class="text-sm font-medium">Label</span><Input bind:value={itemLabel} placeholder="Menu label" aria-label="Label" /></div>
+      <div class="space-y-1"><span class="text-sm font-medium">{tr('Label')}</span><Input bind:value={itemLabel} placeholder={tr('Menu label')} aria-label={tr('Label')} /></div>
       {#if editItem?.itemType === 'page'}
-        <p class="text-xs text-muted-foreground">This item links to a page. Its address follows the page, so renaming the page never breaks the menu.</p>
+        <p class="text-xs text-muted-foreground">{tr('This item links to a page. Its address follows the page, so renaming the page never breaks the menu.')}</p>
       {:else}
-        <div class="space-y-1"><span class="text-sm font-medium">URL</span><Input bind:value={itemUrl} placeholder="https:// or /path" aria-label="URL" /></div>
+        <div class="space-y-1"><span class="text-sm font-medium">{tr('URL')}</span><Input bind:value={itemUrl} placeholder={tr('https:// or /path')} aria-label={tr('URL')} /></div>
       {/if}
       {#if rootItems.length > 0}
         <div class="space-y-1">
-          <span class="text-sm font-medium">Parent Item</span>
+          <span class="text-sm font-medium">{tr('Parent Item')}</span>
           <Select type="single" bind:value={parentItemValue} onValueChange={(v) => itemParentId = v ? parseInt(v) : null}>
-            <SelectTrigger aria-label="Parent Item"><SelectValue placeholder="None (top level)" /></SelectTrigger>
+            <SelectTrigger aria-label={tr('Parent Item')}><SelectValue placeholder={tr('None (top level)')} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None (top level)</SelectItem>
+              <SelectItem value="">{tr('None (top level)')}</SelectItem>
               {#each rootItems as ri}
-                <SelectItem value={ri.id.toString()}>{ri.label} (as submenu)</SelectItem>
+                <SelectItem value={ri.id.toString()}>{tr('{label} (as submenu)', { label: ri.label })}</SelectItem>
               {/each}
             </SelectContent>
           </Select>
         </div>
       {/if}
     </div>
-    <DialogFooter><Button variant="outline" onclick={() => itemDialogOpen = false}>Cancel</Button><Button onclick={handleSaveItem}>Save</Button></DialogFooter>
+    <DialogFooter><Button variant="outline" onclick={() => itemDialogOpen = false}>{tr('Cancel')}</Button><Button onclick={handleSaveItem}>{tr('Save')}</Button></DialogFooter>
   </DialogContent>
 </Dialog>
 
 <AlertDialog open={deleteMenuId !== null} onOpenChange={(o) => { if (!o) deleteMenuId = null }}>
-  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete menu?</AlertDialogTitle><AlertDialogDescription>All items will be deleted too.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onclick={handleDeleteMenu}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{tr('Delete menu?')}</AlertDialogTitle><AlertDialogDescription>{tr('All items will be deleted too.')}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{tr('Cancel')}</AlertDialogCancel><AlertDialogAction onclick={handleDeleteMenu}>{tr('Delete')}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
 </AlertDialog>
 
 <AlertDialog open={deleteItemId !== null} onOpenChange={(o) => { if (!o) deleteItemId = null }}>
-  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete item?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onclick={handleDeleteItem}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{tr('Delete item?')}</AlertDialogTitle><AlertDialogDescription>{tr('This cannot be undone.')}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{tr('Cancel')}</AlertDialogCancel><AlertDialogAction onclick={handleDeleteItem}>{tr('Delete')}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
 </AlertDialog>
 {:else}
-  <div class="flex items-center justify-center h-24 text-muted-foreground">Loading...</div>
+  <div class="flex items-center justify-center h-24 text-muted-foreground">{tr('Loading...')}</div>
 {/if}

@@ -10,6 +10,7 @@
   import AuthLayout from '$lib/components/auth/auth-layout.svelte'
   import PasswordInput from '$lib/components/auth/password-input.svelte'
   import { saveSession } from '$lib/client/auth-client'
+  import { tr } from '$lib/i18n/admin'
 
   let { data } = $props()
   let email = $state('')
@@ -28,7 +29,7 @@
 
   async function handleSubmit(e: Event) {
     e.preventDefault()
-    if (!email || !username || !password || !displayName) { error = 'All fields are required'; return }
+    if (!email || !username || !password || !displayName) { error = tr('All fields are required'); return }
     loading = true; error = ''
     try {
       const res = await fetch('/api/auth/setup', {
@@ -37,7 +38,7 @@
         body: JSON.stringify({ email, username, password, displayName }),
       })
       const json = await res.json()
-      if (!json.success) { error = json.error || 'Setup failed'; return }
+      if (!json.success) { error = json.error || tr('Setup failed'); return }
       saveSession(json.data.token, json.data.user)
       await goto('/admin', { invalidateAll: true })
     } catch (err: any) { error = err.message }
@@ -45,36 +46,36 @@
   }
 </script>
 
-<svelte:head><title>Create admin account</title></svelte:head>
+<svelte:head><title>{tr('Create admin account')}</title></svelte:head>
 
 <AuthLayout
-  title="Create admin account"
-  description="Set up the first administrator to get started. You can add the rest of your team afterwards."
+  title={tr('Create admin account')}
+  description={tr('Set up the first administrator to get started. You can add the rest of your team afterwards.')}
   siteName={data.settings?.site_name}
 >
   <form onsubmit={handleSubmit} class="grid gap-3">
     <div class="grid gap-2">
-      <Label for="displayName">Display name</Label>
+      <Label for="displayName">{tr('Display name')}</Label>
       <Input id="displayName" bind:value={displayName} placeholder="Jane Doe" autocomplete="name" required />
     </div>
     <div class="grid gap-2">
-      <Label for="username">Username</Label>
-      <Input id="username" bind:value={username} placeholder="admin" autocomplete="username" pattern={'[A-Za-z0-9_.\\-]{3,32}'} title="3-32 characters: letters, numbers, . _ -" required />
+      <Label for="username">{tr('Username')}</Label>
+      <Input id="username" bind:value={username} placeholder="admin" autocomplete="username" pattern={'[A-Za-z0-9_.\\-]{3,32}'} title={tr('3-32 characters: letters, numbers, . _ -')} required />
     </div>
     <div class="grid gap-2">
-      <Label for="email">Email</Label>
+      <Label for="email">{tr('Email')}</Label>
       <Input id="email" type="email" bind:value={email} placeholder="admin@example.com" autocomplete="email" required />
     </div>
     <div class="grid gap-2">
-      <Label for="password">Password</Label>
-      <PasswordInput id="password" bind:value={password} placeholder="At least 8 characters" autocomplete="new-password" minlength={8} />
+      <Label for="password">{tr('Password')}</Label>
+      <PasswordInput id="password" bind:value={password} placeholder={tr('At least 8 characters')} autocomplete="new-password" minlength={8} />
     </div>
     {#if error}
       <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
     {/if}
     <Button type="submit" class="mt-2" disabled={loading}>
       {#if loading}<Loader2Icon class="animate-spin" />{:else}<UserPlusIcon />{/if}
-      Create admin account
+      {tr('Create admin account')}
     </Button>
   </form>
 </AuthLayout>

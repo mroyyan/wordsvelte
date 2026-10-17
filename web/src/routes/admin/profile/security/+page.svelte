@@ -14,6 +14,7 @@
   import ContentSection from '$lib/components/settings/content-section.svelte'
   import PasswordInput from '$lib/components/auth/password-input.svelte'
   import { api, errorMessage } from '$lib/client/admin-api'
+  import { tr } from '$lib/i18n/admin'
 
   type Status = { totpEnabled: boolean; totpPending: boolean; email2faEnabled: boolean; recoveryCodesRemaining: number }
 
@@ -62,11 +63,11 @@
     totp = null; totpCode = ''
     shownCodes = r.recoveryCodes
     await reload()
-    toast.success('Authenticator app turned on')
+    toast.success(tr('Authenticator app turned on'))
   }
 
   async function sendEmailCode() {
-    if (await twoFactor({ action: 'email-send' })) { emailSent = true; emailCode = ''; toast.success('Code sent. Check your inbox.') }
+    if (await twoFactor({ action: 'email-send' })) { emailSent = true; emailCode = ''; toast.success(tr('Code sent. Check your inbox.')) }
   }
   async function confirmEmail(e: Event) {
     e.preventDefault()
@@ -75,7 +76,7 @@
     emailSent = false; emailCode = ''
     shownCodes = r.recoveryCodes
     await reload()
-    toast.success('Email codes turned on')
+    toast.success(tr('Email codes turned on'))
   }
 
   async function confirmDisable(e: Event) {
@@ -88,25 +89,25 @@
     if (kind === 'recovery') { shownCodes = r.recoveryCodes; await reload() }
     else {
       // Turning a factor off ends all sessions; this one is re-issued by signing in again.
-      toast.success('Turned off. Please sign in again.')
+      toast.success(tr('Turned off. Please sign in again.'))
       setTimeout(() => { window.location.href = '/admin/login' }, 1200)
     }
   }
 
   const codesText = $derived((shownCodes ?? []).join('\n'))
-  async function copyCodes() { await navigator.clipboard.writeText(codesText); toast.success('Copied') }
+  async function copyCodes() { await navigator.clipboard.writeText(codesText); toast.success(tr('Copied')) }
   function downloadCodes() {
     const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([`Recovery codes for ${email}\nEach code works once.\n\n${codesText}\n`], { type: 'text/plain' }))
+    a.href = URL.createObjectURL(new Blob([`${tr('Recovery codes for {email}', { email })}\n${tr('Each code works once.')}\n\n${codesText}\n`], { type: 'text/plain' }))
     a.download = 'recovery-codes.txt'
     a.click()
     URL.revokeObjectURL(a.href)
   }
 </script>
 
-<svelte:head><title>Security - Profile</title></svelte:head>
+<svelte:head><title>{tr('Security - Profile')}</title></svelte:head>
 
-<ContentSection title="Security" desc="Ask for a second proof when signing in, so a stolen password alone is not enough.">
+<ContentSection title={tr('Security')} desc={tr('Ask for a second proof when signing in, so a stolen password alone is not enough.')}>
   {#if loading}
     <div class="space-y-8"><Skeleton class="h-24 w-full" /><Skeleton class="h-24 w-full" /></div>
   {:else if loadError}
@@ -114,21 +115,21 @@
   {:else}
     <div class="grid gap-5">
       <div class="flex items-center gap-2 text-sm">
-        Two-factor authentication
-        {#if twoFactorOn}<Badge>On</Badge>{:else}<Badge variant="outline">Off</Badge>{/if}
+        {tr('Two-factor authentication')}
+        {#if twoFactorOn}<Badge>{tr('On')}</Badge>{:else}<Badge variant="outline">{tr('Off')}</Badge>{/if}
       </div>
     {#if tfError}<Alert variant="destructive"><AlertDescription>{tfError}</AlertDescription></Alert>{/if}
 
     {#if shownCodes}
       <Alert>
         <AlertDescription class="grid gap-3">
-          <p class="font-medium">Save your recovery codes now. They will not be shown again.</p>
-          <p class="text-xs">Each code works once, if you lose your phone or cannot receive email.</p>
+          <p class="font-medium">{tr('Save your recovery codes now. They will not be shown again.')}</p>
+          <p class="text-xs">{tr('Each code works once, if you lose your phone or cannot receive email.')}</p>
           <pre class="rounded-md bg-muted p-3 font-mono text-sm leading-6" data-testid="recovery-codes">{codesText}</pre>
           <div class="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="outline" onclick={copyCodes}><CopyIcon /> Copy</Button>
-            <Button type="button" size="sm" variant="outline" onclick={downloadCodes}><DownloadIcon /> Download</Button>
-            <Button type="button" size="sm" onclick={() => (shownCodes = null)}>I saved them</Button>
+            <Button type="button" size="sm" variant="outline" onclick={copyCodes}><CopyIcon /> {tr('Copy')}</Button>
+            <Button type="button" size="sm" variant="outline" onclick={downloadCodes}><DownloadIcon /> {tr('Download')}</Button>
+            <Button type="button" size="sm" onclick={() => (shownCodes = null)}>{tr('I saved them')}</Button>
           </div>
         </AlertDescription>
       </Alert>
@@ -140,25 +141,25 @@
         <div class="flex items-start gap-3">
           <SmartphoneIcon class="mt-0.5 size-5 text-muted-foreground" />
           <div>
-            <p class="font-medium">Authenticator app</p>
-            <p class="text-sm text-muted-foreground">Google Authenticator, 1Password, Authy and similar.</p>
+            <p class="font-medium">{tr('Authenticator app')}</p>
+            <p class="text-sm text-muted-foreground">{tr('Google Authenticator, 1Password, Authy and similar.')}</p>
           </div>
         </div>
         {#if status?.totpEnabled}
-          <Button type="button" variant="outline" size="sm" onclick={() => { disabling = 'totp'; disablePassword = '' }}>Turn off</Button>
+          <Button type="button" variant="outline" size="sm" onclick={() => { disabling = 'totp'; disablePassword = '' }}>{tr('Turn off')}</Button>
         {:else if !totp}
-          <Button type="button" size="sm" onclick={startTotp} disabled={tfBusy}>Set up</Button>
+          <Button type="button" size="sm" onclick={startTotp} disabled={tfBusy}>{tr('Set up')}</Button>
         {/if}
       </div>
       {#if totp}
         <form onsubmit={confirmTotp} class="grid gap-3">
-          <p class="text-sm">Scan this QR code with your app, then enter the 6-digit code it shows.</p>
-          <div class="size-44 rounded-md bg-white p-2 [&>svg]:size-full" aria-label="QR code">{@html totp.qrSvg}</div>
-          <p class="text-xs text-muted-foreground">Cannot scan? Enter this key manually: <code class="font-mono select-all" data-testid="totp-secret">{totp.secret}</code></p>
+          <p class="text-sm">{tr('Scan this QR code with your app, then enter the 6-digit code it shows.')}</p>
+          <div class="size-44 rounded-md bg-white p-2 [&>svg]:size-full" aria-label={tr('QR code')}>{@html totp.qrSvg}</div>
+          <p class="text-xs text-muted-foreground">{tr('Cannot scan? Enter this key manually:')} <code class="font-mono select-all" data-testid="totp-secret">{totp.secret}</code></p>
           <div class="flex flex-wrap gap-2">
-            <Input class="max-w-40" bind:value={totpCode} inputmode="numeric" autocomplete="one-time-code" placeholder="123456" required aria-label="Code from your app" />
-            <Button type="submit" disabled={tfBusy}>Verify and turn on</Button>
-            <Button type="button" variant="ghost" onclick={() => (totp = null)}>Cancel</Button>
+            <Input class="max-w-40" bind:value={totpCode} inputmode="numeric" autocomplete="one-time-code" placeholder="123456" required aria-label={tr('Code from your app')} />
+            <Button type="submit" disabled={tfBusy}>{tr('Verify and turn on')}</Button>
+            <Button type="button" variant="ghost" onclick={() => (totp = null)}>{tr('Cancel')}</Button>
           </div>
         </form>
       {/if}
@@ -170,24 +171,24 @@
         <div class="flex items-start gap-3">
           <MailIcon class="mt-0.5 size-5 text-muted-foreground" />
           <div>
-            <p class="font-medium">Email code</p>
-            <p class="text-sm text-muted-foreground">We email a 6-digit code to {email} when you sign in.</p>
+            <p class="font-medium">{tr('Email code')}</p>
+            <p class="text-sm text-muted-foreground">{tr('We email a 6-digit code to {email} when you sign in.', { email })}</p>
           </div>
         </div>
         {#if status?.email2faEnabled}
-          <Button type="button" variant="outline" size="sm" onclick={() => { disabling = 'email'; disablePassword = '' }}>Turn off</Button>
+          <Button type="button" variant="outline" size="sm" onclick={() => { disabling = 'email'; disablePassword = '' }}>{tr('Turn off')}</Button>
         {:else if !emailSent}
-          <Button type="button" size="sm" onclick={sendEmailCode} disabled={tfBusy}>Set up</Button>
+          <Button type="button" size="sm" onclick={sendEmailCode} disabled={tfBusy}>{tr('Set up')}</Button>
         {/if}
       </div>
       {#if emailSent}
         <form onsubmit={confirmEmail} class="grid gap-3">
-          <p class="text-sm">We sent a code to your email. Enter it to confirm that you can receive it.</p>
+          <p class="text-sm">{tr('We sent a code to your email. Enter it to confirm that you can receive it.')}</p>
           <div class="flex flex-wrap gap-2">
-            <Input class="max-w-40" bind:value={emailCode} inputmode="numeric" autocomplete="one-time-code" placeholder="123456" required aria-label="Code from your email" />
-            <Button type="submit" disabled={tfBusy}>Verify and turn on</Button>
-            <Button type="button" variant="ghost" onclick={sendEmailCode} disabled={tfBusy}>Send again</Button>
-            <Button type="button" variant="ghost" onclick={() => (emailSent = false)}>Cancel</Button>
+            <Input class="max-w-40" bind:value={emailCode} inputmode="numeric" autocomplete="one-time-code" placeholder="123456" required aria-label={tr('Code from your email')} />
+            <Button type="submit" disabled={tfBusy}>{tr('Verify and turn on')}</Button>
+            <Button type="button" variant="ghost" onclick={sendEmailCode} disabled={tfBusy}>{tr('Send again')}</Button>
+            <Button type="button" variant="ghost" onclick={() => (emailSent = false)}>{tr('Cancel')}</Button>
           </div>
         </form>
       {/if}
@@ -199,24 +200,24 @@
         <div class="flex items-start gap-3">
           <KeyRoundIcon class="mt-0.5 size-5 text-muted-foreground" />
           <div>
-            <p class="font-medium">Recovery codes</p>
-            <p class="text-sm text-muted-foreground">{status?.recoveryCodesRemaining} unused {status?.recoveryCodesRemaining === 1 ? 'code' : 'codes'} left.</p>
+            <p class="font-medium">{tr('Recovery codes')}</p>
+            <p class="text-sm text-muted-foreground">{status?.recoveryCodesRemaining === 1 ? tr('1 unused code left.') : tr('{n} unused codes left.', { n: status?.recoveryCodesRemaining ?? 0 })}</p>
           </div>
         </div>
-        <Button type="button" variant="outline" size="sm" onclick={() => { disabling = 'recovery'; disablePassword = '' }}>Make new codes</Button>
+        <Button type="button" variant="outline" size="sm" onclick={() => { disabling = 'recovery'; disablePassword = '' }}>{tr('Make new codes')}</Button>
       </div>
     {/if}
 
     {#if disabling}
       <form onsubmit={confirmDisable} class="grid gap-3 rounded-lg border border-destructive/40 p-4">
         <p class="text-sm font-medium">
-          {#if disabling === 'recovery'}Enter your password to replace your recovery codes. The old ones stop working.
-          {:else}Enter your password to turn this off. You will be signed out everywhere.{/if}
+          {#if disabling === 'recovery'}{tr('Enter your password to replace your recovery codes. The old ones stop working.')}
+          {:else}{tr('Enter your password to turn this off. You will be signed out everywhere.')}{/if}
         </p>
         <PasswordInput id="disablePassword" bind:value={disablePassword} />
         <div class="flex gap-2">
-          <Button type="submit" variant={disabling === 'recovery' ? 'default' : 'destructive'} disabled={tfBusy}>Confirm</Button>
-          <Button type="button" variant="ghost" onclick={() => (disabling = null)}>Cancel</Button>
+          <Button type="submit" variant={disabling === 'recovery' ? 'default' : 'destructive'} disabled={tfBusy}>{tr('Confirm')}</Button>
+          <Button type="button" variant="ghost" onclick={() => (disabling = null)}>{tr('Cancel')}</Button>
         </div>
       </form>
     {/if}

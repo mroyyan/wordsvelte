@@ -9,7 +9,7 @@ widgets, and get the SEO a news site needs (sitemaps, Google News sitemap, JSON-
 ## Features
 
 - **Writing**: posts with categories, tags and featured images; rich text editor (CKEditor 5); **scheduled publishing** in the site timezone; static pages (About, Contact, ...)
-- **Public site**: themes (Handlebars), configurable menus and widgets, live search, hero with featured stories, comments with moderation, mobile-friendly layout
+- **Public site**: themes (Handlebars), configurable menus and widgets, live search, hero with featured stories, comments with moderation, mobile-friendly layout, interface in Indonesian or English (Settings > General > Language)
 - **Ads**: banners and ad-network code (AdSense and others) in eight placements, with run dates, device targeting, click counting and `ads.txt`
 - **SEO**: canonical URLs, Open Graph / Twitter cards, JSON-LD, sitemaps (including Google News), editable `robots.txt`, RSS (full text or summary)
 - **Admin**: dashboard, media library on R2, users with roles (admin, editor, author), settings, WordPress import
@@ -140,6 +140,19 @@ Automatic once **Settings > General > Site URL** is set (leave it empty to use t
 
 "Allow search engines" off gives `noindex, nofollow` on every page, `Disallow: /` in robots.txt, empty sitemaps and an empty feed.
 After deploying, submit `https://your-site/sitemap.xml` (and the news sitemap) in Google Search Console.
+
+## Languages
+
+**Public site**: its own texts (buttons, labels, messages, page titles), the `<html lang>` attribute, the Open Graph locale and the month and day names follow
+**Settings > General > Language**. Indonesian and English are included. To add a language, copy `web/src/lib/i18n/id.ts` to `<code>.ts` and translate it
+(the type checker fails until every key is there), register it in `web/src/lib/i18n/translator.ts` and in `LANGUAGES` in `web/src/lib/shared/format-date.ts`.
+
+**Admin panel**: every person picks their own language under *Profile > Appearance > Language* (or follows the site language). In the source the admin is
+written in English: texts go through `tr('...')` and the English text itself is the key; the Indonesian translations are in `web/src/lib/i18n/admin/*.ts`.
+A test (`tests/client/admin-i18n.test.ts`) fails when a text has no translation, a translation is unused, or a `{placeholder}` does not match. To add a language,
+add a catalog for it in `web/src/lib/i18n/admin/catalogs.ts`.
+
+Not translated: content you write (posts, categories, menus, widget titles) and the error messages the API returns.
 
 ## Roles
 

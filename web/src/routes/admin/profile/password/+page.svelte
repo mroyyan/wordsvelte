@@ -8,6 +8,7 @@
   import PasswordInput from '$lib/components/auth/password-input.svelte'
   import { api, errorMessage } from '$lib/client/admin-api'
   import { saveSession } from '$lib/client/auth-client'
+  import { tr } from '$lib/i18n/admin'
 
   let current = $state('')
   let next = $state('')
@@ -18,7 +19,7 @@
   async function changePassword(e: Event) {
     e.preventDefault()
     error = ''
-    if (next !== confirm) { error = 'The new passwords do not match'; return }
+    if (next !== confirm) { error = tr('The new passwords do not match'); return }
     busy = true
     try {
       const r = await api<{ token: string }>('/api/account/password', { method: 'POST', body: { currentPassword: current, newPassword: next } })
@@ -26,29 +27,29 @@
       const raw = localStorage.getItem('wordsvelte_user')
       saveSession(r.token, raw ? JSON.parse(raw) : {})
       current = next = confirm = ''
-      toast.success('Password changed. Other devices were signed out.')
+      toast.success(tr('Password changed. Other devices were signed out.'))
     } catch (err) { error = errorMessage(err) } finally { busy = false }
   }
 </script>
 
-<svelte:head><title>Password - Profile</title></svelte:head>
+<svelte:head><title>{tr('Password - Profile')}</title></svelte:head>
 
-<ContentSection title="Password" desc="Change the password you use to sign in. This signs you out on every other device.">
+<ContentSection title={tr('Password')} desc={tr('Change the password you use to sign in. This signs you out on every other device.')}>
   <form onsubmit={changePassword} class="space-y-8">
     <div class="space-y-2">
-      <Label for="current">Current password</Label>
+      <Label for="current">{tr('Current password')}</Label>
       <PasswordInput id="current" bind:value={current} />
     </div>
     <div class="space-y-2">
-      <Label for="next">New password</Label>
+      <Label for="next">{tr('New password')}</Label>
       <PasswordInput id="next" bind:value={next} autocomplete="new-password" minlength={8} />
-      <p class="text-sm text-muted-foreground">At least 8 characters.</p>
+      <p class="text-sm text-muted-foreground">{tr('At least 8 characters.')}</p>
     </div>
     <div class="space-y-2">
-      <Label for="confirm">Confirm new password</Label>
+      <Label for="confirm">{tr('Confirm new password')}</Label>
       <PasswordInput id="confirm" bind:value={confirm} autocomplete="new-password" minlength={8} />
     </div>
     {#if error}<Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>{/if}
-    <Button type="submit" disabled={busy}>{#if busy}<Loader2Icon class="animate-spin" />{/if}Update password</Button>
+    <Button type="submit" disabled={busy}>{#if busy}<Loader2Icon class="animate-spin" />{/if}{tr('Update password')}</Button>
   </form>
 </ContentSection>

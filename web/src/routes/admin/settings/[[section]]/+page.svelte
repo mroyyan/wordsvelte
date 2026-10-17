@@ -1,5 +1,6 @@
 <script lang="ts">
   import { EMAIL_SECTION, buildSections } from '$lib/config/settings-sections'
+  import { tr } from '$lib/i18n/admin'
   import ContentSection from '$lib/components/settings/content-section.svelte'
   import SettingsSectionForm from '$lib/components/admin/settings-section-form.svelte'
   import SmtpSettings from '$lib/components/admin/smtp-settings.svelte'
@@ -9,9 +10,9 @@
   const meta = $derived(data.section === EMAIL_SECTION.id ? EMAIL_SECTION : buildSections().find(s => s.id === data.section)!)
 </script>
 
-<svelte:head><title>{meta.title} - Settings</title></svelte:head>
+<svelte:head><title>{tr('{section} - Settings', { section: tr(meta.title) })}</title></svelte:head>
 
-<ContentSection title={meta.title} desc={meta.desc}>
+<ContentSection title={tr(meta.title)} desc={tr(meta.desc)}>
   {#if data.section === EMAIL_SECTION.id}
     <SmtpSettings />
   {:else}

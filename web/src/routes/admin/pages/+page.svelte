@@ -25,20 +25,21 @@
     DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableColumnHeader, DataTablePagination, DataTableBulkActions,
   } from '$lib/components/data-table'
   import { api, errorMessage, runBulk } from '$lib/client/admin-api'
-  import { formatDate } from '$lib/utils'
+  import { tr, msg, formatAdminDate } from '$lib/i18n/admin'
 
   interface PageRow { id: number; title: string; slug: string; status: 'draft' | 'publish'; updatedAt: string; publishedAt: string | null }
 
-  const statusOptions = [{ label: 'Published', value: 'publish' }, { label: 'Draft', value: 'draft' }]
+  const statusOptionDefs = [{ label: msg('Published'), value: 'publish' }, { label: msg('Draft'), value: 'draft' }]
+  const statusOptions = $derived(statusOptionDefs.map(o => ({ ...o, label: tr(o.label) })))
   const statusColors: Record<string, string> = {
     publish: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900',
     draft: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-900',
   }
   const columns = [
-    { id: 'title', title: 'Title' },
-    { id: 'slug', title: 'Address', secondary: true },
-    { id: 'status', title: 'Status', secondary: true },
-    { id: 'updatedAt', title: 'Updated', secondary: true },
+    { id: 'title', title: msg('Title') },
+    { id: 'slug', title: msg('Address'), secondary: true },
+    { id: 'status', title: msg('Status'), secondary: true },
+    { id: 'updatedAt', title: msg('Updated'), secondary: true },
   ]
 
   const table = new DataTableState<PageRow>({
@@ -65,8 +66,9 @@
     busy = true
     const { ok, failed, firstError } = await runBulk(rows, r => api(`/api/pages/${r.id}`, { method: 'PATCH', body: { status } }))
     await load(); table.clearSelection(); busy = false
-    if (failed) toast.error(`${ok} updated, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} page${ok === 1 ? '' : 's'} ${status === 'publish' ? 'published' : 'moved to draft'}`)
+    if (failed) toast.error(tr('{ok} updated, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else if (status === 'publish') toast.success(ok === 1 ? tr('1 page published') : tr('{n} pages published', { n: ok }))
+    else toast.success(ok === 1 ? tr('1 page moved to draft') : tr('{n} pages moved to draft', { n: ok }))
   }
 
   async function confirmDelete() {
@@ -75,23 +77,23 @@
     deleting = null; busy = true
     const { ok, failed, firstError } = await runBulk(targets, r => api(`/api/pages/${r.id}`, { method: 'DELETE' }))
     await load(); table.clearSelection(); busy = false
-    if (failed) toast.error(`${ok} deleted, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} page${ok === 1 ? '' : 's'} deleted`)
+    if (failed) toast.error(tr('{ok} deleted, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else toast.success(ok === 1 ? tr('1 page deleted') : tr('{n} pages deleted', { n: ok }))
   }
 </script>
 
-<svelte:head><title>Pages</title></svelte:head>
+<svelte:head><title>{tr('Pages')}</title></svelte:head>
 
 <div class="flex flex-1 flex-col gap-4">
-  <PageHeader title="Pages" description="Static pages such as About, Contact or Editorial Guidelines. Add them to a menu under Appearance.">
+  <PageHeader title={tr('Pages')} description={tr('Static pages such as About, Contact or Editorial Guidelines. Add them to a menu under Appearance.')}>
     {#snippet actions()}
-      <PrimaryButton label="Add Page" icon={FilePlusIcon} onclick={() => (window.location.href = '/admin/pages/new')} />
+      <PrimaryButton label={tr('Add Page')} icon={FilePlusIcon} onclick={() => (window.location.href = '/admin/pages/new')} />
     {/snippet}
   </PageHeader>
 
-  <DataTableToolbar {table} searchPlaceholder="Filter pages..." {columns}>
+  <DataTableToolbar {table} searchPlaceholder={msg('Filter pages...')} {columns}>
     {#snippet filters()}
-      <DataTableFacetedFilter title="Status" options={statusOptions} selected={table.filters.status ?? []} counts={table.counts('status')} onChange={(v) => table.setFilter('status', v)} />
+      <DataTableFacetedFilter title={msg('Status')} options={statusOptions} selected={table.filters.status ?? []} counts={table.counts('status')} onChange={(v) => table.setFilter('status', v)} />
     {/snippet}
   </DataTableToolbar>
 
@@ -101,7 +103,7 @@
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" /></TableHead>
+          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label={tr('Select all')} class="translate-y-0.5" /></TableHead>
           {#each visibleColumns as c (c.id)}
             <TableHead class={c.secondary ? 'hidden sm:table-cell' : ''}><DataTableColumnHeader {table} column={c.id} title={c.title} /></TableHead>
           {/each}
@@ -112,25 +114,25 @@
         {#if loading}
           <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center"><Loader2Icon class="mx-auto size-4 animate-spin text-muted-foreground" /></TableCell></TableRow>
         {:else if table.pageRows.length === 0}
-          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? 'No pages match your filters.' : 'No pages yet. Create your first one.'}</TableCell></TableRow>
+          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? tr('No pages match your filters.') : tr('No pages yet. Create your first one.')}</TableCell></TableRow>
         {:else}
           {#each table.pageRows as row (row.id)}
             <TableRow data-state={table.isSelected(row) ? 'selected' : undefined}>
-              <TableCell><Checkbox checked={table.isSelected(row)} onCheckedChange={() => table.toggleRow(row)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
+              <TableCell><Checkbox checked={table.isSelected(row)} onCheckedChange={() => table.toggleRow(row)} aria-label={tr('Select row')} class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as c (c.id)}
                 <TableCell class={[c.id === 'title' ? 'max-w-[15rem] font-medium sm:max-w-80' : 'text-nowrap', c.secondary && 'hidden sm:table-cell']}>
                   {#if c.id === 'title'}
                     <a href={`/admin/pages/${row.id}`} class="block truncate hover:underline">{row.title}</a>
                     <div class="mt-1 flex items-center gap-2 text-xs font-normal text-muted-foreground sm:hidden">
-                      <Badge variant="outline" class={statusColors[row.status]}>{row.status === 'publish' ? 'Published' : 'Draft'}</Badge>
+                      <Badge variant="outline" class={statusColors[row.status]}>{row.status === 'publish' ? tr('Published') : tr('Draft')}</Badge>
                       <span class="font-mono">/{row.slug}</span>
                     </div>
                   {:else if c.id === 'slug'}
                     <span class="font-mono text-xs text-muted-foreground">/{row.slug}</span>
                   {:else if c.id === 'status'}
-                    <Badge variant="outline" class={statusColors[row.status]}>{row.status === 'publish' ? 'Published' : 'Draft'}</Badge>
+                    <Badge variant="outline" class={statusColors[row.status]}>{row.status === 'publish' ? tr('Published') : tr('Draft')}</Badge>
                   {:else}
-                    {formatDate(row.updatedAt)}
+                    {formatAdminDate(row.updatedAt)}
                   {/if}
                 </TableCell>
               {/each}
@@ -138,19 +140,19 @@
                 <DropdownMenu>
                   <DropdownMenuTrigger>
                     {#snippet child({ props })}
-                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">Open menu</span></Button>
+                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">{tr('Open menu')}</span></Button>
                     {/snippet}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" class="w-44">
-                    <DropdownMenuItem onclick={() => (window.location.href = `/admin/pages/${row.id}`)}><PencilIcon /> Edit</DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => (window.location.href = `/admin/pages/${row.id}`)}><PencilIcon /> {tr('Edit')}</DropdownMenuItem>
                     {#if row.status === 'publish'}
-                      <DropdownMenuItem onclick={() => window.open(`/${row.slug}`, '_blank')}><ExternalLinkIcon /> View</DropdownMenuItem>
-                      <DropdownMenuItem onclick={() => setStatus([row], 'draft')}><FileTextIcon /> Back to Draft</DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => window.open(`/${row.slug}`, '_blank')}><ExternalLinkIcon /> {tr('View page')}</DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => setStatus([row], 'draft')}><FileTextIcon /> {tr('Back to Draft')}</DropdownMenuItem>
                     {:else}
-                      <DropdownMenuItem onclick={() => setStatus([row], 'publish')}><SendIcon /> Publish</DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => setStatus([row], 'publish')}><SendIcon /> {tr('Publish')}</DropdownMenuItem>
                     {/if}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [row])}><Trash2Icon /> Delete</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [row])}><Trash2Icon /> {tr('Delete')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -164,26 +166,26 @@
   <DataTablePagination {table} class="mt-auto" />
 </div>
 
-<DataTableBulkActions {table} entityName="page">
+<DataTableBulkActions {table} entityName={msg('page')}>
   {#snippet actions()}
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'publish')}><SendIcon class="size-4" /> Publish</Button>
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'draft')}><FileTextIcon class="size-4" /> Draft</Button>
-    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> Delete</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'publish')}><SendIcon class="size-4" /> {tr('Publish')}</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => setStatus(table.selectedRows, 'draft')}><FileTextIcon class="size-4" /> {tr('Draft')}</Button>
+    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> {tr('Delete')}</Button>
   {/snippet}
 </DataTableBulkActions>
 
 <AlertDialog open={deleting !== null} onOpenChange={(o) => { if (!o) deleting = null }}>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete {deleting?.length === 1 ? 'this page' : `${deleting?.length} pages`}?</AlertDialogTitle>
+      <AlertDialogTitle>{deleting?.length === 1 ? tr('Delete this page?') : tr('Delete {n} pages?', { n: deleting?.length ?? 0 })}</AlertDialogTitle>
       <AlertDialogDescription>
-        {#if deleting?.length === 1}"{deleting[0].title}" will be removed.{:else}The selected pages will be removed.{/if}
-        Menu items pointing to {deleting?.length === 1 ? 'it' : 'them'} will stop showing. This cannot be undone.
+        {#if deleting?.length === 1}{tr('"{title}" will be removed.', { title: deleting[0].title })}{:else}{tr('The selected pages will be removed.')}{/if}
+        {deleting?.length === 1 ? tr('Menu items pointing to it will stop showing. This cannot be undone.') : tr('Menu items pointing to them will stop showing. This cannot be undone.')}
       </AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction onclick={confirmDelete}>Delete</AlertDialogAction>
+      <AlertDialogCancel>{tr('Cancel')}</AlertDialogCancel>
+      <AlertDialogAction onclick={confirmDelete}>{tr('Delete')}</AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
 </AlertDialog>

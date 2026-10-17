@@ -23,19 +23,38 @@
   import PrimaryButton from '$lib/components/layout/primary-button.svelte'
   import { DataTableState, DataTableToolbar, DataTableColumnHeader, DataTablePagination, DataTableBulkActions } from '$lib/components/data-table'
   import { api, errorMessage, runBulk } from '$lib/client/admin-api'
+  import { tr, msg } from '$lib/i18n/admin'
 
   interface Row { id: number; name: string; slug: string; description?: string | null }
 
   /** One admin screen for both categories and tags: they only differ in endpoint, wording and the description field. */
-  let { endpoint, singular, plural, subtitle, withDescription = false }: {
-    endpoint: string; singular: string; plural: string; subtitle: string; withDescription?: boolean
-  } = $props()
+  let { kind, withDescription = false }: { kind: 'category' | 'tag'; withDescription?: boolean } = $props()
 
-  const noun = $derived(singular.toLowerCase())
+  const endpoint = $derived(kind === 'category' ? '/api/categories' : '/api/tags')
+  // the wording of each kind, written out in full so every text translates as a whole sentence
+  const words = {
+    category: {
+      noun: msg('category'), plural: msg('Categories'), subtitle: msg('Organize content'), add: msg('Add Category'), filter: msg('Filter categories...'),
+      noMatch: msg('No categories match your filter.'), none: msg('No categories yet.'), updated: msg('Category updated'), created: msg('Category created'),
+      oneDeleted: msg('1 category deleted'), manyDeleted: msg('{n} categories deleted'), editTitle: msg('Edit Category'), newTitle: msg('New Category'),
+      deleteOne: msg('Delete this category?'), deleteMany: msg('Delete {n} categories?'),
+      noteOne: msg('Posts keep existing, but they will no longer be filed under it. This cannot be undone.'),
+      noteMany: msg('Posts keep existing, but they will no longer be filed under them. This cannot be undone.'),
+    },
+    tag: {
+      noun: msg('tag'), plural: msg('Tags'), subtitle: msg('Label and group related posts'), add: msg('Add Tag'), filter: msg('Filter tags...'),
+      noMatch: msg('No tags match your filter.'), none: msg('No tags yet.'), updated: msg('Tag updated'), created: msg('Tag created'),
+      oneDeleted: msg('1 tag deleted'), manyDeleted: msg('{n} tags deleted'), editTitle: msg('Edit Tag'), newTitle: msg('New Tag'),
+      deleteOne: msg('Delete this tag?'), deleteMany: msg('Delete {n} tags?'),
+      noteOne: msg('Posts keep existing, but they will no longer be filed under it. This cannot be undone.'),
+      noteMany: msg('Posts keep existing, but they will no longer be filed under them. This cannot be undone.'),
+    },
+  }
+  const w = $derived(words[kind])
   const columns = $derived([
-    { id: 'name', title: 'Name' },
-    { id: 'slug', title: 'Slug' },
-    ...(withDescription ? [{ id: 'description', title: 'Description' }] : []),
+    { id: 'name', title: msg('Name') },
+    { id: 'slug', title: msg('Slug') },
+    ...(withDescription ? [{ id: 'description', title: msg('Description') }] : []),
   ])
 
   const table = new DataTableState<Row>({
@@ -73,11 +92,11 @@
       if (editing) {
         const updated = await api<Row>(`${endpoint}/${editing.id}`, { method: 'PUT', body })
         table.setRows(table.rows.map(r => (r.id === editing!.id ? updated : r)))
-        toast.success(`${singular} updated`)
+        toast.success(tr(w.updated))
       } else {
         const created = await api<Row>(endpoint, { method: 'POST', body })
         table.setRows([...table.rows, created])
-        toast.success(`${singular} created`)
+        toast.success(tr(w.created))
       }
       dialogOpen = false
     } catch (err) { formError = errorMessage(err) } finally { saving = false }
@@ -89,21 +108,21 @@
     deleting = null
     const { ok, failed, firstError } = await runBulk(targets, r => api(`${endpoint}/${r.id}`, { method: 'DELETE' }))
     await load(); table.clearSelection()
-    if (failed) toast.error(`${ok} deleted, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} ${ok === 1 ? noun : plural.toLowerCase()} deleted`)
+    if (failed) toast.error(tr('{ok} deleted, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else toast.success(ok === 1 ? tr(w.oneDeleted) : tr(w.manyDeleted, { n: ok }))
   }
 </script>
 
-<svelte:head><title>{plural}</title></svelte:head>
+<svelte:head><title>{tr(w.plural)}</title></svelte:head>
 
 <div class="flex flex-1 flex-col gap-4">
-  <PageHeader title={plural} description={subtitle}>
+  <PageHeader title={tr(w.plural)} description={tr(w.subtitle)}>
     {#snippet actions()}
-      <PrimaryButton label={`Add ${singular}`} icon={PlusIcon} onclick={openCreate} />
+      <PrimaryButton label={tr(w.add)} icon={PlusIcon} onclick={openCreate} />
     {/snippet}
   </PageHeader>
 
-  <DataTableToolbar {table} searchPlaceholder={`Filter ${plural.toLowerCase()}...`} {columns} />
+  <DataTableToolbar {table} searchPlaceholder={w.filter} {columns} />
 
   {#if error}<Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>{/if}
 
@@ -111,7 +130,7 @@
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" /></TableHead>
+          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label={tr('Select all')} class="translate-y-0.5" /></TableHead>
           {#each visibleColumns as c (c.id)}
             <TableHead><DataTableColumnHeader {table} column={c.id} title={c.title} sortable={c.id !== 'description'} /></TableHead>
           {/each}
@@ -122,11 +141,11 @@
         {#if loading}
           <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center"><Loader2Icon class="mx-auto size-4 animate-spin text-muted-foreground" /></TableCell></TableRow>
         {:else if table.pageRows.length === 0}
-          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? `No ${plural.toLowerCase()} match your filter.` : `No ${plural.toLowerCase()} yet.`}</TableCell></TableRow>
+          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? tr(w.noMatch) : tr(w.none)}</TableCell></TableRow>
         {:else}
           {#each table.pageRows as row (row.id)}
             <TableRow data-state={table.isSelected(row) ? 'selected' : undefined}>
-              <TableCell><Checkbox checked={table.isSelected(row)} onCheckedChange={() => table.toggleRow(row)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
+              <TableCell><Checkbox checked={table.isSelected(row)} onCheckedChange={() => table.toggleRow(row)} aria-label={tr('Select row')} class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as c (c.id)}
                 <TableCell class={c.id === 'name' ? 'max-w-xs truncate font-medium' : c.id === 'slug' ? 'font-mono text-xs text-muted-foreground' : 'max-w-sm truncate text-sm text-muted-foreground'}>
                   {#if c.id === 'name'}{row.name}{:else if c.id === 'slug'}{row.slug}{:else}{row.description ?? ''}{/if}
@@ -136,13 +155,13 @@
                 <DropdownMenu>
                   <DropdownMenuTrigger>
                     {#snippet child({ props })}
-                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">Open menu</span></Button>
+                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">{tr('Open menu')}</span></Button>
                     {/snippet}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" class="w-40">
-                    <DropdownMenuItem onclick={() => openEdit(row)}><PencilIcon /> Edit</DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => openEdit(row)}><PencilIcon /> {tr('Edit')}</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [row])}><Trash2Icon /> Delete</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [row])}><Trash2Icon /> {tr('Delete')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -156,27 +175,27 @@
   <DataTablePagination {table} class="mt-auto" />
 </div>
 
-<DataTableBulkActions {table} entityName={noun}>
+<DataTableBulkActions {table} entityName={w.noun}>
   {#snippet actions()}
-    <Button size="sm" variant="destructive" onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> Delete</Button>
+    <Button size="sm" variant="destructive" onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> {tr('Delete')}</Button>
   {/snippet}
 </DataTableBulkActions>
 
 <Dialog open={dialogOpen} onOpenChange={(o) => (dialogOpen = o)}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
-      <DialogTitle>{editing ? 'Edit' : 'New'} {singular}</DialogTitle>
-      <DialogDescription>{editing ? `Changing the name keeps the address (${editing.slug}).` : 'The address is generated from the name.'}</DialogDescription>
+      <DialogTitle>{editing ? tr(w.editTitle) : tr(w.newTitle)}</DialogTitle>
+      <DialogDescription>{editing ? tr('Changing the name keeps the address ({slug}).', { slug: editing.slug }) : tr('The address is generated from the name.')}</DialogDescription>
     </DialogHeader>
     <form onsubmit={save} class="grid gap-4">
-      <div class="grid gap-2"><Label for="tx-name">Name</Label><Input id="tx-name" bind:value={name} required /></div>
+      <div class="grid gap-2"><Label for="tx-name">{tr('Name')}</Label><Input id="tx-name" bind:value={name} required /></div>
       {#if withDescription}
-        <div class="grid gap-2"><Label for="tx-desc">Description</Label><Textarea id="tx-desc" bind:value={description} rows={3} /></div>
+        <div class="grid gap-2"><Label for="tx-desc">{tr('Description')}</Label><Textarea id="tx-desc" bind:value={description} rows={3} /></div>
       {/if}
       {#if formError}<Alert variant="destructive"><AlertDescription>{formError}</AlertDescription></Alert>{/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={() => (dialogOpen = false)}>Cancel</Button>
-        <Button type="submit" disabled={saving}>{#if saving}<Loader2Icon class="animate-spin" />{/if} Save</Button>
+        <Button type="button" variant="outline" onclick={() => (dialogOpen = false)}>{tr('Cancel')}</Button>
+        <Button type="submit" disabled={saving}>{#if saving}<Loader2Icon class="animate-spin" />{/if} {tr('Save')}</Button>
       </DialogFooter>
     </form>
   </DialogContent>
@@ -185,12 +204,12 @@
 <AlertDialog open={deleting !== null} onOpenChange={(o) => { if (!o) deleting = null }}>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete {deleting?.length === 1 ? `this ${noun}` : `${deleting?.length} ${plural.toLowerCase()}`}?</AlertDialogTitle>
-      <AlertDialogDescription>Posts keep existing, but they will no longer be filed under {deleting?.length === 1 ? 'it' : 'them'}. This cannot be undone.</AlertDialogDescription>
+      <AlertDialogTitle>{deleting?.length === 1 ? tr(w.deleteOne) : tr(w.deleteMany, { n: deleting?.length ?? 0 })}</AlertDialogTitle>
+      <AlertDialogDescription>{deleting?.length === 1 ? tr(w.noteOne) : tr(w.noteMany)}</AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction onclick={confirmDelete}>Delete</AlertDialogAction>
+      <AlertDialogCancel>{tr('Cancel')}</AlertDialogCancel>
+      <AlertDialogAction onclick={confirmDelete}>{tr('Delete')}</AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
 </AlertDialog>

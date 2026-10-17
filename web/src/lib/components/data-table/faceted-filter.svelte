@@ -12,6 +12,7 @@
   import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover'
   import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '$lib/components/ui/command'
   import { toggleInList } from './table-logic'
+  import { tr } from '$lib/i18n/admin'
 
   let { title, options, selected, counts = {}, onChange }: {
     title: string
@@ -27,13 +28,13 @@
     {#snippet child({ props })}
       <Button {...props} variant="outline" size="sm" class="h-8 border-dashed">
         <PlusCircleIcon class="size-4" />
-        {title}
+        {tr(title)}
         {#if selected.length > 0}
           <Separator orientation="vertical" class="mx-2 h-4" />
           <Badge variant="secondary" class="rounded-sm px-1 font-normal lg:hidden">{selected.length}</Badge>
           <div class="hidden space-x-1 lg:flex">
             {#if selected.length > 2}
-              <Badge variant="secondary" class="rounded-sm px-1 font-normal">{selected.length} selected</Badge>
+              <Badge variant="secondary" class="rounded-sm px-1 font-normal">{tr('{n} selected', { n: selected.length })}</Badge>
             {:else}
               {#each options.filter(o => selected.includes(o.value)) as o (o.value)}
                 <Badge variant="secondary" class="rounded-sm px-1 font-normal">{o.label}</Badge>
@@ -46,9 +47,9 @@
   </PopoverTrigger>
   <PopoverContent class="w-52 p-0" align="start">
     <Command>
-      <CommandInput placeholder={title} />
+      <CommandInput placeholder={tr(title)} />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{tr('No results found.')}</CommandEmpty>
         <CommandGroup>
           {#each options as o (o.value)}
             {@const isSelected = selected.includes(o.value)}
@@ -67,7 +68,7 @@
         {#if selected.length > 0}
           <CommandSeparator />
           <CommandGroup>
-            <CommandItem onSelect={() => onChange([])} class="justify-center text-center">Clear filters</CommandItem>
+            <CommandItem onSelect={() => onChange([])} class="justify-center text-center">{tr('Clear filters')}</CommandItem>
           </CommandGroup>
         {/if}
       </CommandList>

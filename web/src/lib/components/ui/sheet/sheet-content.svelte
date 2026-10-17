@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+	import { tr } from "$lib/i18n/admin";
 	import { Dialog as SheetPrimitive } from "bits-ui";
 	import type { Snippet } from "svelte";
 	import SheetPortal from "./sheet-portal.svelte";
@@ -46,7 +47,7 @@
 				{#snippet child({ props })}
 					<Button variant="ghost" class="absolute top-3 right-3" size="icon-sm" {...props}>
 						<XIcon  />
-						<span class="sr-only">Close</span>
+						<span class="sr-only">{tr("Close")}</span>
 					</Button>
 				{/snippet}
 			</SheetPrimitive.Close>

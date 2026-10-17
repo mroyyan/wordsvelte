@@ -10,6 +10,7 @@
   import { Label } from '$lib/components/ui/label'
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card'
   import { Checkbox } from '$lib/components/ui/checkbox'
+  import { tr } from '$lib/i18n/admin'
   import { Save, Loader2, Edit2, Check, Globe, UploadCloud, X, Plus, Link, Image } from '@lucide/svelte'
   import * as Select from '$lib/components/ui/select'
   import MediaLibrary from '$lib/components/admin/media/media-library.svelte'
@@ -156,8 +157,8 @@
       })
       const json = await res.json().catch(() => null)
       if (json?.success) goto('/admin/posts')
-      else toast.error(json?.error || 'Could not save the post')
-    } catch { toast.error('Network error, please try again') } finally { saving = false }
+      else toast.error(json?.error || tr('Could not save the post'))
+    } catch { toast.error(tr('Network error, please try again')) } finally { saving = false }
   }
 
   function toggleCategory(id: number) { categoryIds = categoryIds.includes(id) ? categoryIds.filter(c => c !== id) : [...categoryIds, id] }
@@ -167,25 +168,25 @@
 {#if mounted}
 <div class="flex flex-1 flex-col gap-6">
   <div class="flex flex-wrap items-end justify-between gap-2">
-    <div><h2 class="text-xl font-bold tracking-tight sm:text-2xl">Edit Post</h2><p class="text-sm text-muted-foreground sm:text-base">Modify your article</p></div>
+    <div><h2 class="text-xl font-bold tracking-tight sm:text-2xl">{tr('Edit Post')}</h2><p class="text-sm text-muted-foreground sm:text-base">{tr('Modify your article')}</p></div>
     <Button type="submit" form="post-form" disabled={saving}>
       {#if saving}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
-      <Save class="mr-2 h-4 w-4" /> {saving ? 'Updating...' : status === 'scheduled' ? 'Update Schedule' : 'Update Post'}
+      <Save class="mr-2 h-4 w-4" /> {saving ? tr('Updating...') : status === 'scheduled' ? tr('Update Schedule') : tr('Update Post')}
     </Button>
   </div>
 
   {#if loading}
-    <div class="flex items-center justify-center h-64 text-muted-foreground">Loading post data...</div>
+    <div class="flex items-center justify-center h-64 text-muted-foreground">{tr('Loading post data...')}</div>
   {:else}
     <form id="post-form" onsubmit={handleSubmit}>
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="min-w-0 space-y-6 lg:col-span-2">
           <Card>
-            <CardHeader><CardTitle>Content</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{tr('Content')}</CardTitle></CardHeader>
             <CardContent class="space-y-3">
               <div class="space-y-2">
-                <Label for="title">Title</Label>
-                <input type="text" id="title" bind:value={title} placeholder="Post title" required class="flex h-12 w-full rounded-md border border-input bg-transparent px-3 text-xl py-3 text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                <Label for="title">{tr('Title')}</Label>
+                <input type="text" id="title" bind:value={title} placeholder={tr('Post title')} required class="flex h-12 w-full rounded-md border border-input bg-transparent px-3 text-xl py-3 text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
               </div>
               <div class="space-y-1 mt-1">
                 {#if editingSlug}
@@ -211,19 +212,19 @@
 
         <div class="min-w-0 space-y-6 lg:col-span-1">
           <Card>
-            <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{tr('Settings')}</CardTitle></CardHeader>
             <CardContent>
-              <Select.Root type="single" bind:value={status} items={[{ value: 'draft', label: 'Draft' }, { value: 'scheduled', label: 'Scheduled' }, { value: 'publish', label: 'Publish' }]}>
-                <Select.Trigger class="w-full"><Select.Value placeholder="Select status" /></Select.Trigger>
-                <Select.Content preventScroll={false}><Select.Item value="draft" label="Draft" /><Select.Item value="scheduled" label="Scheduled" /><Select.Item value="publish" label="Publish" /></Select.Content>
+              <Select.Root type="single" bind:value={status} items={[{ value: 'draft', label: tr('Draft') }, { value: 'scheduled', label: tr('Scheduled') }, { value: 'publish', label: tr('Publish') }]}>
+                <Select.Trigger class="w-full"><Select.Value placeholder={tr('Select status')} /></Select.Trigger>
+                <Select.Content preventScroll={false}><Select.Item value="draft" label={tr('Draft')} /><Select.Item value="scheduled" label={tr('Scheduled')} /><Select.Item value="publish" label={tr('Publish')} /></Select.Content>
               </Select.Root>
               {#if status === 'scheduled'}<div class="mt-3"><ScheduleField bind:value={publishedAt} /></div>{/if}
               <div class="space-y-2 mt-3">
                 <label class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors">
                   <Checkbox checked={isFeatured} onCheckedChange={() => isFeatured = !isFeatured} />
-                  <span class="text-sm font-medium leading-none">Featured on Homepage</span>
+                  <span class="text-sm font-medium leading-none">{tr('Featured on Homepage')}</span>
                 </label>
-                <p class="text-xs text-muted-foreground px-2">Max 5 featured posts. Oldest will be replaced.</p>
+                <p class="text-xs text-muted-foreground px-2">{tr('Max 5 featured posts. Oldest will be replaced.')}</p>
               </div>
             </CardContent>
           </Card>
@@ -231,9 +232,9 @@
           <Card>
             <CardHeader>
               <div class="flex items-center justify-between">
-                <CardTitle>Featured Image</CardTitle>
+                <CardTitle>{tr('Featured Image')}</CardTitle>
                 <div class="flex rounded-md bg-muted p-0.5 text-muted-foreground">
-                  <button type="button" class="rounded-sm px-2 py-1 text-xs font-medium transition-colors" class:bg-background={imageSourceType === 'upload'} class:text-foreground={imageSourceType === 'upload'} onclick={() => imageSourceType = 'upload'}>Upload</button>
+                  <button type="button" class="rounded-sm px-2 py-1 text-xs font-medium transition-colors" class:bg-background={imageSourceType === 'upload'} class:text-foreground={imageSourceType === 'upload'} onclick={() => imageSourceType = 'upload'}>{tr('Upload')}</button>
                   <button type="button" class="rounded-sm px-2 py-1 text-xs font-medium transition-colors" class:bg-background={imageSourceType === 'url'} class:text-foreground={imageSourceType === 'url'} onclick={() => imageSourceType = 'url'}>URL</button>
                 </div>
               </div>
@@ -242,20 +243,20 @@
               {#if imageSourceType === 'upload'}
                 {#if featuredImageUrl}
                   <div class="relative group aspect-video rounded-md overflow-hidden border bg-muted flex items-center justify-center">
-                    <img src={featuredImageUrl} alt="Featured Preview" class="w-full h-full object-cover" />
+                    <img src={featuredImageUrl} alt={tr('Featured Preview')} class="w-full h-full object-cover" />
                     <button type="button" class="absolute top-2 right-2 p-1.5 bg-background/80 hover:bg-background text-foreground rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity" onclick={() => featuredImageUrl = ''}><X class="h-4 w-4" /></button>
                   </div>
                 {:else}
                   <button type="button" class="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors" onclick={() => showFeaturedMediaLibrary = true}>
                     <div class="flex flex-col items-center justify-center pt-5 pb-6">
                       <UploadCloud class="h-8 w-8 text-muted-foreground mb-2" />
-                      <p class="text-xs text-muted-foreground"><span class="font-semibold">Browse Media</span> to choose existing</p>
+                      <p class="text-xs text-muted-foreground"><span class="font-semibold">{tr('Browse Media')}</span> {tr('to choose existing')}</p>
                     </div>
                   </button>
                 {/if}
               {:else}
                 <div class="space-y-2">
-                  <Label for="image">Image URL</Label>
+                  <Label for="image">{tr('Image URL')}</Label>
                   <div class="relative flex items-center">
                     <Input id="image" bind:value={featuredImageUrl} placeholder="https://..." class="pr-9" />
                     {#if featuredImageUrl}<button type="button" class="absolute right-2 p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground" onclick={() => featuredImageUrl = ''}><X class="h-4 w-4" /></button>{/if}
@@ -275,7 +276,7 @@
           <Card>
             <CardHeader>
               <div class="flex items-center justify-between">
-                <CardTitle>Categories</CardTitle>
+                <CardTitle>{tr('Categories')}</CardTitle>
                 <Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => saveAndNavigate('/admin/categories')}><Plus class="h-4 w-4" /></Button>
               </div>
             </CardHeader>
@@ -294,7 +295,7 @@
           <Card>
             <CardHeader>
               <div class="flex items-center justify-between">
-                <CardTitle>Tags</CardTitle>
+                <CardTitle>{tr('Tags')}</CardTitle>
                 <Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => saveAndNavigate('/admin/tags')}><Plus class="h-4 w-4" /></Button>
               </div>
             </CardHeader>
@@ -315,5 +316,5 @@
   {/if}
 </div>
 {:else}
-  <div class="flex items-center justify-center h-24 text-muted-foreground">Loading...</div>
+  <div class="flex items-center justify-center h-24 text-muted-foreground">{tr('Loading...')}</div>
 {/if}

@@ -18,7 +18,7 @@ export async function load(event) {
   // Verify auth
   try {
     const user = await requireUser(event as any)
-    return { user: { id: user.userId, role: user.role, email: user.email, username: user.username, displayName: user.displayName } }
+    return { user: { id: user.userId, role: user.role, email: user.email, username: user.username, displayName: user.displayName, language: user.language } }
   } catch {
     throw redirect(302, '/admin/login')
   }

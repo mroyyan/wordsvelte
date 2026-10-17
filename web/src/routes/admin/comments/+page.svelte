@@ -23,16 +23,18 @@
     DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableColumnHeader, DataTablePagination, DataTableBulkActions,
   } from '$lib/components/data-table'
   import { api, errorMessage, fetchAll, runBulk } from '$lib/client/admin-api'
-  import { formatDate } from '$lib/utils'
+  import { tr, msg, formatAdminDate } from '$lib/i18n/admin'
 
   interface CommentRow { id: number; postId: number; authorName: string; authorEmail: string; content: string; status: 'approved' | 'pending' | 'spam' | 'trash'; createdAt: string }
 
-  const statusOptions = [
-    { label: 'Approved', value: 'approved' },
-    { label: 'Pending', value: 'pending' },
-    { label: 'Spam', value: 'spam' },
-    { label: 'Trash', value: 'trash' },
+  const statusOptionDefs = [
+    { label: msg('Approved'), value: 'approved' },
+    { label: msg('Pending'), value: 'pending' },
+    { label: msg('Spam'), value: 'spam' },
+    { label: msg('Trash'), value: 'trash' },
   ]
+  const statusOptions = $derived(statusOptionDefs.map(o => ({ ...o, label: tr(o.label) })))
+  const statusLabel = (s: string) => { const l = statusOptionDefs.find(o => o.value === s)?.label; return l ? tr(l) : s }
   const statusColors: Record<string, string> = {
     approved: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900',
     pending: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-900',
@@ -40,10 +42,10 @@
     trash: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
   }
   const columns = [
-    { id: 'authorName', title: 'Author' },
-    { id: 'content', title: 'Comment', secondary: true },
-    { id: 'status', title: 'Status', secondary: true },
-    { id: 'createdAt', title: 'Date', secondary: true },
+    { id: 'authorName', title: msg('Author') },
+    { id: 'content', title: msg('Comment'), secondary: true },
+    { id: 'status', title: msg('Status'), secondary: true },
+    { id: 'createdAt', title: msg('Date'), secondary: true },
   ]
 
   const table = new DataTableState<CommentRow>({
@@ -71,7 +73,7 @@
     try {
       await api(`/api/comments/${row.id}/status`, { method: 'PATCH', body: { status } })
       table.setRows(table.rows.map(r => (r.id === row.id ? { ...r, status } : r)))
-      toast.success(`Marked as ${status}`)
+      toast.success(tr('Marked as {status}', { status: statusLabel(status) }))
     } catch (e) { toast.error(errorMessage(e)) }
   }
 
@@ -79,8 +81,8 @@
     busy = true
     const { ok, failed, firstError } = await runBulk(table.selectedRows, r => api(`/api/comments/${r.id}/status`, { method: 'PATCH', body: { status } }))
     await load(); table.clearSelection(); busy = false
-    if (failed) toast.error(`${ok} updated, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} comment${ok === 1 ? '' : 's'} marked as ${status}`)
+    if (failed) toast.error(tr('{ok} updated, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else toast.success(ok === 1 ? tr('1 comment marked as {status}', { status: statusLabel(status) }) : tr('{n} comments marked as {status}', { n: ok, status: statusLabel(status) }))
   }
 
   async function confirmDelete() {
@@ -89,19 +91,19 @@
     deleting = null; busy = true
     const { ok, failed, firstError } = await runBulk(targets, r => api(`/api/comments/${r.id}`, { method: 'DELETE' }))
     await load(); table.clearSelection(); busy = false
-    if (failed) toast.error(`${ok} deleted, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} comment${ok === 1 ? '' : 's'} deleted`)
+    if (failed) toast.error(tr('{ok} deleted, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else toast.success(ok === 1 ? tr('1 comment deleted') : tr('{n} comments deleted', { n: ok }))
   }
 </script>
 
-<svelte:head><title>Comments</title></svelte:head>
+<svelte:head><title>{tr('Comments')}</title></svelte:head>
 
 <div class="flex flex-1 flex-col gap-4">
-  <PageHeader title="Comments" description="Moderate reader comments" />
+  <PageHeader title={tr('Comments')} description={tr('Moderate reader comments')} />
 
-  <DataTableToolbar {table} searchPlaceholder="Search comments..." {columns}>
+  <DataTableToolbar {table} searchPlaceholder={msg('Search comments...')} {columns}>
     {#snippet filters()}
-      <DataTableFacetedFilter title="Status" options={statusOptions} selected={table.filters.status ?? []} counts={table.counts('status')} onChange={(v) => table.setFilter('status', v)} />
+      <DataTableFacetedFilter title={msg('Status')} options={statusOptions} selected={table.filters.status ?? []} counts={table.counts('status')} onChange={(v) => table.setFilter('status', v)} />
     {/snippet}
   </DataTableToolbar>
 
@@ -111,7 +113,7 @@
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label="Select all" class="translate-y-0.5" /></TableHead>
+          <TableHead class="w-10"><Checkbox checked={table.allOnPageSelected} indeterminate={table.someOnPageSelected} onCheckedChange={() => table.toggleAllOnPage()} aria-label={tr('Select all')} class="translate-y-0.5" /></TableHead>
           {#each visibleColumns as c (c.id)}
             <TableHead class={c.secondary ? 'hidden sm:table-cell' : ''}><DataTableColumnHeader {table} column={c.id} title={c.title} sortable={c.id !== 'content'} /></TableHead>
           {/each}
@@ -122,11 +124,11 @@
         {#if loading}
           <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center"><Loader2Icon class="mx-auto size-4 animate-spin text-muted-foreground" /></TableCell></TableRow>
         {:else if table.pageRows.length === 0}
-          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? 'No comments match your filters.' : 'No comments yet.'}</TableCell></TableRow>
+          <TableRow><TableCell colspan={visibleColumns.length + 2} class="h-24 text-center text-muted-foreground">{table.isFiltered ? tr('No comments match your filters.') : tr('No comments yet.')}</TableCell></TableRow>
         {:else}
           {#each table.pageRows as c (c.id)}
             <TableRow data-state={table.isSelected(c) ? 'selected' : undefined}>
-              <TableCell><Checkbox checked={table.isSelected(c)} onCheckedChange={() => table.toggleRow(c)} aria-label="Select row" class="translate-y-0.5" /></TableCell>
+              <TableCell><Checkbox checked={table.isSelected(c)} onCheckedChange={() => table.toggleRow(c)} aria-label={tr('Select row')} class="translate-y-0.5" /></TableCell>
               {#each visibleColumns as col (col.id)}
                 <TableCell class={[col.id === 'content' ? 'max-w-xs truncate text-sm' : col.id === 'authorName' ? 'max-w-[15rem] sm:max-w-none' : 'text-nowrap', col.secondary && 'hidden sm:table-cell']}>
                   {#if col.id === 'authorName'}
@@ -135,14 +137,14 @@
                     <!-- phones: the comment and its status sit under the author -->
                     <div class="mt-1 space-y-1 sm:hidden">
                       <p class="line-clamp-2 text-sm whitespace-normal">{c.content}</p>
-                      <Badge variant="outline" class={statusColors[c.status] ?? ''}>{statusOptions.find(o => o.value === c.status)?.label ?? c.status}</Badge>
+                      <Badge variant="outline" class={statusColors[c.status] ?? ''}>{statusLabel(c.status)}</Badge>
                     </div>
                   {:else if col.id === 'content'}
                     {c.content}
                   {:else if col.id === 'status'}
-                    <Badge variant="outline" class={statusColors[c.status] ?? ''}>{statusOptions.find(o => o.value === c.status)?.label ?? c.status}</Badge>
+                    <Badge variant="outline" class={statusColors[c.status] ?? ''}>{statusLabel(c.status)}</Badge>
                   {:else}
-                    <span class="text-sm text-muted-foreground">{formatDate(c.createdAt)}</span>
+                    <span class="text-sm text-muted-foreground">{formatAdminDate(c.createdAt)}</span>
                   {/if}
                 </TableCell>
               {/each}
@@ -150,15 +152,15 @@
                 <DropdownMenu>
                   <DropdownMenuTrigger>
                     {#snippet child({ props })}
-                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">Actions</span></Button>
+                      <Button {...props} variant="ghost" class="flex size-8 p-0 data-[state=open]:bg-muted"><EllipsisIcon class="size-4" /><span class="sr-only">{tr('Actions')}</span></Button>
                     {/snippet}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" class="w-44">
-                    {#if c.status !== 'approved'}<DropdownMenuItem onclick={() => moderate(c, 'approved')}><ShieldCheckIcon class="text-green-500" /> Approve</DropdownMenuItem>{/if}
-                    {#if c.status !== 'spam'}<DropdownMenuItem onclick={() => moderate(c, 'spam')}><BanIcon class="text-orange-500" /> Mark Spam</DropdownMenuItem>{/if}
-                    <DropdownMenuItem onclick={() => (viewing = c)}><EyeIcon /> View</DropdownMenuItem>
+                    {#if c.status !== 'approved'}<DropdownMenuItem onclick={() => moderate(c, 'approved')}><ShieldCheckIcon class="text-green-500" /> {tr('Approve')}</DropdownMenuItem>{/if}
+                    {#if c.status !== 'spam'}<DropdownMenuItem onclick={() => moderate(c, 'spam')}><BanIcon class="text-orange-500" /> {tr('Mark Spam')}</DropdownMenuItem>{/if}
+                    <DropdownMenuItem onclick={() => (viewing = c)}><EyeIcon /> {tr('View comment')}</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [c])}><Trash2Icon /> Delete</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onclick={() => (deleting = [c])}><Trash2Icon /> {tr('Delete')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -172,11 +174,11 @@
   <DataTablePagination {table} class="mt-auto" />
 </div>
 
-<DataTableBulkActions {table} entityName="comment">
+<DataTableBulkActions {table} entityName={msg('comment')}>
   {#snippet actions()}
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => bulkModerate('approved')}><ShieldCheckIcon class="size-4" /> Approve</Button>
-    <Button size="sm" variant="outline" disabled={busy} onclick={() => bulkModerate('spam')}><BanIcon class="size-4" /> Spam</Button>
-    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> Delete</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => bulkModerate('approved')}><ShieldCheckIcon class="size-4" /> {tr('Approve')}</Button>
+    <Button size="sm" variant="outline" disabled={busy} onclick={() => bulkModerate('spam')}><BanIcon class="size-4" /> {tr('Spam')}</Button>
+    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> {tr('Delete')}</Button>
   {/snippet}
 </DataTableBulkActions>
 
@@ -185,11 +187,11 @@
     {#if viewing}
       <DialogHeader>
         <DialogTitle>{viewing.authorName}</DialogTitle>
-        <DialogDescription>{viewing.authorEmail} &middot; {formatDate(viewing.createdAt)}</DialogDescription>
+        <DialogDescription>{viewing.authorEmail} &middot; {formatAdminDate(viewing.createdAt)}</DialogDescription>
       </DialogHeader>
       <!-- Plain text on purpose: comment bodies are untrusted and never rendered as HTML. -->
       <p class="whitespace-pre-wrap break-words text-sm">{viewing.content}</p>
-      <Badge variant="outline" class="w-fit {statusColors[viewing.status] ?? ''}">{viewing.status}</Badge>
+      <Badge variant="outline" class="w-fit {statusColors[viewing.status] ?? ''}">{statusLabel(viewing.status)}</Badge>
     {/if}
   </DialogContent>
 </Dialog>
@@ -197,12 +199,12 @@
 <AlertDialog open={deleting !== null} onOpenChange={(o) => { if (!o) deleting = null }}>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete {deleting?.length === 1 ? 'this comment' : `${deleting?.length} comments`}?</AlertDialogTitle>
-      <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+      <AlertDialogTitle>{deleting?.length === 1 ? tr('Delete this comment?') : tr('Delete {n} comments?', { n: deleting?.length ?? 0 })}</AlertDialogTitle>
+      <AlertDialogDescription>{tr('This cannot be undone.')}</AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction onclick={confirmDelete}>Delete</AlertDialogAction>
+      <AlertDialogCancel>{tr('Cancel')}</AlertDialogCancel>
+      <AlertDialogAction onclick={confirmDelete}>{tr('Delete')}</AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
 </AlertDialog>

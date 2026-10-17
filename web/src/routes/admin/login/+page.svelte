@@ -9,6 +9,7 @@
   import AuthLayout from '$lib/components/auth/auth-layout.svelte'
   import PasswordInput from '$lib/components/auth/password-input.svelte'
   import { saveSession } from '$lib/client/auth-client'
+  import { tr, msg } from '$lib/i18n/admin'
 
   let { data } = $props()
   let email = $state('')
@@ -23,7 +24,8 @@
   let code = $state('')
   let notice = $state('')
 
-  const METHOD_LABEL: Record<Method, string> = { totp: 'Authenticator app', email: 'Email code', recovery: 'Recovery code' }
+  const METHOD_LABEL: Record<Method, string> = { totp: msg('Authenticator app'), email: msg('Email code'), recovery: msg('Recovery code') }
+  const USE_METHOD: Record<Method, string> = { totp: msg('Use authenticator app'), email: msg('Use email code'), recovery: msg('Use recovery code') }
 
   function finish(data: any) {
     saveSession(data.token, data.user)
@@ -50,7 +52,7 @@
     loading = true; error = ''; notice = ''
     try {
       const json = await send2fa('verify')
-      if (!json.success) { error = json.error || 'Verification failed'; return }
+      if (!json.success) { error = json.error || tr('Verification failed'); return }
       await finish(json.data)
     } catch (err: any) { error = err.message }
     finally { loading = false }
@@ -60,8 +62,8 @@
     loading = true; error = ''; notice = ''
     try {
       const json = await send2fa('send')
-      if (json.success) notice = 'We sent a new code to your email.'
-      else error = json.error || 'Could not send the code'
+      if (json.success) notice = tr('We sent a new code to your email.')
+      else error = json.error || tr('Could not send the code')
     } catch (err: any) { error = err.message }
     finally { loading = false }
   }
@@ -76,13 +78,13 @@
         body: JSON.stringify({ email, password }),
       })
       const json = await res.json()
-      if (!json.success) { error = json.error || 'Login failed'; return }
+      if (!json.success) { error = json.error || tr('Login failed'); return }
       if (json.data.twoFactor) {
         challenge = json.data.twoFactor.challenge
         methods = json.data.twoFactor.methods
         method = methods[0]
         code = ''
-        notice = method === 'email' ? (json.data.twoFactor.emailSent ? 'We sent a code to your email.' : 'We could not email you a code. Use a recovery code instead.') : ''
+        notice = method === 'email' ? (json.data.twoFactor.emailSent ? tr('We sent a code to your email.') : tr('We could not email you a code. Use a recovery code instead.')) : ''
         return
       }
       await finish(json.data)
@@ -91,17 +93,17 @@
   }
 </script>
 
-<svelte:head><title>Sign in</title></svelte:head>
+<svelte:head><title>{tr('Sign in')}</title></svelte:head>
 
 <AuthLayout
-  title={challenge ? 'Two-factor authentication' : 'Sign in'}
-  description={challenge ? 'Confirm it is you to finish signing in.' : 'Enter your email and password below to log into your account.'}
+  title={challenge ? tr('Two-factor authentication') : tr('Sign in')}
+  description={challenge ? tr('Confirm it is you to finish signing in.') : tr('Enter your email and password below to log into your account.')}
   siteName={data.settings?.site_name}
 >
   {#if challenge}
   <form onsubmit={handleVerify} class="grid gap-3">
     <div class="grid gap-2">
-      <Label for="code">{METHOD_LABEL[method]}</Label>
+      <Label for="code">{tr(METHOD_LABEL[method])}</Label>
       <Input
         id="code" bind:value={code} required autofocus
         autocomplete="one-time-code"
@@ -109,37 +111,37 @@
         placeholder={method === 'recovery' ? 'xxxxx-xxxxx' : '123456'}
       />
       <p class="text-xs text-muted-foreground">
-        {#if method === 'totp'}Enter the 6-digit code from your authenticator app.
-        {:else if method === 'email'}Enter the 6-digit code we emailed you. It is valid for 10 minutes.
-        {:else}Enter one of the recovery codes you saved. Each works once.{/if}
+        {#if method === 'totp'}{tr('Enter the 6-digit code from your authenticator app.')}
+        {:else if method === 'email'}{tr('Enter the 6-digit code we emailed you. It is valid for 10 minutes.')}
+        {:else}{tr('Enter one of the recovery codes you saved. Each works once.')}{/if}
       </p>
     </div>
     {#if notice}<Alert><AlertDescription>{notice}</AlertDescription></Alert>{/if}
     {#if error}<Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>{/if}
     <Button type="submit" class="mt-2" disabled={loading}>
       {#if loading}<Loader2Icon class="animate-spin" />{/if}
-      Verify
+      {tr('Verify')}
     </Button>
     <div class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
       {#each methods.filter(m => m !== method) as m}
-        <button type="button" class="font-medium text-muted-foreground hover:opacity-75" onclick={() => chooseMethod(m)}>Use {METHOD_LABEL[m].toLowerCase()}</button>
+        <button type="button" class="font-medium text-muted-foreground hover:opacity-75" onclick={() => chooseMethod(m)}>{tr(USE_METHOD[m])}</button>
       {/each}
       {#if method === 'email'}
-        <button type="button" class="font-medium text-muted-foreground hover:opacity-75" onclick={resend} disabled={loading}>Send a new code</button>
+        <button type="button" class="font-medium text-muted-foreground hover:opacity-75" onclick={resend} disabled={loading}>{tr('Send a new code')}</button>
       {/if}
-      <button type="button" class="font-medium text-muted-foreground hover:opacity-75" onclick={() => { challenge = ''; password = ''; error = ''; notice = '' }}>Back</button>
+      <button type="button" class="font-medium text-muted-foreground hover:opacity-75" onclick={() => { challenge = ''; password = ''; error = ''; notice = '' }}>{tr('Back')}</button>
     </div>
   </form>
   {:else}
   <form onsubmit={handleSubmit} class="grid gap-3">
     <div class="grid gap-2">
-      <Label for="email">Email</Label>
+      <Label for="email">{tr('Email')}</Label>
       <Input id="email" type="email" bind:value={email} placeholder="name@example.com" autocomplete="username" required />
     </div>
     <div class="grid gap-2">
       <div class="flex items-center justify-between">
-        <Label for="password">Password</Label>
-        <a href="/admin/forgot-password" class="text-sm font-medium text-muted-foreground hover:opacity-75">Forgot password?</a>
+        <Label for="password">{tr('Password')}</Label>
+        <a href="/admin/forgot-password" class="text-sm font-medium text-muted-foreground hover:opacity-75">{tr('Forgot password?')}</a>
       </div>
       <PasswordInput id="password" bind:value={password} />
     </div>
@@ -148,12 +150,12 @@
     {/if}
     <Button type="submit" class="mt-2" disabled={loading}>
       {#if loading}<Loader2Icon class="animate-spin" />{:else}<LogInIcon />{/if}
-      Sign in
+      {tr('Sign in')}
     </Button>
   </form>
   {/if}
 
   {#snippet footer()}
-    Accounts are created by an administrator. Need access? Ask your site admin.
+    {tr('Accounts are created by an administrator. Need access? Ask your site admin.')}
   {/snippet}
 </AuthLayout>

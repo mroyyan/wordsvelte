@@ -5,7 +5,7 @@
   import { cn } from '$lib/utils'
   import { buttonVariants } from '$lib/components/ui/button'
   import * as Select from '$lib/components/ui/select'
-
+  import { tr } from '$lib/i18n/admin'
 
   let { items }: { items: NavItem[] } = $props()
 
@@ -19,15 +19,15 @@
     <Select.Trigger class="h-12 sm:w-48">
       <span class="flex items-center gap-x-4 px-2">
         <current.icon class="size-[18px] scale-125" />
-        <span>{current.title}</span>
+        <span>{tr(current.title)}</span>
       </span>
     </Select.Trigger>
     <Select.Content>
       {#each items as item (item.href)}
-        <Select.Item value={item.href} label={item.title}>
+        <Select.Item value={item.href} label={tr(item.title)}>
           <span class="flex gap-x-4 px-2 py-1">
             <item.icon class="size-[18px] scale-125" />
-            <span>{item.title}</span>
+            <span>{tr(item.title)}</span>
           </span>
         </Select.Item>
       {/each}
@@ -37,7 +37,7 @@
 
 <!-- md and up: a row of ghost buttons that becomes a column on large screens -->
 <div class="hidden w-full min-w-40 overflow-x-auto bg-background px-1 py-2 md:block">
-  <nav class="flex space-x-2 py-1 lg:flex-col lg:space-y-1 lg:space-x-0" aria-label="Settings sections">
+  <nav class="flex space-x-2 py-1 lg:flex-col lg:space-y-1 lg:space-x-0" aria-label={tr('Settings sections')}>
     {#each items as item (item.href)}
       <a
         href={item.href}
@@ -49,7 +49,7 @@
         )}
       >
         <item.icon class="me-2 size-[18px]" />
-        {item.title}
+        {tr(item.title)}
       </a>
     {/each}
   </nav>

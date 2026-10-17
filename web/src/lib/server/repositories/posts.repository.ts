@@ -1,5 +1,6 @@
 import type { DbInstance } from '$lib/server/db'
 import { eq, desc, asc, and, lte, sql } from 'drizzle-orm'
+import { recordView } from '$lib/server/repositories/views.repository'
 import { posts, postCategories, postTags, categories, tags } from '@wordsvelte/shared'
 
 export type PostRow = typeof posts.$inferSelect
@@ -102,6 +103,7 @@ export function createPostRepository(db: DbInstance) {
 
     async incrementViews(id: number): Promise<void> {
       await db.update(posts).set({ viewCount: sql`${posts.viewCount} + 1` }).where(eq(posts.id, id))
+      await recordView(db, id)
     },
 
     async insertCategoryLinks(postId: number, categoryIds: number[]): Promise<void> {

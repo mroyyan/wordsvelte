@@ -2,8 +2,10 @@ import type { DbInstance } from '$lib/server/db'
 import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import { posts, pages, comments, media, categories, tags, users } from '@wordsvelte/shared'
 import { ROLE_RANK, type AuthUser } from '$lib/server/auth'
+import { createViewRepository, dayKey } from '$lib/server/repositories/views.repository'
 
 export const MONTHS_IN_CHART = 12
+export const DAYS_IN_VIEWS_CHART = 30
 
 export interface DashboardData {
   /** `own` for authors (their posts only), `site` for editors and admins. */
@@ -25,11 +27,20 @@ export interface DashboardData {
     users?: number
   }
   postsPerMonth: { month: string; count: number }[]
+  /** Article views for each of the last 30 days (UTC), oldest first, zero-filled. Counting starts when tracking was introduced. */
+  viewsPerDay: { day: string; views: number }[]
   /** Posts published this month vs the previous month. */
   monthDelta: { thisMonth: number; lastMonth: number; difference: number }
   topPosts: { id: number; title: string; slug: string; viewCount: number }[]
   recentPosts: { id: number; title: string; status: string; date: string; authorName: string | null }[]
   recentComments?: { id: number; authorName: string; content: string; status: string; createdAt: string; postTitle: string | null }[]
+}
+
+/** The last `count` days ending at `now`, oldest first, as YYYY-MM-DD (UTC). */
+export function lastDays(now: Date, count = DAYS_IN_VIEWS_CHART): string[] {
+  const out: string[] = []
+  for (let i = count - 1; i >= 0; i--) out.push(dayKey(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i))))
+  return out
 }
 
 const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
@@ -63,6 +74,10 @@ export async function getDashboard(db: DbInstance, user: Pick<AuthUser, 'userId'
   const thisMonth = postsPerMonth.at(-1)!.count
   const lastMonth = postsPerMonth.at(-2)!.count
 
+  const days = lastDays(now)
+  const perDay = new Map((await createViewRepository(db).perDay(days[0], sitewide ? undefined : user.userId)).map(r => [r.day, r.views]))
+  const viewsPerDay = days.map(day => ({ day, views: perDay.get(day) ?? 0 }))
+
   const topPosts = await db.select({ id: posts.id, title: posts.title, slug: posts.slug, viewCount: posts.viewCount })
     .from(posts).where(and(own, eq(posts.status, 'publish'))).orderBy(desc(posts.viewCount), desc(posts.id)).limit(5)
 
@@ -86,6 +101,7 @@ export async function getDashboard(db: DbInstance, user: Pick<AuthUser, 'userId'
     scope: sitewide ? 'site' : 'own',
     totals,
     postsPerMonth,
+    viewsPerDay,
     monthDelta: { thisMonth, lastMonth, difference: thisMonth - lastMonth },
     topPosts: topPosts.map((p: any) => ({ ...p, viewCount: Number(p.viewCount) })),
     recentPosts: recentPosts as DashboardData["recentPosts"],

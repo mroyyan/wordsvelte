@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tr } from "$lib/i18n/admin";
 	import { Dialog as DialogPrimitive } from "bits-ui";
 	import DialogPortal from "./dialog-portal.svelte";
 	import type { Snippet } from "svelte";
@@ -39,7 +40,7 @@
 				{#snippet child({ props })}
 					<Button variant="ghost" class="absolute top-2 right-2" size="icon-sm" {...props}>
 						<XIcon  />
-						<span class="sr-only">Close</span>
+						<span class="sr-only">{tr("Close")}</span>
 					</Button>
 				{/snippet}
 			</DialogPrimitive.Close>

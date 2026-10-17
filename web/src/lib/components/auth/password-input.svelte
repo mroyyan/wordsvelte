@@ -2,6 +2,7 @@
   import EyeIcon from '@lucide/svelte/icons/eye'
   import EyeOffIcon from '@lucide/svelte/icons/eye-off'
   import { Input } from '$lib/components/ui/input'
+  import { tr } from '$lib/i18n/admin'
 
   let {
     value = $bindable(''),
@@ -21,7 +22,7 @@
     type="button"
     class="absolute end-0 top-0 flex h-full w-10 items-center justify-center text-muted-foreground hover:text-foreground"
     onclick={() => (visible = !visible)}
-    aria-label={visible ? 'Hide password' : 'Show password'}
+    aria-label={visible ? tr('Hide password') : tr('Show password')}
     aria-pressed={visible}
   >
     {#if visible}<EyeOffIcon class="size-4" />{:else}<EyeIcon class="size-4" />{/if}

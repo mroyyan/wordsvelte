@@ -2,6 +2,7 @@
   import { Button } from '$lib/components/ui/button'
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card'
   import { Upload, FileText, FolderTree, Tags, ImageIcon, MessageSquare, Loader2, CheckCircle2, AlertCircle, ArrowRight } from '@lucide/svelte'
+  import { tr } from '$lib/i18n/admin'
 
   type Stage = 'upload' | 'preview' | 'importing' | 'done' | 'error'
 
@@ -38,7 +39,7 @@
         preview = j.data
         stage = 'preview'
       } else {
-        error = j.error || 'Preview failed'
+        error = j.error || tr('Preview failed')
         stage = 'error'
       }
     } catch (e: any) {
@@ -65,7 +66,7 @@
 
       if (!r.ok) {
         const j = await r.json()
-        error = j.error || 'Import failed'
+        error = j.error || tr('Import failed')
         stage = 'error'
         return
       }
@@ -116,12 +117,12 @@
   }
 
   const stats = $derived([
-    { label: 'Posts', value: preview?.posts || 0, icon: FileText },
-    { label: 'Pages', value: preview?.pages || 0, icon: FileText },
-    { label: 'Categories', value: preview?.categories || 0, icon: FolderTree },
-    { label: 'Tags', value: preview?.tags || 0, icon: Tags },
-    { label: 'Images', value: preview?.images || 0, icon: ImageIcon },
-    { label: 'Comments', value: preview?.comments || 0, icon: MessageSquare },
+    { label: tr('Posts'), value: preview?.posts || 0, icon: FileText },
+    { label: tr('Pages'), value: preview?.pages || 0, icon: FileText },
+    { label: tr('Categories'), value: preview?.categories || 0, icon: FolderTree },
+    { label: tr('Tags'), value: preview?.tags || 0, icon: Tags },
+    { label: tr('Images'), value: preview?.images || 0, icon: ImageIcon },
+    { label: tr('Comments'), value: preview?.comments || 0, icon: MessageSquare },
   ])
 
   const progressPercent = $derived(() => {
@@ -142,8 +143,8 @@
 <div class="space-y-6">
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight">Migration</h1>
-      <p class="text-muted-foreground">Import content from other platforms</p>
+      <h1 class="text-2xl font-bold tracking-tight">{tr('Migration')}</h1>
+      <p class="text-muted-foreground">{tr('Import content from other platforms')}</p>
     </div>
   </div>
 
@@ -164,16 +165,16 @@
         {#if stage === 'upload'}
           <Card>
             <CardHeader>
-              <CardTitle>Upload WXR File</CardTitle>
+              <CardTitle>{tr('Upload WXR File')}</CardTitle>
               <CardDescription>
-                Export your WordPress content via Tools → Export → "All content". The downloaded .xml file is what you need.
+                {tr('Export your WordPress content via Tools → Export → "All content". The downloaded .xml file is what you need.')}
               </CardDescription>
             </CardHeader>
             <CardContent class="space-y-4">
               <div class="relative border-2 border-dashed rounded-lg p-12 text-center hover:border-primary/50 transition-colors">
                 <Upload class="mx-auto h-10 w-10 text-muted-foreground mb-3" />
                 <p class="text-sm text-muted-foreground mb-3">
-                  {file ? file.name : 'Click to select WXR file'}
+                  {file ? file.name : tr('Click to select WXR file')}
                 </p>
                 <input
                   type="file"
@@ -182,7 +183,7 @@
                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
                 {#if !file}
-                  <p class="text-xs text-muted-foreground">Supports .xml and .wxr files up to 100MB</p>
+                  <p class="text-xs text-muted-foreground">{tr('Supports .xml and .wxr files up to 100MB')}</p>
                 {/if}
               </div>
 
@@ -195,9 +196,9 @@
                   <Button onclick={handlePreview} disabled={uploading}>
                     {#if uploading}
                       <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                      Parsing...
+                      {tr('Parsing...')}
                     {:else}
-                      Preview Import
+                      {tr('Preview Import')}
                       <ArrowRight class="ml-2 h-4 w-4" />
                     {/if}
                   </Button>
@@ -209,8 +210,8 @@
         {:else if stage === 'preview'}
           <Card>
             <CardHeader>
-              <CardTitle>Import Preview</CardTitle>
-              <CardDescription>Review what will be imported from "{file?.name}"</CardDescription>
+              <CardTitle>{tr('Import Preview')}</CardTitle>
+              <CardDescription>{tr('Review what will be imported from "{name}"', { name: file?.name ?? '' })}</CardDescription>
             </CardHeader>
             <CardContent class="space-y-6">
               <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -224,9 +225,9 @@
               </div>
 
               <div class="flex justify-end gap-2">
-                <Button variant="outline" onclick={reset}>Cancel</Button>
+                <Button variant="outline" onclick={reset}>{tr('Cancel')}</Button>
                 <Button onclick={handleImport}>
-                  Start Import
+                  {tr('Start Import')}
                   <ArrowRight class="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -236,7 +237,7 @@
         {:else if stage === 'importing'}
           <Card>
             <CardHeader>
-              <CardTitle>Importing...</CardTitle>
+              <CardTitle>{tr('Importing...')}</CardTitle>
             </CardHeader>
             <CardContent class="space-y-4">
               <div class="w-full bg-muted rounded-full h-3">
@@ -262,47 +263,47 @@
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
                 <CheckCircle2 class="h-6 w-6 text-muted-foreground" />
-                Import Complete
+                {tr('Import Complete')}
               </CardTitle>
             </CardHeader>
             <CardContent class="space-y-4">
               <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 <div class="text-center p-3 rounded-lg bg-muted/50">
                   <div class="text-2xl font-bold">{results?.totalPosts || 0}</div>
-                  <div class="text-xs text-muted-foreground">Posts</div>
+                  <div class="text-xs text-muted-foreground">{tr('Posts')}</div>
                 </div>
                 <div class="text-center p-3 rounded-lg bg-muted/50">
                   <div class="text-2xl font-bold">{results?.totalPages || 0}</div>
-                  <div class="text-xs text-muted-foreground">Pages</div>
+                  <div class="text-xs text-muted-foreground">{tr('Pages')}</div>
                 </div>
                 <div class="text-center p-3 rounded-lg bg-muted/50">
                   <div class="text-2xl font-bold">{results?.totalCategories || 0}</div>
-                  <div class="text-xs text-muted-foreground">Categories</div>
+                  <div class="text-xs text-muted-foreground">{tr('Categories')}</div>
                 </div>
                 <div class="text-center p-3 rounded-lg bg-muted/50">
                   <div class="text-2xl font-bold">{results?.totalTags || 0}</div>
-                  <div class="text-xs text-muted-foreground">Tags</div>
+                  <div class="text-xs text-muted-foreground">{tr('Tags')}</div>
                 </div>
                 <div class="text-center p-3 rounded-lg bg-muted/50">
                   <div class="text-2xl font-bold">{results?.totalImages || 0}</div>
-                  <div class="text-xs text-muted-foreground">Images</div>
+                  <div class="text-xs text-muted-foreground">{tr('Images')}</div>
                 </div>
                 <div class="text-center p-3 rounded-lg bg-muted/50">
                   <div class="text-2xl font-bold">{results?.totalComments || 0}</div>
-                  <div class="text-xs text-muted-foreground">Comments</div>
+                  <div class="text-xs text-muted-foreground">{tr('Comments')}</div>
                 </div>
               </div>
 
               {#if results?.errors > 0}
                 <div class="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 rounded-lg p-3">
                   <AlertCircle class="h-4 w-4" />
-                  {results.errors} error(s) occurred during import
+                  {tr('{n} error(s) occurred during import', { n: results.errors })}
                 </div>
               {/if}
 
               <div class="flex justify-end gap-2">
-                <Button variant="outline" onclick={reset}>Import Another</Button>
-                <Button onclick={() => window.location.href = '/admin/posts'}>View Posts</Button>
+                <Button variant="outline" onclick={reset}>{tr('Import Another')}</Button>
+                <Button onclick={() => window.location.href = '/admin/posts'}>{tr('View Posts')}</Button>
               </div>
             </CardContent>
           </Card>
@@ -312,7 +313,7 @@
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
                 <AlertCircle class="h-6 w-6 text-red-500" />
-                Import Failed
+                {tr('Import Failed')}
               </CardTitle>
             </CardHeader>
             <CardContent class="space-y-4">
@@ -320,7 +321,7 @@
                 {error}
               </div>
               <div class="flex justify-end">
-                <Button variant="outline" onclick={reset}>Try Again</Button>
+                <Button variant="outline" onclick={reset}>{tr('Try Again')}</Button>
               </div>
             </CardContent>
           </Card>
@@ -331,52 +332,52 @@
       <div class="lg:col-span-1 space-y-3">
         <Card>
           <CardHeader>
-            <CardTitle class="text-sm">How it works</CardTitle>
+            <CardTitle class="text-sm">{tr('How it works')}</CardTitle>
           </CardHeader>
           <CardContent class="space-y-3 text-sm text-muted-foreground">
             <div class="flex gap-3">
               <span class="font-medium shrink-0">1</span>
-              <p>Go to WordPress admin → Tools → Export → Select "All content" → Download</p>
+              <p>{tr('Go to WordPress admin → Tools → Export → Select "All content" → Download')}</p>
             </div>
             <div class="flex gap-3">
               <span class="font-medium shrink-0">2</span>
-              <p>Upload the .xml file using the form on the left</p>
+              <p>{tr('Upload the .xml file using the form on the left')}</p>
             </div>
             <div class="flex gap-3">
               <span class="font-medium shrink-0">3</span>
-              <p>Preview the data before importing</p>
+              <p>{tr('Preview the data before importing')}</p>
             </div>
             <div class="flex gap-3">
               <span class="font-medium shrink-0">4</span>
-              <p>Click "Start Import" and wait for the process to complete</p>
+              <p>{tr('Click "Start Import" and wait for the process to complete')}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle class="text-sm">What gets imported</CardTitle>
+            <CardTitle class="text-sm">{tr('What gets imported')}</CardTitle>
           </CardHeader>
           <CardContent class="space-y-2 text-sm text-muted-foreground">
             <div class="flex items-center gap-2">
               <FileText class="h-4 w-4 text-muted-foreground" />
-              <span>Posts with original slugs preserved</span>
+              <span>{tr('Posts with original slugs preserved')}</span>
             </div>
             <div class="flex items-center gap-2">
               <FolderTree class="h-4 w-4 text-muted-foreground" />
-              <span>Categories (flat structure)</span>
+              <span>{tr('Categories (flat structure)')}</span>
             </div>
             <div class="flex items-center gap-2">
               <Tags class="h-4 w-4 text-muted-foreground" />
-              <span>Tags</span>
+              <span>{tr('Tags')}</span>
             </div>
             <div class="flex items-center gap-2">
               <ImageIcon class="h-4 w-4 text-muted-foreground" />
-              <span>Images (downloaded & hosted locally)</span>
+              <span>{tr('Images (downloaded & hosted locally)')}</span>
             </div>
             <div class="flex items-center gap-2">
               <MessageSquare class="h-4 w-4 text-muted-foreground" />
-              <span>Comments with nested replies</span>
+              <span>{tr('Comments with nested replies')}</span>
             </div>
           </CardContent>
         </Card>

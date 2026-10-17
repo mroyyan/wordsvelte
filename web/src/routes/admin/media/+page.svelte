@@ -18,6 +18,7 @@
   import PrimaryButton from '$lib/components/layout/primary-button.svelte'
   import { DataTableState, DataTableToolbar, DataTableFacetedFilter, DataTableBulkActions, DataTablePagination } from '$lib/components/data-table'
   import { api, errorMessage, fetchAll, runBulk } from '$lib/client/admin-api'
+  import { tr, msg, formatAdminDate } from '$lib/i18n/admin'
 
   interface MediaRow { id: number; r2Key: string; originalName: string; mimeType: string; size: number; width: number | null; height: number | null; createdAt: string }
 
@@ -47,7 +48,7 @@
   let fileInput: HTMLInputElement | undefined = $state()
 
   const formatSize = (bytes: number) => bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`
-  const formatDate = (s: string) => (!s || s.includes('datetime') ? '' : new Date(s).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }))
+  const formatDate = (s: string) => (!s || s.includes('datetime') ? '' : formatAdminDate(s))
 
   // only offer types that actually exist in the library
   const presentTypes = $derived(typeOptions.filter(o => table.rows.some(r => r.mimeType === o.value)))
@@ -80,12 +81,12 @@
       fd.append('file', file)
       const res = await fetch('/api/media', { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('wordsvelte_token') ?? ''}` }, body: fd })
       const json = await res.json().catch(() => null)
-      if (!json?.success) throw new Error(`${file.name}: ${json?.error || `upload failed (${res.status})`}`)
+      if (!json?.success) throw new Error(`${file.name}: ${json?.error || `${tr('upload failed ({status})', { status: res.status })}`}`)
     })
     input.value = ''
     await load(); uploading = false
-    if (failed) toast.error(`${ok} uploaded, ${failed} failed. ${firstError}`)
-    else toast.success(`${ok} file${ok === 1 ? '' : 's'} uploaded`)
+    if (failed) toast.error(tr('{ok} uploaded, {failed} failed. {error}', { ok, failed, error: firstError ?? '' }))
+    else toast.success(ok === 1 ? tr('1 file uploaded') : tr('{n} files uploaded', { n: ok }))
   }
 
   async function confirmDelete() {
@@ -94,25 +95,25 @@
     deleting = null; busy = true
     const { ok, failed, firstError } = await runBulk(targets, m => api(`/api/media/${m.id}`, { method: 'DELETE' }))
     await load(); table.clearSelection(); busy = false
-    if (failed) toast.error(`${ok} deleted, ${failed} failed: ${firstError}`)
-    else toast.success(`${ok} file${ok === 1 ? '' : 's'} deleted`)
+    if (failed) toast.error(tr('{ok} deleted, {failed} failed: {error}', { ok, failed, error: firstError ?? '' }))
+    else toast.success(ok === 1 ? tr('1 file deleted') : tr('{n} files deleted', { n: ok }))
   }
 </script>
 
-<svelte:head><title>Media</title></svelte:head>
+<svelte:head><title>{tr('Media')}</title></svelte:head>
 
 <div class="flex flex-1 flex-col gap-4">
-  <PageHeader title="Media" description="Upload & manage images">
+  <PageHeader title={tr('Media')} description={tr('Upload & manage images')}>
     {#snippet actions()}
       <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/avif" multiple class="hidden" onchange={handleUpload} disabled={uploading} bind:this={fileInput} />
-      <PrimaryButton label={uploading ? 'Uploading...' : 'Upload'} icon={uploading ? Loader2Icon : UploadIcon} disabled={uploading} onclick={() => fileInput?.click()} />
+      <PrimaryButton label={uploading ? tr('Uploading...') : tr('Upload')} icon={uploading ? Loader2Icon : UploadIcon} disabled={uploading} onclick={() => fileInput?.click()} />
     {/snippet}
   </PageHeader>
 
-  <DataTableToolbar {table} searchPlaceholder="Filter files...">
+  <DataTableToolbar {table} searchPlaceholder={msg('Filter files...')}>
     {#snippet filters()}
       {#if presentTypes.length > 1}
-        <DataTableFacetedFilter title="Type" options={presentTypes} selected={table.filters.type ?? []} counts={table.counts('type')} onChange={(v) => table.setFilter('type', v)} />
+        <DataTableFacetedFilter title={msg('Type')} options={presentTypes} selected={table.filters.type ?? []} counts={table.counts('type')} onChange={(v) => table.setFilter('type', v)} />
       {/if}
     {/snippet}
   </DataTableToolbar>
@@ -124,18 +125,18 @@
   {:else if visible.length === 0}
     <div class="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
       <UploadIcon class="size-12 opacity-20" />
-      <p>{table.rows.length === 0 ? 'No media yet. Upload your first image.' : 'No files match your filters.'}</p>
+      <p>{table.rows.length === 0 ? tr('No media yet. Upload your first image.') : tr('No files match your filters.')}</p>
     </div>
   {:else}
     <div class="flex items-center gap-2 text-sm text-muted-foreground">
-      <Checkbox checked={allSelected} indeterminate={someSelected} onCheckedChange={toggleAllVisible} aria-label="Select all files" />
-      <span>{allSelected ? 'Deselect all' : 'Select all'} on this page ({visible.length})</span>
+      <Checkbox checked={allSelected} indeterminate={someSelected} onCheckedChange={toggleAllVisible} aria-label={tr('Select all files')} />
+      <span>{allSelected ? tr('Deselect all on this page ({n})', { n: visible.length }) : tr('Select all on this page ({n})', { n: visible.length })}</span>
     </div>
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
       {#each visible as item (item.id)}
         {@const selected = table.selected.has(item.id)}
         <div class="group relative aspect-square overflow-hidden rounded-lg border bg-background transition-all hover:border-primary hover:ring-2 hover:ring-primary {selected ? 'border-primary ring-2 ring-primary' : ''}">
-          <button type="button" class="size-full" onclick={() => (previewItem = item)} aria-label={`Preview ${item.originalName}`}>
+          <button type="button" class="size-full" onclick={() => (previewItem = item)} aria-label={tr('Preview {name}', { name: item.originalName })}>
             <img src="/api/media/{item.r2Key}" alt={item.originalName} class="size-full object-cover" loading="lazy" />
             <div class="absolute inset-0 flex flex-col items-center justify-end bg-black/60 p-2 opacity-0 transition-opacity group-hover:opacity-100">
               <span class="mb-0.5 w-full truncate text-[10px] font-medium text-white">{item.originalName}</span>
@@ -143,7 +144,7 @@
             </div>
           </button>
           <div class="absolute start-2 top-2 rounded bg-background/90 p-1 shadow-sm {selected ? '' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'}">
-            <Checkbox checked={selected} onCheckedChange={() => table.toggleRow(item)} aria-label={`Select ${item.originalName}`} />
+            <Checkbox checked={selected} onCheckedChange={() => table.toggleRow(item)} aria-label={tr('Select {name}', { name: item.originalName })} />
           </div>
         </div>
       {/each}
@@ -153,9 +154,9 @@
   <DataTablePagination {table} pageSizes={[24, 48, 96]} class="mt-auto" />
 </div>
 
-<DataTableBulkActions {table} entityName="file">
+<DataTableBulkActions {table} entityName={msg('file')}>
   {#snippet actions()}
-    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> Delete</Button>
+    <Button size="sm" variant="destructive" disabled={busy} onclick={() => (deleting = table.selectedRows)}><Trash2Icon class="size-4" /> {tr('Delete')}</Button>
   {/snippet}
 </DataTableBulkActions>
 
@@ -165,10 +166,10 @@
       <div class="flex items-center justify-between">
         <DialogTitle>{previewItem?.originalName}</DialogTitle>
         <div class="flex items-center gap-1">
-          <a href="/api/media/{previewItem?.r2Key}" download target="_blank" rel="noopener" aria-label="Download">
+          <a href="/api/media/{previewItem?.r2Key}" download target="_blank" rel="noopener" aria-label={tr('Download')}>
             <Button variant="ghost" size="icon" class="size-8"><DownloadIcon class="size-4" /></Button>
           </a>
-          <Button variant="ghost" size="icon" class="size-8" onclick={() => (previewItem = null)} aria-label="Close"><XIcon class="size-4" /></Button>
+          <Button variant="ghost" size="icon" class="size-8" onclick={() => (previewItem = null)} aria-label={tr('Close')}><XIcon class="size-4" /></Button>
         </div>
       </div>
     </DialogHeader>
@@ -178,16 +179,16 @@
           <img src="/api/media/{previewItem.r2Key}" alt={previewItem.originalName} class="max-h-[60vh] max-w-full object-contain" />
         </div>
         <div class="grid grid-cols-2 gap-4 text-sm">
-          <div><span class="text-muted-foreground">File name</span><p class="truncate font-medium">{previewItem.originalName}</p></div>
-          <div><span class="text-muted-foreground">Size</span><p class="font-medium">{formatSize(previewItem.size)}</p></div>
-          <div><span class="text-muted-foreground">Type</span><p class="font-medium">{previewItem.mimeType}</p></div>
-          <div><span class="text-muted-foreground">Uploaded</span><p class="font-medium">{formatDate(previewItem.createdAt) || 'Recently'}</p></div>
+          <div><span class="text-muted-foreground">{tr('File name')}</span><p class="truncate font-medium">{previewItem.originalName}</p></div>
+          <div><span class="text-muted-foreground">{tr('Size')}</span><p class="font-medium">{formatSize(previewItem.size)}</p></div>
+          <div><span class="text-muted-foreground">{tr('Type')}</span><p class="font-medium">{previewItem.mimeType}</p></div>
+          <div><span class="text-muted-foreground">{tr('Uploaded')}</span><p class="font-medium">{formatDate(previewItem.createdAt) || tr('Recently')}</p></div>
           {#if previewItem.width}
-            <div><span class="text-muted-foreground">Dimensions</span><p class="font-medium">{previewItem.width} x {previewItem.height}</p></div>
+            <div><span class="text-muted-foreground">{tr('Dimensions')}</span><p class="font-medium">{previewItem.width} x {previewItem.height}</p></div>
           {/if}
         </div>
         <Button variant="destructive" class="h-10 w-full gap-2" onclick={() => { if (previewItem) deleting = [previewItem]; previewItem = null }}>
-          <Trash2Icon class="size-4" /> Delete this file
+          <Trash2Icon class="size-4" /> {tr('Delete this file')}
         </Button>
       </div>
     {/if}
@@ -197,12 +198,12 @@
 <AlertDialog open={deleting !== null} onOpenChange={(o) => { if (!o) deleting = null }}>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete {deleting?.length === 1 ? 'this file' : `${deleting?.length} files`}?</AlertDialogTitle>
-      <AlertDialogDescription>Posts that use {deleting?.length === 1 ? 'it' : 'them'} will show a broken image. This cannot be undone.</AlertDialogDescription>
+      <AlertDialogTitle>{deleting?.length === 1 ? tr('Delete this file?') : tr('Delete {n} files?', { n: deleting?.length ?? 0 })}</AlertDialogTitle>
+      <AlertDialogDescription>{deleting?.length === 1 ? tr('Posts that use it will show a broken image. This cannot be undone.') : tr('Posts that use them will show a broken image. This cannot be undone.')}</AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction onclick={confirmDelete}>Delete</AlertDialogAction>
+      <AlertDialogCancel>{tr('Cancel')}</AlertDialogCancel>
+      <AlertDialogAction onclick={confirmDelete}>{tr('Delete')}</AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
 </AlertDialog>

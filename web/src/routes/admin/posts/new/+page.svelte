@@ -11,6 +11,7 @@
   import { Checkbox } from '$lib/components/ui/checkbox'
   import { Separator } from '$lib/components/ui/separator'
   import { Badge } from '$lib/components/ui/badge'
+  import { tr } from '$lib/i18n/admin'
   import { Save, Loader2, Edit2, Check, Globe, UploadCloud, X, Link, Plus, Image } from '@lucide/svelte'
   import * as Select from '$lib/components/ui/select'
   import MediaLibrary from '$lib/components/admin/media/media-library.svelte'
@@ -84,7 +85,7 @@
         body: formData
       })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || 'Failed to upload image')
+      if (!json.success) throw new Error(json.error || tr('Failed to upload image'))
       featuredImageUrl = `/api/media/${json.data.r2Key}`
     } catch (err: any) {
       alert(err.message)
@@ -167,7 +168,7 @@
         throw new Error(json.error)
       }
     } catch (e: any) {
-      alert('Failed to save draft: ' + e.message)
+      alert(tr('Failed to save draft: {error}', { error: e.message }))
       goto(path) // Still navigate even if save fails? User choice.
     } finally {
       saving = false
@@ -177,7 +178,7 @@
   async function handleSubmit(e: Event) {
     e.preventDefault()
     if (!title.trim() || !content.trim()) return
-    if (status === 'scheduled' && !publishedAt) { alert('Choose a date and time to publish this post'); return }
+    if (status === 'scheduled' && !publishedAt) { alert(tr('Choose a date and time to publish this post')); return }
     const tok = t()
     if (!tok) return
     saving = true
@@ -201,7 +202,7 @@
         }),
       })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || 'Failed to create post')
+      if (!json.success) throw new Error(json.error || tr('Failed to create post'))
       goto('/admin/posts')
     } catch (e: any) {
       alert(e.message)
@@ -214,10 +215,10 @@
 {#if mounted}
 <div class="flex flex-1 flex-col gap-6">
   <div class="flex flex-wrap items-end justify-between gap-2">
-    <div><h2 class="text-xl font-bold tracking-tight sm:text-2xl">New Post</h2><p class="text-sm text-muted-foreground sm:text-base">Create a new article</p></div>
+    <div><h2 class="text-xl font-bold tracking-tight sm:text-2xl">{tr('New Post')}</h2><p class="text-sm text-muted-foreground sm:text-base">{tr('Create a new article')}</p></div>
     <Button type="submit" form="post-form" disabled={saving}>
       {#if saving}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
-      <Save class="mr-2 h-4 w-4" /> {saving ? 'Saving...' : status === 'scheduled' ? 'Schedule Post' : 'Save Post'}
+      <Save class="mr-2 h-4 w-4" /> {saving ? tr('Saving...') : status === 'scheduled' ? tr('Schedule Post') : tr('Save Post')}
     </Button>
   </div>
 
@@ -225,15 +226,15 @@
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div class="min-w-0 space-y-6 lg:col-span-2">
         <Card>
-          <CardHeader><CardTitle>Content</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{tr('Content')}</CardTitle></CardHeader>
           <CardContent class="space-y-3">
             <div class="space-y-2">
-              <Label for="title">Title</Label>
+              <Label for="title">{tr('Title')}</Label>
               <input
                 type="text"
                 id="title"
                 bind:value={title}
-                placeholder="Post title"
+                placeholder={tr('Post title')}
                 required
                 class="flex h-12 w-full rounded-md border border-input bg-transparent px-3 text-xl py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               />
@@ -247,15 +248,15 @@
                     type="text"
                     bind:value={slug}
                     oninput={() => { slugManuallyEdited = true }}
-                    placeholder="auto-generated"
+                    placeholder={tr('auto-generated')}
                     class="flex-1 bg-transparent border-0 focus:ring-0 focus:outline-none font-mono text-sm text-foreground"
-                    aria-label="Edit slug"
+                    aria-label={tr('Edit slug')}
                   />
                   <button
                     type="button"
                     class="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground"
                     onclick={() => { editingSlug = false }}
-                    aria-label="Done editing slug"
+                    aria-label={tr('Done editing slug')}
                   >
                     <Check class="h-4 w-4" />
                   </button>
@@ -264,12 +265,12 @@
                 <div class="flex items-center gap-0 group">
                   <Globe class="h-3.5 w-3.5 text-muted-foreground mr-1" />
                   <span class="font-mono text-sm text-muted-foreground">{baseUrl}/</span>
-                  <span class="font-mono text-sm text-foreground">{slug || 'auto-generated'}</span>
+                  <span class="font-mono text-sm text-foreground">{slug || tr('auto-generated')}</span>
                   <button
                     type="button"
                     class="p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                     onclick={() => { editingSlug = true }}
-                    aria-label="Edit slug"
+                    aria-label={tr('Edit slug')}
                   >
                     <Edit2 class="h-4 w-4 text-muted-foreground" />
                   </button>
@@ -277,7 +278,7 @@
               {/if}
             </div>
             <div class="space-y-2">
-              <Label for="content">Content</Label>
+              <Label for="content">{tr('Content')}</Label>
               <MdEditor bind:value={content} />
             </div>
 
@@ -287,16 +288,16 @@
 
       <div class="min-w-0 space-y-6 lg:col-span-1">
          <Card>
-          <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{tr('Settings')}</CardTitle></CardHeader>
           <CardContent>
             <div class="space-y-2">
-              <Select.Root type="single" bind:value={status} items={[{ value: 'draft', label: 'Draft' }, { value: 'scheduled', label: 'Scheduled' }, { value: 'publish', label: 'Publish' }]}>
+              <Select.Root type="single" bind:value={status} items={[{ value: 'draft', label: tr('Draft') }, { value: 'scheduled', label: tr('Scheduled') }, { value: 'publish', label: tr('Publish') }]}>
                 <Select.Trigger class="w-full">
-                  <Select.Value placeholder="Select status" />
+                  <Select.Value placeholder={tr('Select status')} />
                 </Select.Trigger>
                 <Select.Content preventScroll={false}>
-                  <Select.Item value="draft" label="Draft" />
-                  <Select.Item value="scheduled" label="Scheduled" /><Select.Item value="publish" label="Publish" />
+                  <Select.Item value="draft" label={tr('Draft')} />
+                  <Select.Item value="scheduled" label={tr('Scheduled')} /><Select.Item value="publish" label={tr('Publish')} />
                 </Select.Content>
               </Select.Root>
             </div>
@@ -304,9 +305,9 @@
             <div class="space-y-2 mt-3">
               <label class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors">
                 <Checkbox checked={isFeatured} onCheckedChange={() => isFeatured = !isFeatured} />
-                <span class="text-sm font-medium leading-none">Featured on Homepage</span>
+                <span class="text-sm font-medium leading-none">{tr('Featured on Homepage')}</span>
               </label>
-              <p class="text-xs text-muted-foreground px-2">Max 5 featured posts. Oldest will be replaced.</p>
+              <p class="text-xs text-muted-foreground px-2">{tr('Max 5 featured posts. Oldest will be replaced.')}</p>
             </div>
           </CardContent>
         </Card>
@@ -314,7 +315,7 @@
         <Card>
           <CardHeader>
             <div class="flex items-center justify-between">
-              <CardTitle>Featured Image</CardTitle>
+              <CardTitle>{tr('Featured Image')}</CardTitle>
               <div class="flex rounded-md bg-muted p-0.5 text-muted-foreground">
                 <button
                   type="button"
@@ -323,7 +324,7 @@
                   class:text-foreground={imageSourceType === 'upload'}
                   onclick={() => imageSourceType = 'upload'}
                 >
-                  Upload
+                  {tr('Upload')}
                 </button>
                 <button
                   type="button"
@@ -341,12 +342,12 @@
             {#if imageSourceType === 'upload'}
               {#if featuredImageUrl}
                 <div class="relative group aspect-video rounded-md overflow-hidden border bg-muted flex items-center justify-center">
-                  <img src={featuredImageUrl} alt="Featured Preview" class="w-full h-full object-cover" />
+                  <img src={featuredImageUrl} alt={tr('Featured Preview')} class="w-full h-full object-cover" />
                   <button
                     type="button"
                     class="absolute top-2 right-2 p-1.5 bg-background/80 hover:bg-background text-foreground rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                     onclick={() => featuredImageUrl = ''}
-                    aria-label="Remove image"
+                    aria-label={tr('Remove image')}
                   >
                     <X class="h-4 w-4" />
                   </button>
@@ -355,13 +356,13 @@
                 <button type="button" class="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors" onclick={() => showFeaturedMediaLibrary = true}>
                   <div class="flex flex-col items-center justify-center pt-5 pb-6">
                     <UploadCloud class="h-8 w-8 text-muted-foreground mb-2" />
-                    <p class="text-xs text-muted-foreground"><span class="font-semibold">Browse Media</span> to choose existing</p>
+                    <p class="text-xs text-muted-foreground"><span class="font-semibold">{tr('Browse Media')}</span> {tr('to choose existing')}</p>
                   </div>
                 </button>
               {/if}
             {:else}
               <div class="space-y-2">
-                <Label for="image">Image URL</Label>
+                <Label for="image">{tr('Image URL')}</Label>
                 <div class="relative flex items-center">
                   <Input id="image" bind:value={featuredImageUrl} placeholder="https://..." class="pr-9" />
                   {#if featuredImageUrl}
@@ -369,7 +370,7 @@
                       type="button"
                       class="absolute right-2 p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground"
                       onclick={() => featuredImageUrl = ''}
-                      aria-label="Clear URL"
+                      aria-label={tr('Clear URL')}
                     >
                       <X class="h-4 w-4" />
                     </button>
@@ -390,7 +391,7 @@
         <Card>
           <CardHeader>
             <div class="flex items-center justify-between">
-              <CardTitle>Categories</CardTitle>
+              <CardTitle>{tr('Categories')}</CardTitle>
               <Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => saveAsDraftAndNavigate('/admin/categories')}>
                 <Plus class="h-4 w-4" />
               </Button>
@@ -398,9 +399,9 @@
           </CardHeader>
           <CardContent>
             {#if loading}
-              <p class="text-sm text-muted-foreground">Loading...</p>
+              <p class="text-sm text-muted-foreground">{tr('Loading...')}</p>
             {:else if categories.length === 0}
-              <p class="text-sm text-muted-foreground">No categories.</p>
+              <p class="text-sm text-muted-foreground">{tr('No categories.')}</p>
             {:else}
               <div class="space-y-1 max-h-[220px] overflow-y-auto pr-1" onscroll={handleCategoryScroll}>
                 {#each categories.slice(0, visibleCategoriesCount) as cat}
@@ -420,7 +421,7 @@
         <Card>
           <CardHeader>
             <div class="flex items-center justify-between">
-              <CardTitle>Tags</CardTitle>
+              <CardTitle>{tr('Tags')}</CardTitle>
               <Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => saveAsDraftAndNavigate('/admin/tags')}>
                 <Plus class="h-4 w-4" />
               </Button>
@@ -428,9 +429,9 @@
           </CardHeader>
           <CardContent>
             {#if loading}
-              <p class="text-sm text-muted-foreground">Loading...</p>
+              <p class="text-sm text-muted-foreground">{tr('Loading...')}</p>
             {:else if tags.length === 0}
-              <p class="text-sm text-muted-foreground">No tags.</p>
+              <p class="text-sm text-muted-foreground">{tr('No tags.')}</p>
             {:else}
               <div class="space-y-1 max-h-[220px] overflow-y-auto pr-1" onscroll={handleTagScroll}>
                 {#each tags.slice(0, visibleTagsCount) as tag}
@@ -452,5 +453,5 @@
   </form>
 </div>
 {:else}
-  <div class="flex flex-1 flex-col gap-4"><div class="flex items-center justify-center h-24 text-muted-foreground">Loading...</div></div>
+  <div class="flex flex-1 flex-col gap-4"><div class="flex items-center justify-center h-24 text-muted-foreground">{tr('Loading...')}</div></div>
 {/if}

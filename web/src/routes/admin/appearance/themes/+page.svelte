@@ -5,6 +5,7 @@
   import { Input } from '$lib/components/ui/input'
   import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '$lib/components/ui/dialog'
   import { Upload, UploadCloud, FileArchive } from '@lucide/svelte'
+  import { tr } from '$lib/i18n/admin'
 
   let mounted = $state(false)
   onMount(() => { mounted = true })
@@ -62,18 +63,18 @@
 {#if mounted}
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <div><h1 class="text-2xl font-bold tracking-tight">Themes</h1><p class="text-muted-foreground">Manage site appearance</p></div>
-    <PrimaryButton label="Upload Theme" icon={Upload} onclick={() => (uploadOpen = true)} />
+    <div><h1 class="text-2xl font-bold tracking-tight">{tr('Themes')}</h1><p class="text-muted-foreground">{tr('Manage site appearance')}</p></div>
+    <PrimaryButton label={tr('Upload Theme')} icon={Upload} onclick={() => (uploadOpen = true)} />
   </div>
 
   {#if loading}
-    <p class="text-center py-8 text-muted-foreground">Loading...</p>
+    <p class="text-center py-8 text-muted-foreground">{tr('Loading...')}</p>
   {:else if themes.length === 0}
     <div class="border-2 border-dashed rounded-lg p-12 text-center text-muted-foreground">
       <UploadCloud class="h-8 w-8 mx-auto mb-3" />
-      <p class="font-medium">No themes yet</p>
-      <p class="text-sm mb-4">Upload a .zip theme file</p>
-      <PrimaryButton label="Upload Theme" icon={Upload} onclick={() => (uploadOpen = true)} />
+      <p class="font-medium">{tr('No themes yet')}</p>
+      <p class="text-sm mb-4">{tr('Upload a .zip theme file')}</p>
+      <PrimaryButton label={tr('Upload Theme')} icon={Upload} onclick={() => (uploadOpen = true)} />
     </div>
   {:else}
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -93,11 +94,11 @@
               </div>
               <span class="shrink-0 text-[11px] text-muted-foreground">{theme.version || '1.0'}</span>
             </div>
-            <p class="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{theme.description || 'No description'}</p>
+            <p class="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{theme.description || tr('No description')}</p>
             {#if theme.slug === activeTheme}
-              <Button size="sm" class="w-full h-7 text-xs" variant="secondary" disabled>Active</Button>
+              <Button size="sm" class="w-full h-7 text-xs" variant="secondary" disabled>{tr('Active')}</Button>
             {:else}
-              <Button size="sm" class="w-full h-7 text-xs" onclick={() => activate(theme.slug)}>Activate</Button>
+              <Button size="sm" class="w-full h-7 text-xs" onclick={() => activate(theme.slug)}>{tr('Activate')}</Button>
             {/if}
           </div>
         </div>
@@ -107,12 +108,12 @@
 </div>
 
 <Dialog open={uploadOpen} onOpenChange={(o) => { if (!o) { uploadOpen = false; uploadFile = null; uploadError = '' } }}>
-  <DialogContent class="sm:max-w-sm"><DialogHeader><DialogTitle>Upload Theme</DialogTitle></DialogHeader>
+  <DialogContent class="sm:max-w-sm"><DialogHeader><DialogTitle>{tr('Upload Theme')}</DialogTitle></DialogHeader>
     <div class="space-y-4 py-4">
       <button type="button" class="border-2 border-dashed rounded-lg p-8 text-center w-full cursor-pointer hover:bg-muted/50 transition-colors" onclick={() => document.getElementById('theme-file-input')?.click()}>
         <UploadCloud class="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-        <p class="text-sm font-medium">{uploadFile ? uploadFile.name : 'Click to select .zip file'}</p>
-        <p class="text-xs text-muted-foreground mt-1">Theme must contain manifest.json</p>
+        <p class="text-sm font-medium">{uploadFile ? uploadFile.name : tr('Click to select .zip file')}</p>
+        <p class="text-xs text-muted-foreground mt-1">{tr('Theme must contain manifest.json')}</p>
         <Input id="theme-file-input" type="file" accept=".zip" class="hidden" onchange={(e) => { const files = (e.target as HTMLInputElement).files; if (files?.length) uploadFile = files[0] }} />
       </button>
       {#if uploadError}
@@ -120,11 +121,11 @@
       {/if}
     </div>
     <DialogFooter>
-      <Button variant="outline" onclick={() => { uploadOpen = false; uploadFile = null; uploadError = '' }}>Cancel</Button>
-      <Button disabled={!uploadFile || uploading} onclick={handleUpload}>{uploading ? 'Uploading...' : 'Upload & Install'}</Button>
+      <Button variant="outline" onclick={() => { uploadOpen = false; uploadFile = null; uploadError = '' }}>{tr('Cancel')}</Button>
+      <Button disabled={!uploadFile || uploading} onclick={handleUpload}>{uploading ? tr('Uploading...') : tr('Upload & Install')}</Button>
     </DialogFooter>
   </DialogContent>
 </Dialog>
 {:else}
-  <div class="flex items-center justify-center h-24 text-muted-foreground">Loading...</div>
+  <div class="flex items-center justify-center h-24 text-muted-foreground">{tr('Loading...')}</div>
 {/if}

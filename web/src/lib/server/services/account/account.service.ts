@@ -2,6 +2,7 @@ import type { DbInstance } from '$lib/server/db'
 import { AppError, ConflictError, NotFoundError, ValidationError } from '$lib/server/core/errors'
 import { hashPassword, passwordPolicyError, verifyPassword } from '$lib/server/core/crypto'
 import { EMAIL_RE } from '$lib/server/core/validators'
+import { LANGUAGES } from '$lib/shared/format-date'
 import { normalizeEmail } from '$lib/server/services/account/user.service'
 import { createUserRepository, type UserPatch, type UserRow } from '$lib/server/repositories/users.repository'
 
@@ -11,7 +12,7 @@ const getRow = async (db: DbInstance, userId: number) => {
   return u
 }
 
-const view = (u: UserRow) => ({ id: u.id, email: u.email, username: u.username, displayName: u.displayName, role: u.role, createdAt: u.createdAt })
+const view = (u: UserRow) => ({ id: u.id, email: u.email, username: u.username, displayName: u.displayName, role: u.role, language: u.language ?? null, createdAt: u.createdAt })
 
 export async function getProfile(db: DbInstance, userId: number) {
   return view(await getRow(db, userId))
@@ -24,7 +25,7 @@ async function requirePassword(user: UserRow, password: unknown) {
   }
 }
 
-export async function updateProfile(db: DbInstance, userId: number, body: { displayName?: unknown; email?: unknown; currentPassword?: unknown }) {
+export async function updateProfile(db: DbInstance, userId: number, body: { displayName?: unknown; email?: unknown; currentPassword?: unknown; language?: unknown }) {
   const u = await getRow(db, userId)
   const users = createUserRepository(db)
   const patch: UserPatch = {}
@@ -34,6 +35,13 @@ export async function updateProfile(db: DbInstance, userId: number, body: { disp
     if (!name) throw new ValidationError('Display name is required')
     if (name.length > 100) throw new ValidationError('Display name too long (max 100 chars)')
     patch.displayName = name
+  }
+
+  // '' / null: follow the site language
+  if (body.language !== undefined) {
+    const code = body.language === null || body.language === '' ? null : String(body.language)
+    if (code !== null && !LANGUAGES.some(l => l.value === code)) throw new ValidationError(`Language must be one of: ${LANGUAGES.map(l => l.value).join(', ')}`)
+    patch.language = code
   }
 
   if (body.email !== undefined) {

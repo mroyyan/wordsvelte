@@ -21,6 +21,8 @@ export interface AuthUser {
   email: string
   username: string
   displayName: string
+  /** Admin panel language chosen by this person; null follows the site language. */
+  language: string | null
 }
 
 type EventLike = Pick<RequestEvent, 'request' | 'cookies' | 'platform'>
@@ -133,7 +135,7 @@ export async function requireUser(event: EventLike, minRole: Role = 'author'): P
   const role = user.role as Role
   if (ROLE_RANK[role] < ROLE_RANK[minRole]) throw new ForbiddenError('Insufficient permissions')
 
-  return { userId: user.id, role, email: user.email, username: user.username, displayName: user.displayName }
+  return { userId: user.id, role, email: user.email, username: user.username, displayName: user.displayName, language: user.language ?? null }
 }
 
 /** The signed-in user, or null for anonymous/invalid credentials (other failures still throw). */

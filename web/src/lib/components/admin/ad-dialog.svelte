@@ -14,6 +14,7 @@
   import MediaLibrary from '$lib/components/admin/media/media-library.svelte'
   import { api, errorMessage } from '$lib/client/admin-api'
   import { AD_PLACEMENT_OPTIONS, AD_DEVICE_OPTIONS } from '$lib/config/ads'
+  import { tr, msg } from '$lib/i18n/admin'
 
   /** Create an ad (adId null) or edit one. `onsaved` runs after a successful save so the list can reload. */
   let { open = $bindable(false), adId = null, onsaved }: { open?: boolean; adId?: number | null; onsaved?: () => void } = $props()
@@ -35,7 +36,7 @@
   let endsAt = $state('')
   let clicks = $state(0)
 
-  const labelOf = (list: { value: string; label: string }[], v: string) => list.find(o => o.value === v)?.label ?? 'Select...'
+  const labelOf = (list: { value: string; label: string }[], v: string) => { const o = list.find(o => o.value === v); return o ? tr(o.label) : tr('Select...') }
 
   function reset() {
     name = ''; placement = 'sidebar-top'; type = 'banner'; imageUrl = ''; linkUrl = ''; altText = ''; code = ''
@@ -69,7 +70,7 @@
     }
     try {
       await api(adId === null ? '/api/ads' : `/api/ads/${adId}`, { method: adId === null ? 'POST' : 'PATCH', body })
-      toast.success(adId === null ? 'Ad created' : 'Ad updated')
+      toast.success(adId === null ? tr('Ad created') : tr('Ad updated'))
       open = false
       onsaved?.()
     } catch (err) { error = errorMessage(err) } finally { saving = false }
@@ -79,8 +80,8 @@
 <Dialog bind:open>
   <DialogContent class="flex max-h-[92vh] flex-col gap-0 p-0 sm:max-w-xl">
     <DialogHeader class="border-b p-4 pe-12">
-      <DialogTitle>{adId === null ? 'New ad' : 'Edit ad'}</DialogTitle>
-      <DialogDescription>Choose where it shows, what it shows and when it runs.</DialogDescription>
+      <DialogTitle>{adId === null ? tr('New ad') : tr('Edit ad')}</DialogTitle>
+      <DialogDescription>{tr('Choose where it shows, what it shows and when it runs.')}</DialogDescription>
     </DialogHeader>
 
     <form id="ad-form" onsubmit={save} class="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
@@ -90,81 +91,81 @@
         <Skeleton class="h-16 w-full" /><Skeleton class="h-16 w-full" /><Skeleton class="h-32 w-full" />
       {:else}
         <div class="space-y-2">
-          <Label for="ad-name">Name</Label>
-          <Input id="ad-name" bind:value={name} required maxlength={100} placeholder="e.g. Sponsor banner October" />
-          <p class="text-sm text-muted-foreground">Only for you, to tell ads apart.</p>
+          <Label for="ad-name">{tr('Name')}</Label>
+          <Input id="ad-name" bind:value={name} required maxlength={100} placeholder={tr('e.g. Sponsor banner October')} />
+          <p class="text-sm text-muted-foreground">{tr('Only for you, to tell ads apart.')}</p>
         </div>
 
         <div class="space-y-2">
-          <Label for="ad-placement">Placement</Label>
+          <Label for="ad-placement">{tr('Placement')}</Label>
           <Select.Root type="single" value={placement} onValueChange={(v) => (placement = v)}>
             <Select.Trigger id="ad-placement" class="w-full">{labelOf(AD_PLACEMENT_OPTIONS, placement)}</Select.Trigger>
             <Select.Content>
-              {#each AD_PLACEMENT_OPTIONS as o (o.value)}<Select.Item value={o.value} label={o.label}>{o.label}</Select.Item>{/each}
+              {#each AD_PLACEMENT_OPTIONS as o (o.value)}<Select.Item value={o.value} label={tr(o.label)}>{tr(o.label)}</Select.Item>{/each}
             </Select.Content>
           </Select.Root>
-          <p class="text-sm text-muted-foreground">Several ads in one place are shown one under the other.</p>
+          <p class="text-sm text-muted-foreground">{tr('Several ads in one place are shown one under the other.')}</p>
         </div>
 
         <div class="space-y-2">
-          <Label>Type</Label>
-          <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Ad type">
-            <Button type="button" role="radio" aria-checked={type === 'banner'} variant={type === 'banner' ? 'default' : 'outline'} onclick={() => (type = 'banner')}>Banner</Button>
-            <Button type="button" role="radio" aria-checked={type === 'code'} variant={type === 'code' ? 'default' : 'outline'} onclick={() => (type = 'code')}>Ad code (AdSense, ...)</Button>
+          <Label>{tr('Type')}</Label>
+          <div class="flex flex-wrap gap-2" role="radiogroup" aria-label={tr('Ad type')}>
+            <Button type="button" role="radio" aria-checked={type === 'banner'} variant={type === 'banner' ? 'default' : 'outline'} onclick={() => (type = 'banner')}>{tr('Banner')}</Button>
+            <Button type="button" role="radio" aria-checked={type === 'code'} variant={type === 'code' ? 'default' : 'outline'} onclick={() => (type = 'code')}>{tr('Ad code (AdSense, ...)')}</Button>
           </div>
         </div>
 
         {#if type === 'banner'}
           <div class="space-y-2">
-            <Label for="ad-image">Image</Label>
+            <Label for="ad-image">{tr('Image')}</Label>
             <div class="flex gap-2">
-              <Input id="ad-image" bind:value={imageUrl} placeholder="https://... or from the media library" class="min-w-0 flex-1" />
-              <Button type="button" variant="outline" class="h-8" onclick={() => (showLibrary = true)}><ImageIcon /> Browse</Button>
+              <Input id="ad-image" bind:value={imageUrl} placeholder={tr('https://... or from the media library')} class="min-w-0 flex-1" />
+              <Button type="button" variant="outline" class="h-8" onclick={() => (showLibrary = true)}><ImageIcon /> {tr('Browse')}</Button>
             </div>
             {#if imageUrl}<img src={imageUrl} alt="" class="mt-2 max-h-32 rounded-md border object-contain" />{/if}
           </div>
           <div class="space-y-2">
-            <Label for="ad-link">Link</Label>
+            <Label for="ad-link">{tr('Link')}</Label>
             <Input id="ad-link" type="url" bind:value={linkUrl} placeholder="https://advertiser.example/landing" />
-            <p class="text-sm text-muted-foreground">Where a click goes. Clicks are counted and the link is marked as sponsored.</p>
+            <p class="text-sm text-muted-foreground">{tr('Where a click goes. Clicks are counted and the link is marked as sponsored.')}</p>
           </div>
           <div class="space-y-2">
-            <Label for="ad-alt">Image description</Label>
-            <Input id="ad-alt" bind:value={altText} maxlength={150} placeholder="Short text for screen readers" />
+            <Label for="ad-alt">{tr('Image description')}</Label>
+            <Input id="ad-alt" bind:value={altText} maxlength={150} placeholder={tr('Short text for screen readers')} />
           </div>
         {:else}
           <div class="space-y-2">
-            <Label for="ad-code">Ad code</Label>
-            <Textarea id="ad-code" bind:value={code} rows={7} class="font-mono text-xs" placeholder="Paste the code from your ad network here" />
-            <p class="text-sm text-muted-foreground">Used exactly as pasted, scripts included. It runs on every page where it shows, so only paste code you trust.</p>
+            <Label for="ad-code">{tr('Ad code')}</Label>
+            <Textarea id="ad-code" bind:value={code} rows={7} class="font-mono text-xs" placeholder={tr('Paste the code from your ad network here')} />
+            <p class="text-sm text-muted-foreground">{tr('Used exactly as pasted, scripts included. It runs on every page where it shows, so only paste code you trust.')}</p>
           </div>
         {/if}
 
         <div class="space-y-2">
-          <Label for="ad-devices">Show on</Label>
+          <Label for="ad-devices">{tr('Show on')}</Label>
           <Select.Root type="single" value={devices} onValueChange={(v) => (devices = v)}>
             <Select.Trigger id="ad-devices" class="w-full">{labelOf(AD_DEVICE_OPTIONS, devices)}</Select.Trigger>
             <Select.Content>
-              {#each AD_DEVICE_OPTIONS as o (o.value)}<Select.Item value={o.value} label={o.label}>{o.label}</Select.Item>{/each}
+              {#each AD_DEVICE_OPTIONS as o (o.value)}<Select.Item value={o.value} label={tr(o.label)}>{tr(o.label)}</Select.Item>{/each}
             </Select.Content>
           </Select.Root>
         </div>
 
         <div class="grid gap-5 sm:grid-cols-2">
-          <ScheduleField id="ad-start" bind:value={startsAt} label="Starts" verb="Starts" allowPast clearable />
-          <ScheduleField id="ad-end" bind:value={endsAt} label="Ends" verb="Ends" allowPast clearable />
+          <ScheduleField id="ad-start" bind:value={startsAt} label={msg('Starts')} verb={msg('Starts')} allowPast clearable />
+          <ScheduleField id="ad-end" bind:value={endsAt} label={msg('Ends')} verb={msg('Ends')} allowPast clearable />
         </div>
-        <p class="-mt-3 text-sm text-muted-foreground">Leave a date empty for no limit on that side.</p>
+        <p class="-mt-3 text-sm text-muted-foreground">{tr('Leave a date empty for no limit on that side.')}</p>
 
-        {#if adId !== null}<p class="text-sm text-muted-foreground">{clicks} click{clicks === 1 ? '' : 's'} so far.</p>{/if}
+        {#if adId !== null}<p class="text-sm text-muted-foreground">{clicks === 1 ? tr('1 click so far.') : tr('{n} clicks so far.', { n: clicks })}</p>{/if}
       {/if}
     </form>
 
     <DialogFooter class="mx-0 mb-0 p-4">
-      <Button type="button" variant="ghost" onclick={() => (open = false)}>Cancel</Button>
+      <Button type="button" variant="ghost" onclick={() => (open = false)}>{tr('Cancel')}</Button>
       <Button type="submit" form="ad-form" disabled={saving || loading}>
         {#if saving}<Loader2Icon class="animate-spin" />{/if}
-        {adId === null ? 'Create ad' : 'Update ad'}
+        {adId === null ? tr('Create ad') : tr('Update ad')}
       </Button>
     </DialogFooter>
   </DialogContent>

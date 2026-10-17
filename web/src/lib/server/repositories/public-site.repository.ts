@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 import { categories, postCategories, postTags, posts, tags, users, widgets } from '@wordsvelte/shared'
 import type { DbInstance } from '$lib/server/db'
+import { recordView } from '$lib/server/repositories/views.repository'
 
 const publishedAtOrCreated = sql`COALESCE(${posts.publishedAt}, ${posts.createdAt})`
 
@@ -93,6 +94,7 @@ export function createPublicSiteRepository(db: DbInstance) {
 
     async incrementViews(postId: number): Promise<void> {
       await db.update(posts).set({ viewCount: sql`view_count + 1` }).where(eq(posts.id, postId))
+      await recordView(db, postId)
     },
 
     recentPublishedForFeed(limit: number) {
