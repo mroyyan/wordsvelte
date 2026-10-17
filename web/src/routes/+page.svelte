@@ -189,7 +189,7 @@
   <aside class="space-y-6 max-md:border-t max-md:pt-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
     {#each sidebarWidgets as widget (widget.id)}
       <div class="panel md:p-4">
-        <WidgetRenderer {widget} {posts} {categories} {tags} />
+        <WidgetRenderer {widget} {categories} {tags} />
       </div>
     {/each}
     {#if sidebarWidgets.length === 0}

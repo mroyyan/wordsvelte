@@ -17,7 +17,8 @@ import { getSettings } from '$lib/server/services/site/settings.service'
 export async function getSiteChrome(db: DbInstance, platform: App.Platform | undefined, requestOrigin: string) {
   // Public scope only: this object is serialised into every page, so it must never contain secrets.
   const settings = await getSettings(db)
-  const widgets = await createPublicSiteRepository(db).activeWidgets()
+  const site = createPublicSiteRepository(db)
+  const widgets = await site.activeWidgets()
   // Page-type items are resolved to their current slug; unpublished/missing pages are dropped.
   const menus = await getPublicMenus(db)
 
@@ -25,9 +26,21 @@ export async function getSiteChrome(db: DbInstance, platform: App.Platform | und
   await scanThemes(platform)
   await setActiveTheme(theme, platform)
 
-  return { settings, siteUrl: siteOrigin(settings.site_url, requestOrigin), widgets, menus, theme }
+  // The "recent" and "popular" widgets always show the site's newest / most viewed posts, whatever page is open (and also in the
+  // footer), so they are loaded here rather than taken from the current page. Skipped when no such widget is active.
+  const wants = (type: string) => widgets.some(w => w.widgetType === type)
+  const slim = (rows: { id: number; slug: string; title: string; featuredImageUrl: string | null; publishedAt: string | null; createdAt: string; viewCount: number }[]) =>
+    rows.map(({ id, slug, title, featuredImageUrl, publishedAt, createdAt, viewCount }) => ({ id, slug, title, featuredImageUrl, publishedAt, createdAt, viewCount }))
+  const widgetPosts = {
+    latest: wants('recent_posts') ? slim(await site.listPublished(WIDGET_POSTS, 0)) : [],
+    popular: wants('popular_posts') ? slim(await site.popularPublished(WIDGET_POSTS)) : [],
+  }
+
+  return { settings, siteUrl: siteOrigin(settings.site_url, requestOrigin), widgets, widgetPosts, menus, theme }
 }
 
+/** How many posts the recent / popular widgets can show (each widget has its own, smaller limit). */
+const WIDGET_POSTS = 20
 const DEFAULT_PER_PAGE = 20
 const MAX_PER_PAGE = 100
 

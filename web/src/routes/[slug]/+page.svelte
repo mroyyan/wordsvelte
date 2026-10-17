@@ -104,7 +104,7 @@
     <aside class="space-y-6 max-md:border-t max-md:pt-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
       {#each sidebarWidgets as widget (widget.id)}
         <div class="panel md:p-4">
-          <WidgetRenderer {widget} posts={data.popular || []} categories={data.categories || []} tags={data.tags || []} />
+          <WidgetRenderer {widget} categories={data.categories || []} tags={data.tags || []} />
         </div>
       {/each}
     </aside>
@@ -245,7 +245,7 @@
   <aside class="space-y-6 max-md:border-t max-md:pt-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
     {#each sidebarWidgets as widget (widget.id)}
       <div class="panel md:p-4">
-        <WidgetRenderer {widget} posts={data.popular || []} categories={data.categories || []} tags={data.tags || []} />
+        <WidgetRenderer {widget} categories={data.categories || []} tags={data.tags || []} />
       </div>
     {/each}
   </aside>

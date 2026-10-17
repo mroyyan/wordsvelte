@@ -141,18 +141,18 @@
       <div class="grid md:grid-cols-3 gap-8">
         <div>
           {#each footer1Widgets as widget (widget.id)}
-            <WidgetRenderer {widget} posts={[]} categories={[]} tags={[]} context="footer" />
+            <WidgetRenderer {widget} categories={[]} tags={[]} context="footer" />
           {/each}
           {#if data?.settings?.footer_description}<p class="text-sm leading-relaxed whitespace-pre-line">{data.settings.footer_description}</p>{/if}
         </div>
         <div>
           {#each footer2Widgets as widget (widget.id)}
-            <WidgetRenderer {widget} posts={[]} categories={[]} tags={[]} context="footer" />
+            <WidgetRenderer {widget} categories={[]} tags={[]} context="footer" />
           {/each}
         </div>
         <div>
           {#each footer3Widgets as widget (widget.id)}
-            <WidgetRenderer {widget} posts={[]} categories={[]} tags={[]} context="footer" />
+            <WidgetRenderer {widget} categories={[]} tags={[]} context="footer" />
           {/each}
         </div>
       </div>
