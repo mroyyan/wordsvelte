@@ -5,7 +5,7 @@
 // npx wordsvelte migrate    in a site directory: run only the migrations that are new on the remote database
 import { createInterface } from 'node:readline'
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'
 
@@ -193,6 +193,15 @@ function provision(dir, slug) {
   return deploy(dir)
 }
 
+/** web/wrangler.toml holds this site's database id: commit it, so a later `upgrade` finds a clean tree. */
+function commitConfig(dir) {
+  const git = args => sh(`git ${args}`, { cwd: dir, silent: true })
+  if (!git('status --porcelain web/wrangler.toml').out.trim()) return
+  const who = git('config user.email').out.trim() ? '' : '-c user.name=WordSvelte -c user.email=wordsvelte@localhost '
+  git('add web/wrangler.toml')
+  git(`${who}commit -q -m "Configure Cloudflare"`)
+}
+
 // ---- inside an existing site: upgrade / migrate ----
 
 async function inSite(command) {
@@ -202,6 +211,7 @@ async function inSite(command) {
   if (command === 'deploy') {
     if (!(await login())) process.exit(1)
     const live = provision(dir, site.slug)
+    commitConfig(dir)
     if (live) console.log(`\n  ${c(C.green, 'Online.')} Open the address above, then ${c(C.bold, '/admin/setup')} if you have not created the administrator yet.\n`)
     process.exit(live ? 0 : 1)
   }
@@ -211,9 +221,28 @@ async function inSite(command) {
   if (command === 'upgrade') {
     header('Upgrading')
     if (!existsSync(join(dir, '.git'))) { fail('This project has no git history to pull from. Re-clone it, or copy the new version over.'); process.exit(1) }
-    const remote = sh('git remote', { cwd: dir, silent: true }).out.split('\n').includes('upstream') ? 'upstream' : 'origin'
-    step(`Pulling the latest version from ${remote}...`)
-    if (!sh(`git pull ${remote} main`, { cwd: dir }).ok) { fail('git pull failed (uncommitted changes or a conflict?). Fix it and run this again.'); process.exit(1) }
+    const git = args => sh(`git ${args}`, { cwd: dir, silent: true })
+    const remote = git('remote').out.split('\n').includes('upstream') ? 'upstream' : 'origin'
+    step(`Fetching the latest version from ${remote}...`)
+    const fetched = git(`fetch ${remote} main`)
+    if (!fetched.ok) { fail(`Could not fetch:
+    ${why(fetched.out)}`); process.exit(1) }
+
+    if (!git('rev-parse --verify HEAD').ok) {
+      // a project made by an early installer: git was started empty, so there is nothing to merge with
+      warn('This project has no commits, so the new version cannot be merged into it.')
+      if (!(await yes('Replace the project files with the latest version? Your Cloudflare settings (web/wrangler.toml) and local data are kept, but edits you made to the code are lost.'))) process.exit(1)
+      const settings = readFileSync(join(webDir(dir), 'wrangler.toml'), 'utf8')
+      git('update-ref refs/heads/main FETCH_HEAD')
+      git('reset -q')
+      git('checkout -- .')
+      writeFileSync(join(webDir(dir), 'wrangler.toml'), settings)
+      commitConfig(dir)
+    } else {
+      if (git('status --porcelain').out.trim()) { fail('You have uncommitted changes. Commit or stash them first, then run this again.'); process.exit(1) }
+      step('Merging...')
+      if (!sh(`git merge --no-edit FETCH_HEAD`, { cwd: dir }).ok) { fail('The merge has conflicts. Resolve them (git status), commit, and run this again.'); process.exit(1) }
+    }
     step('Installing dependencies...')
     if (!sh('npm install', { cwd: dir, silent: true }).ok) warn('npm install had issues. Run "npm install" yourself if the build fails.')
   }
@@ -241,13 +270,12 @@ async function create() {
 
   header('Scaffolding')
   step(`Cloning ${c(C.dim, REPO)}...`)
-  const cloned = sh(`git clone --depth 1 ${REPO} "${dir}"`, { silent: true })
+  const cloned = sh(`git clone ${REPO} "${dir}"`, { silent: true })
   if (!cloned.ok) { fail(`Could not clone the repository:\n    ${why(cloned.out)}`); process.exit(1) }
-  // the history is not yours: start a fresh one, and keep the original as "upstream" so `npx wordsvelte upgrade` can pull
-  rmSync(join(dir, '.git'), { recursive: true, force: true })
-  sh('git init -q -b main', { cwd: dir, silent: true })
-  sh(`git remote add upstream ${REPO}`, { cwd: dir, silent: true })
+  // keep the history: the original stays as "upstream", which is where `npx wordsvelte upgrade` pulls from
+  sh('git remote rename origin upstream', { cwd: dir, silent: true })
   writeFileSync(join(webDir(dir), 'wrangler.toml'), wranglerToml({ slug, databaseId: 'local-dev' }))
+  commitConfig(dir)
   good('Project created')
 
   step('Installing dependencies (a minute or two)...')
@@ -256,6 +284,7 @@ async function create() {
 
   let live = false
   if (online && (await yes('Create the database and storage on Cloudflare and deploy now?'))) live = provision(dir, slug)
+  commitConfig(dir)
 
   console.log(c(C.bold + C.green, '\n  Done.\n'))
   console.log(`  ${c(C.cyan, '1')}. cd ${c(C.bold, projectName)}`)
