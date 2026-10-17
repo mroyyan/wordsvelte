@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // npx wordsvelte            create a site and (optionally) put it online on Cloudflare
+// npx wordsvelte deploy     in a site directory: create the database, bucket and secret on Cloudflare and deploy (also for a site made with "Skip")
 // npx wordsvelte upgrade    in a site directory: pull the new version, run new migrations, deploy
 // npx wordsvelte migrate    in a site directory: run only the migrations that are new on the remote database
 import { createInterface } from 'node:readline'
@@ -124,12 +125,86 @@ function useToken(token, accountId) {
   if (accountId) process.env.CLOUDFLARE_ACCOUNT_ID = accountId
 }
 
+// ---- Cloudflare: login, then database + bucket + migrations + secret + deploy ----
+
+/** Returns true when wrangler can talk to the account (already logged in, a token, or a fresh browser login). */
+async function login() {
+  if (process.env.CLOUDFLARE_API_TOKEN || sh('npx wrangler whoami', { silent: true }).out.includes('You are logged in')) { good('Already logged in to Cloudflare'); return true }
+  header('Cloudflare')
+  console.log(`  ${c(C.bold, '1')}. wrangler login  ${c(C.dim, '(browser, recommended)')}`)
+  console.log(`  ${c(C.bold, '2')}. API token`)
+  console.log(`  ${c(C.bold, '3')}. Skip  ${c(C.dim, '(work locally, deploy later)')}
+`)
+  const choice = await ask('Choose (1/2/3):')
+  if (choice === '1') {
+    const done = sh('npx wrangler login').ok
+    if (done) good('Logged in'); else warn('Login failed. You can try again with: npx wrangler login')
+    return done
+  }
+  if (choice === '2') {
+    const accountId = await ask('Account ID:')
+    const token = await ask('API token (needs Pages, D1 and R2 edit permissions):')
+    if (token && accountId) { useToken(token, accountId); good('Using the API token for this run'); return true }
+    warn('Both are needed. Skipping Cloudflare.')
+  }
+  return false
+}
+
+/** Puts the site online. Safe to run again: what exists is reused, migrations that ran are skipped. Returns true when deployed. */
+function provision(dir, slug) {
+  header('Cloudflare resources')
+  const db = `${slug}-db`
+  step(`Database ${db}`)
+  const created = sh(`npx wrangler d1 create ${db}`, { cwd: dir, silent: true })
+  let id = /database_id["\s:=]+"?([0-9a-f]{8}-[0-9a-f-]{27})/i.exec(created.out)?.[1]
+  if (!id) {
+    // it exists already: look its id up
+    const info = sh(`npx wrangler d1 info ${db} --json`, { cwd: dir, silent: true })
+    try { id = JSON.parse(info.out.slice(info.out.indexOf('{'))).uuid } catch { /* reported below */ }
+  }
+  if (!id) { fail(`Could not create or find the database:
+    ${why(created.out)}`); return false }
+  writeFileSync(join(webDir(dir), 'wrangler.toml'), wranglerToml({ slug, databaseId: id }))
+  good(`Database ${db}`)
+
+  step(`Media bucket ${slug}-media`)
+  const bucket = sh(`npx wrangler r2 bucket create ${slug}-media`, { cwd: dir, silent: true })
+  if (bucket.ok || /already exists/i.test(bucket.out)) good('Media bucket ready')
+  else { fail(`Could not create the bucket (is R2 enabled on your account?):
+    ${why(bucket.out)}`); return false }
+
+  header('Database')
+  if (!migrate(dir, db)) return false
+
+  header('Site')
+  step('Creating the Pages project...')
+  const project = sh(`npx wrangler pages project create ${slug} --production-branch main`, { cwd: dir, silent: true })
+  const projectExisted = !project.ok && /already exists/i.test(project.out)
+  if (!project.ok && !projectExisted) { fail(`Could not create the Pages project:
+    ${why(project.out)}`); return false }
+  // a new random secret would sign everyone out of a site that is already running: only set it on a new project
+  if (!projectExisted) {
+    const secret = sh(`npx wrangler pages secret put JWT_SECRET --project-name ${slug}`, { cwd: dir, input: randomBytes(32).toString('hex') + '\n', silent: true })
+    if (!secret.ok) { fail(`Could not set JWT_SECRET:
+    ${why(secret.out)}
+    Set it yourself: npx wrangler pages secret put JWT_SECRET --project-name ${slug}`); return false }
+    good('Session secret set')
+  }
+  return deploy(dir)
+}
+
 // ---- inside an existing site: upgrade / migrate ----
 
 async function inSite(command) {
   const dir = process.cwd()
   const site = readSite(dir)
   if (!site) { fail('Run this inside a WordSvelte project (the directory that contains web/wrangler.toml).'); process.exit(1) }
+  if (command === 'deploy') {
+    if (!(await login())) process.exit(1)
+    const live = provision(dir, site.slug)
+    if (live) console.log(`\n  ${c(C.green, 'Online.')} Open the address above, then ${c(C.bold, '/admin/setup')} if you have not created the administrator yet.\n`)
+    process.exit(live ? 0 : 1)
+  }
   const i = process.argv.indexOf('--applied')
   const alreadyApplied = i > 0 ? process.argv[i + 1] : undefined
 
@@ -162,21 +237,7 @@ async function create() {
   if (existsSync(dir)) { fail(`Directory "${projectName}" already exists.`); process.exit(1) }
   const slug = slugOf(projectName)
 
-  header('Cloudflare')
-  console.log(`  ${c(C.bold, '1')}. wrangler login  ${c(C.dim, '(browser, recommended)')}`)
-  console.log(`  ${c(C.bold, '2')}. API token`)
-  console.log(`  ${c(C.bold, '3')}. Skip  ${c(C.dim, '(work locally, deploy later)')}\n`)
-  const choice = await ask('Choose (1/2/3):')
-  let online = false
-  if (choice === '1') {
-    online = sh('npx wrangler login').ok
-    if (online) good('Logged in'); else warn('Login failed. You can deploy later with: npx wrangler login')
-  } else if (choice === '2') {
-    const accountId = await ask('Account ID:')
-    const token = await ask('API token (needs Pages, D1 and R2 edit permissions):')
-    if (token && accountId) { useToken(token, accountId); online = true; good('Using the API token for this run') }
-    else warn('Both are needed. Skipping Cloudflare.')
-  }
+  const online = await login()
 
   header('Scaffolding')
   step(`Cloning ${c(C.dim, REPO)}...`)
@@ -194,42 +255,7 @@ async function create() {
   else warn('npm install had issues. Run "npm install" inside the project.')
 
   let live = false
-  if (online && (await yes('Create the database and storage on Cloudflare and deploy now?'))) {
-    header('Cloudflare resources')
-    const db = `${slug}-db`
-    step(`Database ${db}`)
-    const created = sh(`npx wrangler d1 create ${db}`, { cwd: dir, silent: true })
-    let id = /database_id["\s:=]+"?([0-9a-f]{8}-[0-9a-f-]{27})/i.exec(created.out)?.[1]
-    if (!id) {
-      // it may exist already: ask for its id
-      const info = sh(`npx wrangler d1 info ${db} --json`, { cwd: dir, silent: true })
-      try { id = JSON.parse(info.out.slice(info.out.indexOf('{'))).uuid } catch { /* handled below */ }
-    }
-    if (!id) { fail(`Could not create or find the database:\n    ${why(created.out)}`); }
-    else {
-      writeFileSync(join(webDir(dir), 'wrangler.toml'), wranglerToml({ slug, databaseId: id }))
-      good(`Database ${db}`)
-
-      step(`Media bucket ${slug}-media`)
-      const bucket = sh(`npx wrangler r2 bucket create ${slug}-media`, { cwd: dir, silent: true })
-      if (bucket.ok || /already exists/i.test(bucket.out)) good('Media bucket ready')
-      else fail(`Could not create the bucket (is R2 enabled on your account?):\n    ${why(bucket.out)}`)
-
-      header('Database')
-      if (migrate(dir, db)) {
-        header('Site')
-        step('Creating the Pages project...')
-        const project = sh(`npx wrangler pages project create ${slug} --production-branch main`, { cwd: dir, silent: true })
-        if (!project.ok && !/already exists/i.test(project.out)) fail(`Could not create the Pages project:\n    ${why(project.out)}`)
-        else {
-          const secret = sh(`npx wrangler pages secret put JWT_SECRET --project-name ${slug}`, { cwd: dir, input: randomBytes(32).toString('hex') + '\n', silent: true })
-          if (secret.ok) good('Session secret set')
-          else fail(`Could not set JWT_SECRET:\n    ${why(secret.out)}\n    Set it yourself: npx wrangler pages secret put JWT_SECRET --project-name ${slug}`)
-          live = secret.ok && deploy(dir)
-        }
-      }
-    }
-  }
+  if (online && (await yes('Create the database and storage on Cloudflare and deploy now?'))) live = provision(dir, slug)
 
   console.log(c(C.bold + C.green, '\n  Done.\n'))
   console.log(`  ${c(C.cyan, '1')}. cd ${c(C.bold, projectName)}`)
@@ -238,12 +264,12 @@ async function create() {
     console.log(`  ${c(C.cyan, '3')}. Later: ${c(C.bold, 'npx wordsvelte upgrade')} pulls the new version, runs new migrations and deploys.`)
   } else {
     console.log(`  ${c(C.cyan, '2')}. ${c(C.bold, 'npm run dev')}  ->  ${c(C.underline, 'http://localhost:5173/admin/setup')}`)
-    console.log(`  ${c(C.cyan, '3')}. To publish, follow "Deploy to Cloudflare" in the README.`)
+    console.log(`  ${c(C.cyan, '3')}. To put it online later, run ${c(C.bold, 'npx wordsvelte deploy')} inside the project.`)
   }
   console.log(`\n  ${c(C.dim, 'Docs: https://github.com/mroyyan/wordsvelte')}\n`)
 }
 
 const command = process.argv[2]
-if (command === 'upgrade' || command === 'migrate') await inSite(command)
+if (command === 'upgrade' || command === 'migrate' || command === 'deploy') await inSite(command)
 else if (!command || command === 'create') await create()
-else { fail(`Unknown command "${command}". Use: npx wordsvelte [create | upgrade | migrate]`); process.exit(1) }
+else { fail(`Unknown command "${command}". Use: npx wordsvelte [create | deploy | upgrade | migrate]`); process.exit(1) }

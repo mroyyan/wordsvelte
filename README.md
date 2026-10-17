@@ -29,6 +29,14 @@ npx wordsvelte
 The CLI clones the project, installs it, and, if you log in to Cloudflare, creates the D1 database and R2 bucket, applies the migrations, sets a
 random session secret and deploys. When it finishes, open `/admin/setup` on your new address to create the first administrator.
 
+If you chose to skip Cloudflare and started locally (`npm run dev`), put the site online whenever you like, inside its directory:
+
+```bash
+npx wordsvelte deploy      # logs in, creates the database, bucket and secret, applies migrations, deploys
+```
+
+This publishes a **new, empty site**: content you wrote locally stays in your local database (`.local.db`) and is not copied to Cloudflare.
+
 To update a site later, run this inside its directory:
 
 ```bash
