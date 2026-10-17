@@ -164,3 +164,17 @@ html {
   from { height: var(--radix-collapsible-content-height); }
   to { height: 0; }
 }
+
+/*
+ * State variants used by the shadcn-svelte components (data-checked:, data-open:, ...). They are not built into Tailwind,
+ * and bits-ui reports state as data-state="checked" / "open" / "active", so map each variant to that attribute.
+ * Without these a switch has no track colour and a checkbox no fill, and popovers and tabs lose their styling.
+ */
+@custom-variant data-open { &:where([data-state="open"]), &:where([data-open]:not([data-open="false"])) { @slot; } }
+@custom-variant data-closed { &:where([data-state="closed"]), &:where([data-closed]:not([data-closed="false"])) { @slot; } }
+@custom-variant data-checked { &:where([data-state="checked"]), &:where([data-checked]:not([data-checked="false"])) { @slot; } }
+@custom-variant data-unchecked { &:where([data-state="unchecked"]), &:where([data-unchecked]:not([data-unchecked="false"])) { @slot; } }
+@custom-variant data-active { &:where([data-state="active"]), &:where([data-active]:not([data-active="false"])) { @slot; } }
+@custom-variant data-selected { &:where([data-selected]:not([data-selected="false"])) { @slot; } }
+@custom-variant data-horizontal { &:where([data-orientation="horizontal"]) { @slot; } }
+@custom-variant data-vertical { &:where([data-orientation="vertical"]) { @slot; } }

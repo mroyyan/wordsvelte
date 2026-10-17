@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { toast } from 'svelte-sonner'
-  import SaveIcon from '@lucide/svelte/icons/save'
   import SendIcon from '@lucide/svelte/icons/send'
   import Loader2Icon from '@lucide/svelte/icons/loader-2'
   import { Button } from '$lib/components/ui/button'
@@ -10,7 +9,7 @@
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import * as Select from '$lib/components/ui/select'
-  import { Card, CardContent } from '$lib/components/ui/card'
+  import { Separator } from '$lib/components/ui/separator'
   import PasswordInput from '$lib/components/auth/password-input.svelte'
   import { api, errorMessage } from '$lib/client/admin-api'
 
@@ -71,92 +70,81 @@
   }
 </script>
 
-<div class="max-w-2xl space-y-3">
-  <p class="text-sm text-muted-foreground">
-    Outgoing mail for password resets and sign-in codes. Without an SMTP server, mail falls back to the RESEND_API_KEY environment setting.
-  </p>
+{#if error}<Alert variant="destructive" class="mb-6"><AlertDescription>{error}</AlertDescription></Alert>{/if}
 
-  {#if error}<Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>{/if}
+{#if loading}
+  <div class="space-y-8"><Skeleton class="h-16 w-full" /><Skeleton class="h-16 w-full" /><Skeleton class="h-16 w-full" /></div>
+{:else}
+  <form onsubmit={(e) => { e.preventDefault(); save() }} class="space-y-8">
+    <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
+      <div class="space-y-2">
+        <Label for="smtp_host">SMTP host</Label>
+        <Input id="smtp_host" bind:value={form.host} placeholder="smtp.example.com" autocomplete="off" />
+        <p class="text-sm text-muted-foreground">Leave empty to turn SMTP off. Without it, mail falls back to the RESEND_API_KEY setting.</p>
+      </div>
+      <div class="space-y-2">
+        <Label for="smtp_port">Port</Label>
+        <Input id="smtp_port" type="number" min="1" max="65535" bind:value={form.port} />
+      </div>
+    </div>
 
-  {#if loading}
-    <Skeleton class="h-96 w-full rounded-xl" />
-  {:else}
-    <Card>
-      <CardContent class="space-y-5">
-        <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
-          <div class="space-y-1.5">
-            <Label for="smtp_host">SMTP host</Label>
-            <Input id="smtp_host" bind:value={form.host} placeholder="smtp.example.com" autocomplete="off" />
-            <p class="text-xs text-muted-foreground">Leave empty to turn SMTP off.</p>
-          </div>
-          <div class="space-y-1.5">
-            <Label for="smtp_port">Port</Label>
-            <Input id="smtp_port" type="number" min="1" max="65535" bind:value={form.port} />
-          </div>
-        </div>
+    <div class="space-y-2">
+      <Label for="smtp_encryption">Encryption</Label>
+      <Select.Root type="single" value={form.encryption} onValueChange={pickEncryption}>
+        <Select.Trigger id="smtp_encryption" class="w-full">{ENCRYPTIONS.find(e => e.value === form.encryption)?.label}</Select.Trigger>
+        <Select.Content>
+          {#each ENCRYPTIONS as e (e.value)}<Select.Item value={e.value} label={e.label}>{e.label}</Select.Item>{/each}
+        </Select.Content>
+      </Select.Root>
+    </div>
 
-        <div class="space-y-1.5">
-          <Label for="smtp_encryption">Encryption</Label>
-          <Select.Root type="single" value={form.encryption} onValueChange={pickEncryption}>
-            <Select.Trigger id="smtp_encryption" class="w-full max-w-md">{ENCRYPTIONS.find(e => e.value === form.encryption)?.label}</Select.Trigger>
-            <Select.Content>
-              {#each ENCRYPTIONS as e (e.value)}<Select.Item value={e.value} label={e.label}>{e.label}</Select.Item>{/each}
-            </Select.Content>
-          </Select.Root>
-        </div>
+    <div class="space-y-2">
+      <Label for="smtp_username">Username</Label>
+      <Input id="smtp_username" bind:value={form.username} autocomplete="off" placeholder="Optional" />
+    </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1.5">
-            <Label for="smtp_username">Username</Label>
-            <Input id="smtp_username" bind:value={form.username} autocomplete="off" placeholder="Optional" />
-          </div>
-          <div class="space-y-1.5">
-            <Label for="smtp_password">Password</Label>
-            <PasswordInput id="smtp_password" bind:value={form.password} autocomplete="new-password" required={false} placeholder={passwordSet ? 'Saved. Leave blank to keep it' : ''} />
-            {#if passwordUnreadable}
-              <p class="text-xs text-destructive">The saved password can no longer be read (JWT_SECRET changed). Enter it again.</p>
-            {:else if passwordSet}
-              <label class="flex items-center gap-2 text-xs text-muted-foreground">
-                <input type="checkbox" bind:checked={clearPassword} /> Remove the saved password
-              </label>
-            {/if}
-          </div>
-        </div>
+    <div class="space-y-2">
+      <Label for="smtp_password">Password</Label>
+      <PasswordInput id="smtp_password" bind:value={form.password} autocomplete="new-password" required={false} placeholder={passwordSet ? 'Saved. Leave blank to keep it' : ''} />
+      {#if passwordUnreadable}
+        <p class="text-sm text-destructive">The saved password can no longer be read (JWT_SECRET changed). Enter it again.</p>
+      {:else if passwordSet}
+        <label class="flex items-center gap-2 text-sm text-muted-foreground">
+          <input type="checkbox" bind:checked={clearPassword} /> Remove the saved password
+        </label>
+      {/if}
+    </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1.5">
-            <Label for="smtp_from_email">From address</Label>
-            <Input id="smtp_from_email" type="email" bind:value={form.fromEmail} placeholder="no-reply@example.com" />
-          </div>
-          <div class="space-y-1.5">
-            <Label for="smtp_from_name">From name</Label>
-            <Input id="smtp_from_name" bind:value={form.fromName} placeholder="My Portal" />
-          </div>
-        </div>
+    <div class="space-y-2">
+      <Label for="smtp_from_email">From address</Label>
+      <Input id="smtp_from_email" type="email" bind:value={form.fromEmail} placeholder="no-reply@example.com" />
+    </div>
 
-        <div class="flex justify-end">
-          <Button type="button" onclick={save} disabled={saving}>
-            {#if saving}<Loader2Icon class="animate-spin" />{:else}<SaveIcon />{/if}
-            Save email settings
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <div class="space-y-2">
+      <Label for="smtp_from_name">From name</Label>
+      <Input id="smtp_from_name" bind:value={form.fromName} placeholder="My Portal" />
+      <p class="text-sm text-muted-foreground">Shown as the sender of every email.</p>
+    </div>
 
-    <Card>
-      <CardContent class="space-y-3">
-        <div>
-          <p class="text-sm font-medium">Send a test email</p>
-          <p class="text-xs text-muted-foreground">Uses the saved settings. Save first if you changed anything.</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <Input class="max-w-xs" type="email" bind:value={testTo} placeholder="Defaults to your own email" aria-label="Send the test to" />
-          <Button type="button" variant="outline" onclick={sendTest} disabled={testing || !configured}>
-            {#if testing}<Loader2Icon class="animate-spin" />{:else}<SendIcon />{/if}
-            Send test
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  {/if}
-</div>
+    <Button type="submit" disabled={saving}>
+      {#if saving}<Loader2Icon class="animate-spin" />{/if}
+      Update email settings
+    </Button>
+  </form>
+
+  <Separator class="my-8" />
+
+  <div class="space-y-3">
+    <div>
+      <h4 class="text-sm font-medium">Send a test email</h4>
+      <p class="text-sm text-muted-foreground">Uses the saved settings. Save first if you changed anything.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <Input class="max-w-xs" type="email" bind:value={testTo} placeholder="Defaults to your own email" aria-label="Send the test to" />
+      <Button type="button" variant="outline" onclick={sendTest} disabled={testing || !configured}>
+        {#if testing}<Loader2Icon class="animate-spin" />{:else}<SendIcon />{/if}
+        Send test
+      </Button>
+    </div>
+  </div>
+{/if}

@@ -7,3 +7,6 @@ build/
 .env
 !.env.example
 .local.db*/
+
+# one-off local helper for importing a pre-migration dev database (not part of the project)
+web/scripts/import-legacy-db.mjs
