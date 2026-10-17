@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { formatExcerpt } from '$lib/utils'
   import { formatDate } from '$lib/shared/format'
   import Seo from '$lib/components/site/seo.svelte'
@@ -12,25 +13,25 @@
 </script>
 
 <!-- Result pages are thin and endless: keep them out of the index, but let crawlers follow the links. -->
-<Seo title={query ? `Cari: ${query}` : 'Pencarian'} noindex />
+<Seo title={query ? t('search.titleQuery', { q: query }) : t('search.title')} noindex />
 
 <div class="max-w-3xl mx-auto">
-  <h1 class="mb-4 text-xl font-bold md:mb-6 md:text-2xl">Pencarian</h1>
+  <h1 class="mb-4 text-xl font-bold md:mb-6 md:text-2xl">{t('search.title')}</h1>
 
   <form method="GET" class="mb-8">
     <div class="flex gap-2">
-      <input type="search" name="q" bind:value={searchInput} placeholder="Cari artikel..." class="flex-1 border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none" />
+      <input type="search" name="q" bind:value={searchInput} placeholder={t('search.placeholder')} class="flex-1 border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none" />
       <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center gap-2">
-        <Search class="h-4 w-4" /> Cari
+        <Search class="h-4 w-4" /> {t('search.button')}
       </button>
     </div>
   </form>
 
   {#if query}
-    <p class="text-gray-500 mb-4">Hasil untuk "{query}" ({results.length} ditemukan)</p>
+    <p class="text-gray-500 mb-4">{t('search.resultsFor', { q: query, n: results.length })}</p>
 
     {#if results.length === 0}
-      <p class="text-gray-500">Tidak ada hasil untuk pencarian ini.</p>
+      <p class="text-gray-500">{t('search.none')}</p>
     {:else}
       <div class="md:space-y-4">
         {#each results as post}

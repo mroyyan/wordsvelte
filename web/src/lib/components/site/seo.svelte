@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { page } from '$app/state'
   import {
     buildHead, jsonLdScript, organizationLd, websiteLd, newsArticleLd, webPageLd, breadcrumbLd,
@@ -54,10 +55,10 @@
   const fullTitle = $derived.by(() => {
     if (home) {
       const base = s.site_description ? `${siteName} - ${s.site_description}` : siteName
-      return pageNumber && pageNumber > 1 ? `${base} (Halaman ${pageNumber})` : base
+      return pageNumber && pageNumber > 1 ? `${base} (${t('seo.pageNumber', { n: pageNumber })})` : base
     }
-    const t = pageNumber && pageNumber > 1 ? `${title} (Halaman ${pageNumber})` : title
-    return pageTitle(t, siteName)
+    const titled = pageNumber && pageNumber > 1 ? `${title} (${t('seo.pageNumber', { n: pageNumber })})` : title
+    return pageTitle(titled, siteName)
   })
 
   const head = $derived(buildHead({
@@ -94,7 +95,7 @@
     }
     if (webPage) out.push(webPageLd({ url: head.canonical, name: title, description: head.description || undefined, modified: modifiedAt, language: s.language }))
     if (breadcrumbs.length) {
-      out.push(breadcrumbLd([{ name: 'Beranda', url: `${origin}/` }, ...breadcrumbs.map(b => ({ name: b.name, url: `${origin}${b.path}` }))]))
+      out.push(breadcrumbLd([{ name: t('common.home'), url: `${origin}/` }, ...breadcrumbs.map(b => ({ name: b.name, url: `${origin}${b.path}` }))]))
     }
     return [...out, ...jsonLd]
   })

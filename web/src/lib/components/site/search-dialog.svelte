@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import { Search, X, Loader2 } from '@lucide/svelte'
   import { Dialog, DialogContent, DialogTitle } from '$lib/components/ui/dialog'
@@ -84,7 +85,7 @@
 
 <Dialog bind:open>
   <DialogContent showCloseButton={false} class="top-[8%] -translate-y-0 gap-0 overflow-hidden p-0 sm:top-[14%] sm:max-w-xl">
-    <DialogTitle class="sr-only">Cari artikel</DialogTitle>
+    <DialogTitle class="sr-only">{t('search.dialogTitle')}</DialogTitle>
 
     <div class="flex items-center gap-3 border-b px-4">
       <Search class="h-4 w-4 shrink-0 text-gray-400" />
@@ -95,27 +96,27 @@
         type="search"
         enterkeyhint="search"
         autocomplete="off"
-        placeholder="Cari artikel..."
-        aria-label="Cari artikel"
+        placeholder={t('search.placeholder')}
+        aria-label={t('search.dialogTitle')}
         class="h-12 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-gray-400 [&::-webkit-search-cancel-button]:hidden"
       />
       {#if loading}
         <Loader2 class="h-4 w-4 shrink-0 animate-spin text-gray-400" />
       {:else if query}
-        <button type="button" class="shrink-0 rounded p-1 text-gray-400 hover:text-gray-700" aria-label="Hapus" onclick={() => { query = ''; input?.focus() }}><X class="h-4 w-4" /></button>
+        <button type="button" class="shrink-0 rounded p-1 text-gray-400 hover:text-gray-700" aria-label={t('common.clear')} onclick={() => { query = ''; input?.focus() }}><X class="h-4 w-4" /></button>
       {/if}
       <button type="button" class="shrink-0 rounded border px-1.5 py-0.5 text-[11px] font-medium text-gray-500 hover:bg-gray-50" onclick={() => (open = false)}>Esc</button>
     </div>
 
     <div class="max-h-[60vh] overflow-y-auto">
       {#if !ready}
-        <p class="px-4 py-8 text-center text-sm text-gray-500">Ketik minimal {MIN_CHARS} huruf untuk mencari berita.</p>
+        <p class="px-4 py-8 text-center text-sm text-gray-500">{t('search.minChars', { n: MIN_CHARS })}</p>
       {:else if failed}
-        <p class="px-4 py-8 text-center text-sm text-red-600">Pencarian gagal. Coba lagi sebentar.</p>
+        <p class="px-4 py-8 text-center text-sm text-red-600">{t('search.failed')}</p>
       {:else if !loading && hits.length === 0}
-        <p class="px-4 py-8 text-center text-sm text-gray-500">Tidak ada hasil untuk “{term}”.</p>
+        <p class="px-4 py-8 text-center text-sm text-gray-500">{t('search.noResults', { q: term })}</p>
       {:else}
-        <ul role="listbox" aria-label="Hasil pencarian" class="divide-y">
+        <ul role="listbox" aria-label={t('search.resultsAria')} class="divide-y">
           {#each hits as hit, i (hit.id)}
             <li role="option" aria-selected={i === active}>
               <a
@@ -141,7 +142,7 @@
         </ul>
         {#if total > 0}
           <a href={allResultsHref} onclick={(e) => { e.preventDefault(); go(allResultsHref) }} class="block border-t bg-gray-50 px-4 py-3 text-center text-sm font-medium text-red-600 hover:bg-gray-100">
-            Lihat semua {total} hasil untuk “{term}”
+            {t('search.viewAll', { n: total, q: term })}
           </a>
         {/if}
       {/if}

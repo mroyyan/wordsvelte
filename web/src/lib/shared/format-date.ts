@@ -3,6 +3,8 @@
  * Pure and dependency-free so it behaves the same during SSR (Workers) and in the browser.
  */
 
+import { createTranslator } from '$lib/i18n/translator'
+
 export const LANGUAGES = [
   { value: 'id', label: 'Bahasa Indonesia', locale: 'id-ID' },
   { value: 'en', label: 'English', locale: 'en-US' },
@@ -43,7 +45,7 @@ export interface DateSettings {
 
 export function formatDateWith(value: string | null | undefined, settings: DateSettings = {}): string {
   const date = parseStoredDate(value)
-  if (!date) return 'Baru saja'
+  if (!date) return createTranslator(settings.language)('date.justNow')
 
   const locale = localeFor(settings.language)
   const timeZone = isValidTimeZone(settings.timezone) ? settings.timezone : isValidTimeZone(DEFAULT_TIMEZONE) ? DEFAULT_TIMEZONE : 'UTC'

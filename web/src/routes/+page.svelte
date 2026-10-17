@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { formatExcerpt } from '$lib/utils'
   import { formatDate } from '$lib/shared/format'
   import Seo from '$lib/components/site/seo.svelte'
@@ -57,7 +58,7 @@
   <!-- Main Content -->
   <div class="lg:col-span-2">
   {#if featured}
-    <section class="mb-10 -mt-6 md:mt-0" aria-label="Berita pilihan">
+    <section class="mb-10 -mt-6 md:mt-0" aria-label={t('home.featuredAria')}>
       <!-- Lead story: edge to edge on phones -->
       <a
         href="/{featured.slug}"
@@ -84,7 +85,7 @@
           </h2>
           <div class="mt-3 flex items-center gap-4 text-xs text-gray-300">
             <span class="flex items-center gap-1.5"><Clock class="h-3.5 w-3.5" /> <time datetime={featured.publishedAt || featured.createdAt}>{formatDate(featured.publishedAt || featured.createdAt)}</time></span>
-            <span class="flex items-center gap-1.5"><Eye class="h-3.5 w-3.5" /> {featured.viewCount || 0} dilihat</span>
+            <span class="flex items-center gap-1.5"><Eye class="h-3.5 w-3.5" /> {t('home.views', { n: featured.viewCount || 0 })}</span>
           </div>
         </div>
       </a>
@@ -112,8 +113,8 @@
           {/each}
         </div>
         <!-- arrows for mouse users; touch screens just swipe -->
-        <button type="button" class="absolute left-3 top-1/2 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-md transition-opacity hover:bg-white lg:flex lg:opacity-0 lg:group-hover/rail:opacity-100" aria-label="Sebelumnya" onclick={() => rail?.scrollBy({ left: -rail.clientWidth * 0.8, behavior: 'smooth' })}><ChevronLeft class="h-5 w-5" /></button>
-        <button type="button" class="absolute right-3 top-1/2 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-md transition-opacity hover:bg-white lg:flex lg:opacity-0 lg:group-hover/rail:opacity-100" aria-label="Berikutnya" onclick={() => rail?.scrollBy({ left: rail.clientWidth * 0.8, behavior: 'smooth' })}><ChevronRight class="h-5 w-5" /></button>
+        <button type="button" class="absolute left-3 top-1/2 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-md transition-opacity hover:bg-white lg:flex lg:opacity-0 lg:group-hover/rail:opacity-100" aria-label={t('pager.previous')} onclick={() => rail?.scrollBy({ left: -rail.clientWidth * 0.8, behavior: 'smooth' })}><ChevronLeft class="h-5 w-5" /></button>
+        <button type="button" class="absolute right-3 top-1/2 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-md transition-opacity hover:bg-white lg:flex lg:opacity-0 lg:group-hover/rail:opacity-100" aria-label={t('pager.next')} onclick={() => rail?.scrollBy({ left: rail.clientWidth * 0.8, behavior: 'smooth' })}><ChevronRight class="h-5 w-5" /></button>
       </div>
       {/if}
     </section>
@@ -125,7 +126,7 @@
       <div class="pb-3 md:px-5 md:pt-5">
         <div class="flex items-center gap-2">
           <div class="h-4 w-1 bg-red-600 rounded-full"></div>
-          <h2 class="font-bold uppercase text-sm tracking-wider text-gray-900">Berita Terbaru</h2>
+          <h2 class="font-bold uppercase text-sm tracking-wider text-gray-900">{t('home.latest')}</h2>
         </div>
       </div>
 
@@ -162,8 +163,8 @@
       {#if pagination && pagination.totalPages > 1}
         <div class="flex items-center justify-center gap-1 border-t py-6 sm:gap-2">
           {#if pagination.page > 1}
-            <a href="/?page={pagination.page - 1}#berita-terbaru" aria-label="Sebelumnya" class="inline-flex h-9 items-center gap-1 rounded-lg border bg-white px-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 sm:px-3">
-              <ChevronLeft class="h-4 w-4" /> <span class="hidden sm:inline">Prev</span>
+            <a href="/?page={pagination.page - 1}#berita-terbaru" aria-label={t('pager.previous')} class="inline-flex h-9 items-center gap-1 rounded-lg border bg-white px-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 sm:px-3">
+              <ChevronLeft class="h-4 w-4" /> <span class="hidden sm:inline">{t('pager.previous')}</span>
             </a>
           {/if}
           {#snippet pageLinks(list: (number | '...')[])}
@@ -180,8 +181,8 @@
           <div class="flex items-center gap-1 sm:hidden">{@render pageLinks(compactPageNumbers(pagination.page, pagination.totalPages))}</div>
           <div class="hidden items-center gap-2 sm:flex">{@render pageLinks(getPageNumbers(pagination.page, pagination.totalPages))}</div>
           {#if pagination.page < pagination.totalPages}
-            <a href="/?page={pagination.page + 1}#berita-terbaru" aria-label="Berikutnya" class="inline-flex h-9 items-center gap-1 rounded-lg border bg-white px-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 sm:px-3">
-              <span class="hidden sm:inline">Next</span> <ChevronRight class="h-4 w-4" />
+            <a href="/?page={pagination.page + 1}#berita-terbaru" aria-label={t('pager.next')} class="inline-flex h-9 items-center gap-1 rounded-lg border bg-white px-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 sm:px-3">
+              <span class="hidden sm:inline">{t('pager.next')}</span> <ChevronRight class="h-4 w-4" />
             </a>
           {/if}
         </div>
@@ -201,7 +202,7 @@
     <AdSlot placement="sidebar-bottom" />
     {#if sidebarWidgets.length === 0}
       <div class="panel text-center text-sm text-muted-foreground md:p-4">
-        No widgets configured. Add widgets in admin Appearance &rarr; Widgets.
+        {t('home.noWidgets')}
       </div>
     {/if}
   </aside>

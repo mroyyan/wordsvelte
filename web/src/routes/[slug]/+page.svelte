@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { t } from '$lib/i18n'
+  import { onMount, tick } from 'svelte'
   import { formatExcerpt } from '$lib/utils'
   import { formatDate } from '$lib/shared/format'
   import Seo from '$lib/components/site/seo.svelte'
@@ -7,7 +8,7 @@
   import { splitAfterParagraph } from '$lib/shared/ads'
   import AdSlot from '$lib/components/site/ad-slot.svelte'
   import { page } from '$app/stores'
-  import { Clock, Eye, MessageSquare, Share2, Tag, ChevronRight } from '@lucide/svelte'
+  import { Clock, Eye, MessageSquare, Share2, Tag, ChevronRight, X } from '@lucide/svelte'
   import WidgetRenderer from '$lib/components/site/widgets/widget-renderer.svelte'
 
   let { data } = $props()
@@ -28,17 +29,53 @@
     document.querySelectorAll<HTMLElement>('.post-content pre').forEach((pre) => {
       const btn = document.createElement('button')
       btn.className = 'copy-btn'
-      btn.textContent = 'Copy'
+      btn.textContent = t('post.copy')
       btn.onclick = () => {
         const code = pre.querySelector('code')
         navigator.clipboard.writeText(code?.textContent || pre.textContent || '')
-        btn.textContent = 'Copied!'
-        setTimeout(() => { btn.textContent = 'Copy' }, 2000)
+        btn.textContent = t('post.copied')
+        setTimeout(() => { btn.textContent = t('post.copy') }, 2000)
       }
       pre.style.position = 'relative'
       pre.appendChild(btn)
     })
   })
+  type CommentRow = { id: number; parentId: number | null; authorName: string; content: string; createdAt: string }
+
+  /**
+   * Comments as threads: a top-level comment and everything below it. Replies of any depth sit in one flat, indented list under their thread
+   * (deeper nesting only squeezes the text on a phone); a reply to another reply says whom it answers. A reply whose parent is not
+   * shown (not approved yet) stands on its own.
+   */
+  const threads = $derived.by(() => {
+    const list = ((comments ?? []) as CommentRow[])
+    const ids = new Set(list.map(c => c.id))
+    const children = new Map<number, CommentRow[]>()
+    const roots: CommentRow[] = []
+    for (const c of list) {
+      if (c.parentId && c.parentId !== c.id && ids.has(c.parentId)) children.set(c.parentId, [...(children.get(c.parentId) ?? []), c])
+      else roots.push(c)
+    }
+    const flatten = (root: CommentRow) => {
+      const out: { c: CommentRow; to: string | null }[] = []
+      const walk = (parent: CommentRow, depth: number) => {
+        for (const reply of children.get(parent.id) ?? []) { out.push({ c: reply, to: depth > 0 ? parent.authorName : null }); walk(reply, depth + 1) }
+      }
+      walk(root, 0)
+      return out
+    }
+    return roots.map(root => ({ root, replies: flatten(root) }))
+  })
+
+  // "Reply" fills this; the form then sends the comment as an answer to it
+  let replyingTo = $state<{ id: number; name: string } | null>(null)
+  async function startReply(c: CommentRow) {
+    replyingTo = { id: c.id, name: c.authorName }
+    await tick()
+    document.getElementById('comment-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    document.getElementById('comment-text')?.focus({ preventScroll: true })
+  }
+
   let submitting = $state(false)
   let commentError = $state('')
   let commentSuccess = $state(false)
@@ -50,11 +87,11 @@
     try {
       const res = await fetch('/api/comments', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId: post.id, authorName: commentName, authorEmail: commentEmail, content: commentText })
+        body: JSON.stringify({ postId: post.id, authorName: commentName, authorEmail: commentEmail, content: commentText, parentId: replyingTo?.id })
       })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || 'Gagal')
-      commentSuccess = true; commentText = ''; commentName = ''; commentEmail = ''
+      if (!json.success) throw new Error(json.error || t('post.commentFailed'))
+      commentSuccess = true; replyingTo = null; commentText = ''; commentName = ''; commentEmail = ''
     } catch (e: any) { commentError = e.message }
     finally { submitting = false }
   }
@@ -92,7 +129,7 @@
       <article class="panel overflow-hidden">
         <div class="md:px-6 pt-6 pb-2">
           <nav class="flex items-center gap-1 text-xs text-gray-500 mb-3">
-            <a href="/" class="hover:text-red-600">Beranda</a>
+            <a href="/" class="hover:text-red-600">{t('common.home')}</a>
             <ChevronRight class="h-3 w-3" />
             <span class="text-gray-400 truncate max-w-[200px]">{data.page.title}</span>
           </nav>
@@ -121,13 +158,13 @@
     <article class="panel overflow-hidden">
       <div class="md:px-6 pt-6 pb-2">
         <nav class="flex items-center gap-1 text-xs text-gray-500 mb-3">
-          <a href="/" class="hover:text-red-600">Beranda</a>
+          <a href="/" class="hover:text-red-600">{t('common.home')}</a>
           <ChevronRight class="h-3 w-3" />
           <span class="text-gray-400 truncate max-w-[200px]">{post.title}</span>
         </nav>
         <h1 class="text-xl md:text-3xl font-bold leading-tight text-gray-900">{post.title}</h1>
         <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-3 pb-4 border-b">
-          <span class="font-medium text-gray-700">Penulis: <span class="text-red-600 font-normal">WordSvelte</span></span>
+          <span class="font-medium text-gray-700">{t('post.author')} <span class="text-red-600 font-normal">WordSvelte</span></span>
           <span class="flex items-center gap-1"><Clock class="h-3 w-3" /> {formatDate(post.publishedAt || post.createdAt)}</span>
           <span class="flex items-center gap-1"><Eye class="h-3 w-3" /> {post.viewCount || 0}</span>
           <span class="flex items-center gap-1"><MessageSquare class="h-3 w-3" /> {comments.length}</span>
@@ -155,7 +192,7 @@
 
         <div class="flex items-center gap-2 mt-8 pt-4 border-t">
           <Tag class="h-3.5 w-3.5 text-gray-400" />
-          <span class="text-xs font-bold text-gray-600 uppercase">Topik</span>
+          <span class="text-xs font-bold text-gray-600 uppercase">{t('post.topics')}</span>
           <div class="flex flex-wrap gap-1">
             {#each postTags as tag}
               <a href="/tag/{tag.slug}" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded transition-colors">{tag.name}</a>
@@ -189,7 +226,7 @@
     </article>
 
     <div class="panel mt-6">
-      <div class="md:px-6 py-4 border-b"><h3 class="font-bold text-sm uppercase text-gray-900">Artikel Terkait</h3></div>
+      <div class="md:px-6 py-4 border-b"><h3 class="font-bold text-sm uppercase text-gray-900">{t('post.related')}</h3></div>
       <div class="grid divide-y md:grid-cols-3 md:divide-x md:divide-y-0">
         {#each data.related || [] as related}
           <!-- phones: thumbnail beside the title; wider screens: card with the image on top -->
@@ -209,49 +246,67 @@
     </div>
 
     <section class="panel mt-6">
-      <div class="md:px-6 py-4 border-b"><h3 class="font-bold text-sm uppercase text-gray-900">{comments.length} Komentar</h3></div>
+      <div class="md:px-6 py-4 border-b"><h3 class="font-bold text-sm uppercase text-gray-900">{t('post.comments', { n: comments.length })}</h3></div>
       {#if comments.length === 0}
-        <p class="md:px-6 py-8 text-sm text-gray-500 text-center">Belum ada komentar. Jadilah yang pertama!</p>
+        <p class="md:px-6 py-8 text-sm text-gray-500 text-center">{t('post.noComments')}</p>
       {:else}
-        <div class="divide-y">
-          {#each comments as comment}
-            <div class="md:px-6 py-5 {comment.parentId ? 'ml-10 border-l-2 border-red-100' : ''}">
-              <div class="flex items-start gap-3">
-                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-sm font-bold text-red-600 shrink-0">{comment.authorName?.charAt(0)?.toUpperCase() || '?'}</div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-semibold text-gray-900">{comment.authorName}</span>
-                    {#if comment.parentId}<span class="text-xs text-red-500 font-medium">• Balasan</span>{/if}
-                    <span class="text-xs text-gray-400">{formatDate(comment.createdAt)}</span>
-                  </div>
-                  <div class="mt-1 text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{comment.content}</div>
-                  <button class="text-xs text-gray-500 hover:text-red-600 font-medium mt-2">Balas</button>
-                </div>
+        {#snippet commentItem(c: CommentRow, to: string | null, small: boolean)}
+          <div class="flex gap-3">
+            <div class="flex shrink-0 items-center justify-center rounded-full bg-gray-100 font-semibold text-gray-600 {small ? 'size-8 text-xs' : 'size-10 text-sm'}" aria-hidden="true">{c.authorName?.charAt(0)?.toUpperCase() || '?'}</div>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span class="text-sm font-semibold text-gray-900">{c.authorName}</span>
+                {#if to}<span class="text-xs text-gray-500">{t('post.replyingTo', { name: to })}</span>{/if}
+                <span class="text-xs text-gray-400">{formatDate(c.createdAt)}</span>
               </div>
+              <div class="mt-1 whitespace-pre-line break-words text-sm leading-relaxed text-gray-700">{c.content}</div>
+              <button type="button" class="mt-1.5 text-xs font-medium text-gray-500 hover:text-red-600" onclick={() => startReply(c)}>{t('post.reply')}</button>
             </div>
+          </div>
+        {/snippet}
+
+        <div class="divide-y">
+          {#each threads as thread (thread.root.id)}
+            <article class="py-5 md:px-6">
+              {@render commentItem(thread.root, null, false)}
+              {#if thread.replies.length}
+                <!-- one thin neutral line under the avatar ties the answers to their comment -->
+                <div class="ml-5 mt-4 space-y-4 border-l border-gray-200 pl-4 sm:pl-6">
+                  {#each thread.replies as reply (reply.c.id)}
+                    {@render commentItem(reply.c, reply.to, true)}
+                  {/each}
+                </div>
+              {/if}
+            </article>
           {/each}
         </div>
       {/if}
-      <div class="py-6 border-t md:px-6 md:bg-gray-50 rounded-b-lg">
+      <div id="comment-form" class="py-6 border-t md:px-6 md:bg-gray-50 rounded-b-lg">
         <div class="flex items-center gap-2 mb-4">
           <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">K</div>
-          <h4 class="font-bold text-sm text-gray-900">Tinggalkan Komentar</h4>
+          <h4 class="font-bold text-sm text-gray-900">{t('post.leaveComment')}</h4>
         </div>
         <form class="space-y-3" onsubmit={handleCommentSubmit}>
-          <textarea bind:value={commentText} placeholder="Tulis komentar Anda di sini..." required class="w-full border rounded-lg p-4 text-sm min-h-[120px] focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-white placeholder:text-gray-400"></textarea>
+          {#if replyingTo}
+            <div class="flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2 text-sm text-gray-600">
+              <span class="min-w-0 truncate">{t('post.replyingTo', { name: replyingTo.name })}</span>
+              <button type="button" class="shrink-0 rounded p-1 text-gray-400 hover:text-gray-700" aria-label={t('post.cancelReply')} onclick={() => (replyingTo = null)}><X class="h-4 w-4" /></button>
+            </div>
+          {/if}
+          <textarea id="comment-text" bind:value={commentText} placeholder={t('post.commentPlaceholder')} required class="w-full border rounded-lg p-4 text-sm min-h-[120px] focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-white placeholder:text-gray-400"></textarea>
           <div class="grid md:grid-cols-2 gap-3">
-            <input bind:value={commentName} placeholder={requireIdentity ? 'Nama Lengkap *' : 'Nama Lengkap (opsional)'} required={requireIdentity} class="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none bg-white placeholder:text-gray-400" />
-            <input bind:value={commentEmail} type="email" placeholder={requireIdentity ? 'Alamat Email *' : 'Alamat Email (opsional)'} required={requireIdentity} class="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none bg-white placeholder:text-gray-400" />
+            <input bind:value={commentName} placeholder={requireIdentity ? t('post.nameRequired') : t('post.nameOptional')} required={requireIdentity} class="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none bg-white placeholder:text-gray-400" />
+            <input bind:value={commentEmail} type="email" placeholder={requireIdentity ? t('post.emailRequired') : t('post.emailOptional')} required={requireIdentity} class="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none bg-white placeholder:text-gray-400" />
           </div>
           <div class="flex items-center gap-2 text-xs text-gray-500">
             <input type="checkbox" id="save-info" class="rounded border-gray-300" />
-            <label for="save-info">Simpan nama dan email untuk komentar saya selanjutnya.</label>
+            <label for="save-info">{t('post.remember')}</label>
           </div>
           <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors" disabled={submitting}>
-            {submitting ? 'Mengirim...' : 'Kirim Komentar'}
+            {submitting ? t('post.sending') : t('post.submitComment')}
           </button>
           {#if commentError}<p class="text-red-600 text-sm">{commentError}</p>{/if}
-          {#if commentSuccess}<p class="text-green-600 text-sm">Komentar berhasil dikirim!</p>{/if}
+          {#if commentSuccess}<p class="text-green-600 text-sm">{t('post.commentSent')}</p>{/if}
         </form>
       </div>
     </section>

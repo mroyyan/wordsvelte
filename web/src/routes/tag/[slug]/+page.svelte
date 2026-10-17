@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { formatExcerpt } from '$lib/utils'
   import { formatDate } from '$lib/shared/format'
   import Seo from '$lib/components/site/seo.svelte'
@@ -13,20 +14,20 @@
 </script>
 
 <Seo
-  title={`Berita tentang ${tag.name}`}
-  description={`Kumpulan berita terbaru dengan topik ${tag.name}.`}
+  title={t('archive.titleTag', { name: tag.name })}
+  description={t('archive.descriptionTag', { name: tag.name })}
   image={featured?.featuredImageUrl}
   breadcrumbs={[{ name: tag.name, path: `/tag/${tag.slug}` }]}
 />
 
 <div class="mb-6">
   <div class="text-xs text-gray-500 mb-1">
-    <a href="/" class="hover:text-red-600">Beranda</a>
+    <a href="/" class="hover:text-red-600">{t('common.home')}</a>
     <span class="mx-1">/</span>
-    <span class="text-gray-700 font-medium">Tag: {tag.name}</span>
+    <span class="text-gray-700 font-medium">{t('archive.tag', { name: tag.name })}</span>
   </div>
-  <h1 class="text-xl font-bold text-gray-900 md:text-2xl">Tag: {tag.name}</h1>
-  <p class="text-sm text-gray-500 mt-1">{posts.length} artikel</p>
+  <h1 class="text-xl font-bold text-gray-900 md:text-2xl">{t('archive.tag', { name: tag.name })}</h1>
+  <p class="text-sm text-gray-500 mt-1">{t('archive.count', { n: posts.length })}</p>
 </div>
 
 <!-- Featured Grid -->
@@ -71,7 +72,7 @@
 <div class="grid lg:grid-cols-3 gap-8">
   <div class="lg:col-span-2">
     {#if posts.length === 0}
-      <p class="text-gray-500 text-sm py-8">Tidak ada artikel untuk tag ini.</p>
+      <p class="text-gray-500 text-sm py-8">{t('archive.emptyTag')}</p>
     {:else}
       <div class="grid gap-0 md:grid-cols-2 md:gap-4">
         {#each rest as post}

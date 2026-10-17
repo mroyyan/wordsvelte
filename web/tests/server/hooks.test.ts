@@ -52,3 +52,19 @@ describe('handle(): CSRF', () => {
     expect(res.status).toBe(302)
   })
 })
+
+describe('handle(): <html lang>', () => {
+  it('fills the lang placeholder from the language the layout stored on event.locals', async () => {
+    for (const [lang, expected] of [['en', 'en'], [undefined, 'id']] as const) {
+      const url = new URL('https://news.example.com/')
+      const event: any = { url, request: new Request(url), cookies: makeCookies(), locals: { lang } }
+      let chunk = ''
+      const resolve = async (_e: any, opts?: any) => {
+        chunk = opts?.transformPageChunk?.({ html: '<html lang="%lang%">', done: true }) ?? ''
+        return new Response('ok')
+      }
+      await (handle as any)({ event, resolve })
+      expect(chunk).toBe(`<html lang="${expected}">`)
+    }
+  })
+})

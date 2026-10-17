@@ -27,7 +27,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 		try { await publishDueIfNeeded(getDb(event)) } catch { /* no database yet (first run / misconfiguration): the page itself reports it */ }
 	}
 
-	const response = await resolve(event)
+	// <html lang> follows the language chosen in Settings (the layout load stores it on event.locals before the page is rendered)
+	const response = await resolve(event, { transformPageChunk: ({ html }) => html.replace('%lang%', event.locals?.lang ?? 'id') })
 	try {
 		// the admin and the API must never be indexed, whatever the site-wide setting says
 		const { pathname } = event.url

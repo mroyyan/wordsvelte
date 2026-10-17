@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { page } from '$app/stores'
   import '../app.css'
   import { Search, Menu, ChevronDown } from '@lucide/svelte'
@@ -116,8 +117,8 @@
         </nav>
 
         <div class="flex items-center gap-2">
-          <button type="button" class="p-2 text-gray-300 hover:text-white" aria-label="Cari" onclick={() => (searchOpen = true)}><Search class="h-5 w-5" /></button>
-          <button type="button" class="lg:hidden p-2 text-gray-300 hover:text-white" aria-label="Buka menu" onclick={() => (mobileMenuOpen = true)}>
+          <button type="button" class="p-2 text-gray-300 hover:text-white" aria-label={t('common.search')} onclick={() => (searchOpen = true)}><Search class="h-5 w-5" /></button>
+          <button type="button" class="lg:hidden p-2 text-gray-300 hover:text-white" aria-label={t('common.openMenu')} onclick={() => (mobileMenuOpen = true)}>
             <Menu class="h-5 w-5" />
           </button>
         </div>

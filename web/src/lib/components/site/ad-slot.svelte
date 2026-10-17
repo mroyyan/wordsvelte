@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { page } from '$app/stores'
   import type { AdPlacement } from '@wordsvelte/shared'
   import { deviceClass, type AdsByPlacement } from '$lib/shared/ads'
@@ -28,8 +29,8 @@
 </script>
 
 {#each ads as ad (ad.id)}
-  <aside class={cn('ad-slot', deviceClass(ad.devices), className)} data-ad-placement={placement} aria-label="Iklan">
-    <p class="mb-1 text-center text-[10px] font-medium uppercase tracking-widest text-gray-400">Iklan</p>
+  <aside class={cn('ad-slot', deviceClass(ad.devices), className)} data-ad-placement={placement} aria-label={t('common.advertisement')}>
+    <p class="mb-1 text-center text-[10px] font-medium uppercase tracking-widest text-gray-400">{t('common.advertisement')}</p>
     {#if ad.type === 'banner' && ad.imageUrl && ad.href}
       <a href={ad.href} target="_blank" rel="sponsored nofollow noopener" class="block">
         <img src={ad.imageUrl} alt={ad.altText ?? ''} loading="lazy" class="mx-auto h-auto max-w-full" />

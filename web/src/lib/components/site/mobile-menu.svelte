@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { page } from '$app/stores'
   import { ChevronDown, X } from '@lucide/svelte'
   import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '$lib/components/ui/sheet'
@@ -21,14 +22,14 @@
     <SheetHeader class="flex-row items-center justify-between border-b border-neutral-800 p-4">
       <div>
         <SheetTitle class="text-lg font-bold tracking-tight text-white">{siteName}</SheetTitle>
-        <SheetDescription class="sr-only">Menu navigasi</SheetDescription>
+        <SheetDescription class="sr-only">{t('common.menuNavigation')}</SheetDescription>
       </div>
-      <button type="button" class="rounded p-2 text-gray-300 hover:bg-white/10 hover:text-white" aria-label="Tutup menu" onclick={() => (open = false)}>
+      <button type="button" class="rounded p-2 text-gray-300 hover:bg-white/10 hover:text-white" aria-label={t('common.closeMenu')} onclick={() => (open = false)}>
         <X class="h-5 w-5" />
       </button>
     </SheetHeader>
 
-    <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Menu utama">
+    <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label={t('common.mainMenu')}>
       {#each items as item}
         {#if item.children?.length}
           <details class="group" open={item.children.some(c => isActive(c.href))}>

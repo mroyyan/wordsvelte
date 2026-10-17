@@ -1,4 +1,8 @@
 declare namespace App {
+  interface Locals {
+    /** Interface language of the public site (from Settings), set while the layout loads; used for <html lang>. */
+    lang?: string
+  }
   interface Platform {
     env: {
       DB: D1Database

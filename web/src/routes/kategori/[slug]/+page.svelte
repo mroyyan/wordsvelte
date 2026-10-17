@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { formatExcerpt } from '$lib/utils'
   import { formatDate } from '$lib/shared/format'
   import Seo from '$lib/components/site/seo.svelte'
@@ -13,8 +14,8 @@
 </script>
 
 <Seo
-  title={`Berita ${category.name}`}
-  description={category.description || `Kumpulan berita terbaru seputar ${category.name}.`}
+  title={t('archive.titleCategory', { name: category.name })}
+  description={category.description || t('archive.descriptionCategory', { name: category.name })}
   image={featured?.featuredImageUrl}
   breadcrumbs={[{ name: category.name, path: `/kategori/${category.slug}` }]}
 />
@@ -39,16 +40,16 @@
   <div class="flex items-center justify-between mb-4">
     <div>
       <div class="text-xs text-gray-500 mb-1">
-        <a href="/" class="hover:text-red-600">Beranda</a>
+        <a href="/" class="hover:text-red-600">{t('common.home')}</a>
         <span class="mx-1">/</span>
         <span class="text-gray-700 font-medium">{category.name}</span>
       </div>
       <h1 class="text-xl font-bold text-gray-900 md:text-2xl">{category.name}</h1>
     </div>
     <select class="text-xs border rounded px-2 py-1.5 bg-white text-gray-600">
-      <option>Terbaru</option>
-      <option>Terpopuler</option>
-      <option>Acak</option>
+      <option>{t('archive.sortLatest')}</option>
+      <option>{t('archive.sortPopular')}</option>
+      <option>{t('archive.sortRandom')}</option>
     </select>
   </div>
 </div>
@@ -96,7 +97,7 @@
 <div class="grid lg:grid-cols-3 gap-8">
   <div class="lg:col-span-2">
     {#if rest.length === 0 && posts.length <= 5}
-      <p class="text-gray-500 text-sm py-8">Tidak ada artikel dalam kategori ini.</p>
+      <p class="text-gray-500 text-sm py-8">{t('archive.emptyCategory')}</p>
     {:else if rest.length > 0 || subFeatured.length === 0}
       <div class="grid gap-0 md:grid-cols-2 md:gap-4">
         {#each (rest.length > 0 ? rest : posts.slice(0)) as post}
@@ -127,7 +128,7 @@
   <!-- Sidebar -->
   <aside class="space-y-6 max-md:border-t max-md:pt-6">
     <div class="panel">
-      <h3 class="font-bold text-sm uppercase text-gray-900 pb-2 md:px-4 md:pt-4">Berita Populer</h3>
+      <h3 class="font-bold text-sm uppercase text-gray-900 pb-2 md:px-4 md:pt-4">{t('archive.popular')}</h3>
       <div class="divide-y">
         {#each posts.slice(0, 5) as pop, i}
           <a href="/{pop.slug}" class="flex gap-3 py-3 md:px-4 hover:bg-gray-50">

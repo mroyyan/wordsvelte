@@ -1,12 +1,13 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { page } from '$app/state'
 
   const status = $derived(page.status)
   const notFound = $derived(status === 404)
-  const heading = $derived(notFound ? 'Halaman tidak ditemukan' : 'Terjadi kesalahan')
+  const heading = $derived(notFound ? t('error.notFoundTitle') : t('error.generalTitle'))
   const body = $derived(notFound
-    ? 'Alamat yang Anda buka tidak ada, atau halamannya sudah dipindahkan.'
-    : 'Maaf, ada masalah di sisi kami. Silakan coba lagi sebentar lagi.')
+    ? t('error.notFoundText')
+    : t('error.generalText'))
 </script>
 
 <svelte:head>
@@ -15,12 +16,12 @@
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="mx-auto flex min-h-[50vh] max-w-xl flex-col items-center justify-center gap-4 px-4 py-16 text-center">
-  <p class="text-6xl font-bold tracking-tight text-gray-300">{status}</p>
-  <h1 class="text-2xl font-semibold text-gray-900">{heading}</h1>
-  <p class="text-gray-600">{body}</p>
-  <div class="mt-2 flex flex-wrap justify-center gap-3">
-    <a href="/" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Kembali ke beranda</a>
-    <a href="/search" class="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cari berita</a>
+<div class="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-2 px-4 py-16 text-center">
+  <h1 class="text-[7rem] leading-tight font-bold text-gray-900">{status}</h1>
+  <span class="font-medium text-gray-900">{heading}</span>
+  <p class="text-gray-500">{body}</p>
+  <div class="mt-6 flex flex-wrap justify-center gap-4">
+    <a href="/search" class="rounded-md border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{t('error.searchNews')}</a>
+    <a href="/" class="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">{t('error.backHome')}</a>
   </div>
 </div>
