@@ -3,6 +3,8 @@
   import { page } from '$app/stores'
   import { goto } from '$app/navigation'
   import { Button } from '$lib/components/ui/button'
+  import { toast } from 'svelte-sonner'
+  import ScheduleField from '$lib/components/admin/schedule-field.svelte'
   import { Input } from '$lib/components/ui/input'
   import MdEditor from '$lib/components/admin/md-editor.svelte'
   import { Label } from '$lib/components/ui/label'
@@ -21,6 +23,7 @@
   let content = $state('')
   let excerpt = $state('')
   let status = $state('draft')
+  let publishedAt = $state('')
   let isFeatured = $state(false)
   let featuredImageUrl = $state('')
   let categoryIds = $state<number[]>([])
@@ -70,6 +73,7 @@
         content = p.content || ''
         excerpt = p.excerpt || ''
         status = p.status || 'draft'
+        publishedAt = p.status === 'scheduled' ? (p.publishedAt || '') : ''
         isFeatured = p.isFeatured || false
         featuredImageUrl = p.featuredImageUrl || ''
         categoryIds = p.categories?.map((c: any) => c.id) || []
@@ -121,7 +125,7 @@
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
         body: JSON.stringify({
-          title, slug, content, excerpt, status, featuredImageUrl, isFeatured,
+          title, slug, content, excerpt, status, publishedAt: status === 'scheduled' ? publishedAt : undefined, featuredImageUrl, isFeatured,
           categoryIds: categoryIds.length ? categoryIds : undefined,
           tagIds: tagIds.length ? tagIds : undefined,
           updatedAt: new Date().toISOString()
@@ -144,14 +148,16 @@
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
         body: JSON.stringify({
-          title, slug, content, excerpt, status, featuredImageUrl, isFeatured,
+          title, slug, content, excerpt, status, publishedAt: status === 'scheduled' ? publishedAt : undefined, featuredImageUrl, isFeatured,
           categoryIds: categoryIds.length ? categoryIds : undefined,
           tagIds: tagIds.length ? tagIds : undefined,
           updatedAt: new Date().toISOString()
         })
       })
-      if ((await res.json()).success) goto('/admin/posts')
-    } finally { saving = false }
+      const json = await res.json().catch(() => null)
+      if (json?.success) goto('/admin/posts')
+      else toast.error(json?.error || 'Could not save the post')
+    } catch { toast.error('Network error, please try again') } finally { saving = false }
   }
 
   function toggleCategory(id: number) { categoryIds = categoryIds.includes(id) ? categoryIds.filter(c => c !== id) : [...categoryIds, id] }
@@ -164,7 +170,7 @@
     <div><h2 class="text-2xl font-bold tracking-tight">Edit Post</h2><p class="text-muted-foreground">Modify your article</p></div>
     <Button type="submit" form="post-form" disabled={saving}>
       {#if saving}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
-      <Save class="mr-2 h-4 w-4" /> {saving ? 'Updating...' : 'Update Post'}
+      <Save class="mr-2 h-4 w-4" /> {saving ? 'Updating...' : status === 'scheduled' ? 'Update Schedule' : 'Update Post'}
     </Button>
   </div>
 
@@ -207,10 +213,11 @@
           <Card>
             <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
             <CardContent>
-              <Select.Root type="single" bind:value={status} items={[{ value: 'draft', label: 'Draft' }, { value: 'publish', label: 'Publish' }]}>
+              <Select.Root type="single" bind:value={status} items={[{ value: 'draft', label: 'Draft' }, { value: 'scheduled', label: 'Scheduled' }, { value: 'publish', label: 'Publish' }]}>
                 <Select.Trigger class="w-full"><Select.Value placeholder="Select status" /></Select.Trigger>
-                <Select.Content preventScroll={false}><Select.Item value="draft" label="Draft" /><Select.Item value="publish" label="Publish" /></Select.Content>
+                <Select.Content preventScroll={false}><Select.Item value="draft" label="Draft" /><Select.Item value="scheduled" label="Scheduled" /><Select.Item value="publish" label="Publish" /></Select.Content>
               </Select.Root>
+              {#if status === 'scheduled'}<div class="mt-3"><ScheduleField bind:value={publishedAt} /></div>{/if}
               <div class="space-y-2 mt-3">
                 <label class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors">
                   <Checkbox checked={isFeatured} onCheckedChange={() => isFeatured = !isFeatured} />

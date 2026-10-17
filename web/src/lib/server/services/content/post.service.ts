@@ -10,6 +10,7 @@ import { createCommentRepository } from '$lib/server/repositories/comments.repos
 
 const MAX_TITLE_LENGTH = 300
 const MAX_FEATURED = 5
+const MAX_SCHEDULE_AHEAD_MS = 5 * 365 * 24 * 60 * 60 * 1000
 
 interface ListPostsOpts {
   page: number
@@ -27,6 +28,8 @@ interface PostInput {
   slug?: string
   excerpt?: string | null
   status?: string
+  /** The moment a scheduled post goes live (ISO 8601). Only used when the status is 'scheduled'. */
+  publishedAt?: string | null
   featuredImageUrl?: string | null
   isFeatured?: boolean
   categoryIds?: number[]
@@ -46,6 +49,16 @@ export function validateStatus(status: unknown): string {
     throw new ValidationError(`Status must be one of: ${POST_STATUSES.join(', ')}`)
   }
   return status as string
+}
+
+/** A scheduled time must be a real instant in the future, but not absurdly far away. Returned as a normalised ISO string. */
+function validateScheduleTime(value: unknown, now: Date): string {
+  if (typeof value !== 'string' || !value.trim()) throw new ValidationError('Choose a date and time to publish this post')
+  const at = new Date(value)
+  if (Number.isNaN(at.getTime())) throw new ValidationError('The publish date is not valid')
+  if (at.getTime() <= now.getTime()) throw new ValidationError('The publish date must be in the future')
+  if (at.getTime() - now.getTime() > MAX_SCHEDULE_AHEAD_MS) throw new ValidationError('The publish date is too far ahead (5 years at most)')
+  return at.toISOString()
 }
 
 /** Only same-site paths and http(s) URLs: blocks javascript:/data: URLs in image fields. */
@@ -141,7 +154,8 @@ export async function createPost(db: DbInstance, data: CreatePostData) {
   }
 
   const posts = createPostRepository(db)
-  const now = new Date().toISOString()
+  const nowDate = new Date()
+  const now = nowDate.toISOString()
   const post = await posts.insert({
     authorId: data.authorId,
     title,
@@ -151,7 +165,7 @@ export async function createPost(db: DbInstance, data: CreatePostData) {
     status,
     featuredImageUrl: validateImageUrl(data.featuredImageUrl),
     isFeatured: false,
-    publishedAt: status === 'publish' ? now : null,
+    publishedAt: status === 'publish' ? now : status === 'scheduled' ? validateScheduleTime(data.publishedAt, nowDate) : null,
     createdAt: now,
     updatedAt: now,
   })
@@ -189,9 +203,15 @@ export async function updatePost(db: DbInstance, id: number, data: UpdatePostDat
     if (await slugTaken(db, slug, id)) throw new ConflictError('Slug already in use')
     patch.slug = slug
   }
-  if (data.status !== undefined) {
-    patch.status = validateStatus(data.status)
-    if (patch.status === 'publish' && !existing.publishedAt) patch.publishedAt = patch.updatedAt
+  const status = data.status !== undefined ? validateStatus(data.status) : existing.status
+  if (data.status !== undefined) patch.status = status
+  if (status === 'scheduled') {
+    // A new time is validated; re-saving a scheduled post without one keeps its time (it may be due any second now).
+    if (data.publishedAt !== undefined || existing.status !== 'scheduled') patch.publishedAt = validateScheduleTime(data.publishedAt, new Date())
+  } else if (data.status !== undefined) {
+    // Going live stamps "now" unless the post already was live; taking a plan back to draft forgets the planned time.
+    if (status === 'publish' && (existing.status === 'scheduled' || !existing.publishedAt)) patch.publishedAt = patch.updatedAt
+    if (status !== 'publish' && existing.status === 'scheduled') patch.publishedAt = null
   }
 
   const categoryIds = data.categoryIds !== undefined ? validateIdList(data.categoryIds, 'categoryIds') : null
@@ -213,6 +233,11 @@ export async function updatePost(db: DbInstance, id: number, data: UpdatePostDat
     await posts.deleteTagLinks(id)
     await posts.insertTagLinks(id, tagIds)
   }
+}
+
+/** Publish the scheduled posts that are due. Safe to call from anywhere, any number of times. */
+export async function publishDuePosts(db: DbInstance, now = new Date()): Promise<number> {
+  return createPostRepository(db).publishDue(now.toISOString())
 }
 
 export async function deletePost(db: DbInstance, id: number) {

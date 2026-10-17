@@ -1,7 +1,8 @@
 import type { Handle } from '@sveltejs/kit'
 import { AUTH_COOKIE } from '$lib/server/auth'
 import { isCsrfViolation } from '$lib/server/http/csrf'
-import { ensureLocalDb } from '$lib/server/db'
+import { ensureLocalDb, getDb } from '$lib/server/db'
+import { publishDueIfNeeded } from '$lib/server/services/content/scheduler.service'
 import { ensureLocalThemeStorage } from '$lib/server/themes/storage'
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -19,6 +20,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 			status: 403,
 			headers: { 'Content-Type': 'application/json' },
 		})
+	}
+
+	// Scheduled posts go live when their time has come (see scheduler.service: Pages has no cron).
+	if (!event.url.pathname.startsWith('/_app/') && !event.url.pathname.startsWith('/api/media/')) {
+		try { await publishDueIfNeeded(getDb(event)) } catch { /* no database yet (first run / misconfiguration): the page itself reports it */ }
 	}
 
 	const response = await resolve(event)

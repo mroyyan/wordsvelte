@@ -1,5 +1,5 @@
 import type { DbInstance } from '$lib/server/db'
-import { eq, desc, asc, and, sql } from 'drizzle-orm'
+import { eq, desc, asc, and, lte, sql } from 'drizzle-orm'
 import { posts, postCategories, postTags, categories, tags } from '@wordsvelte/shared'
 
 export type PostRow = typeof posts.$inferSelect
@@ -88,6 +88,16 @@ export function createPostRepository(db: DbInstance) {
 
     async delete(id: number): Promise<void> {
       await db.delete(posts).where(eq(posts.id, id))
+    },
+
+    /**
+     * Publish every scheduled post whose time has come. One guarded statement, so several workers running it at the same
+     * moment cannot publish twice. Returns how many posts went live.
+     */
+    async publishDue(nowIso: string): Promise<number> {
+      const rows = await db.update(posts).set({ status: 'publish', updatedAt: nowIso })
+        .where(and(eq(posts.status, 'scheduled'), lte(posts.publishedAt, nowIso))).returning({ id: posts.id })
+      return rows.length
     },
 
     async incrementViews(id: number): Promise<void> {

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { goto } from '$app/navigation'
   import { Button } from '$lib/components/ui/button'
+  import ScheduleField from '$lib/components/admin/schedule-field.svelte'
   import { Input } from '$lib/components/ui/input'
   import MdEditor from '$lib/components/admin/md-editor.svelte'
   import { Label } from '$lib/components/ui/label'
@@ -23,6 +24,7 @@
   let content = $state('')
   let excerpt = $state('')
   let status = $state('draft')
+  let publishedAt = $state('')
   let isFeatured = $state(false)
   let featuredImageUrl = $state('')
   let categoryIds = $state<number[]>([])
@@ -175,6 +177,7 @@
   async function handleSubmit(e: Event) {
     e.preventDefault()
     if (!title.trim() || !content.trim()) return
+    if (status === 'scheduled' && !publishedAt) { alert('Choose a date and time to publish this post'); return }
     const tok = t()
     if (!tok) return
     saving = true
@@ -188,6 +191,7 @@
           content,
           excerpt: excerpt || undefined,
           status,
+          publishedAt: status === 'scheduled' ? publishedAt : undefined,
           featuredImageUrl: featuredImageUrl || undefined,
           isFeatured,
           categoryIds: categoryIds.length ? categoryIds : undefined,
@@ -213,7 +217,7 @@
     <div><h2 class="text-2xl font-bold tracking-tight">New Post</h2><p class="text-muted-foreground">Create a new article</p></div>
     <Button type="submit" form="post-form" disabled={saving}>
       {#if saving}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
-      <Save class="mr-2 h-4 w-4" /> {saving ? 'Saving...' : 'Save Post'}
+      <Save class="mr-2 h-4 w-4" /> {saving ? 'Saving...' : status === 'scheduled' ? 'Schedule Post' : 'Save Post'}
     </Button>
   </div>
 
@@ -286,16 +290,17 @@
           <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
           <CardContent>
             <div class="space-y-2">
-              <Select.Root type="single" bind:value={status} items={[{ value: 'draft', label: 'Draft' }, { value: 'publish', label: 'Publish' }]}>
+              <Select.Root type="single" bind:value={status} items={[{ value: 'draft', label: 'Draft' }, { value: 'scheduled', label: 'Scheduled' }, { value: 'publish', label: 'Publish' }]}>
                 <Select.Trigger class="w-full">
                   <Select.Value placeholder="Select status" />
                 </Select.Trigger>
                 <Select.Content preventScroll={false}>
                   <Select.Item value="draft" label="Draft" />
-                  <Select.Item value="publish" label="Publish" />
+                  <Select.Item value="scheduled" label="Scheduled" /><Select.Item value="publish" label="Publish" />
                 </Select.Content>
               </Select.Root>
             </div>
+            {#if status === 'scheduled'}<div class="mt-3"><ScheduleField bind:value={publishedAt} /></div>{/if}
             <div class="space-y-2 mt-3">
               <label class="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-accent cursor-pointer transition-colors">
                 <Checkbox checked={isFeatured} onCheckedChange={() => isFeatured = !isFeatured} />

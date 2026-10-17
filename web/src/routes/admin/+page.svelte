@@ -21,7 +21,7 @@
 
   interface Dashboard {
     scope: 'own' | 'site'
-    totals: { posts: number; published: number; drafts: number; pending: number; views: number; media: number; pages?: number; categories?: number; tags?: number; comments?: number; pendingComments?: number; users?: number }
+    totals: { posts: number; published: number; drafts: number; pending: number; scheduled: number; views: number; media: number; pages?: number; categories?: number; tags?: number; comments?: number; pendingComments?: number; users?: number }
     postsPerMonth: { month: string; count: number }[]
     monthDelta: { thisMonth: number; lastMonth: number; difference: number }
     topPosts: { id: number; title: string; slug: string; viewCount: number }[]
@@ -47,13 +47,14 @@
 
   const statusStyle: Record<string, string> = {
     publish: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900',
+    scheduled: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-900',
     pending: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-900',
     draft: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-900',
     approved: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900',
     spam: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-900',
     trash: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
   }
-  const statusLabel: Record<string, string> = { publish: 'Published', pending: 'Pending', draft: 'Draft', approved: 'Approved', spam: 'Spam', trash: 'Trash' }
+  const statusLabel: Record<string, string> = { publish: 'Published', scheduled: 'Scheduled', pending: 'Pending', draft: 'Draft', approved: 'Approved', spam: 'Spam', trash: 'Trash' }
 
   const shortcuts = $derived(!data || !siteWide ? [] : [
     { label: 'Pages', value: data.totals.pages, href: '/admin/pages', icon: FileStackIcon },
@@ -120,7 +121,7 @@
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold">{nf.format(data.totals.drafts + data.totals.pending)}</div>
-          <p class="text-xs text-muted-foreground">{data.totals.drafts} draft{data.totals.drafts === 1 ? '' : 's'}, {data.totals.pending} pending review</p>
+          <p class="text-xs text-muted-foreground">{data.totals.drafts} draft{data.totals.drafts === 1 ? '' : 's'}, {data.totals.pending} pending review, {data.totals.scheduled} scheduled</p>
         </CardContent>
       </Card>
 

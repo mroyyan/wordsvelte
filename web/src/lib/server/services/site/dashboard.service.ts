@@ -13,6 +13,7 @@ export interface DashboardData {
     published: number
     drafts: number
     pending: number
+    scheduled: number
     /** Sum of the per-post view counters. There is no visitor tracking, so this is page views, not unique visitors. */
     views: number
     media: number
@@ -76,6 +77,7 @@ export async function getDashboard(db: DbInstance, user: Pick<AuthUser, 'userId'
     published: count('publish'),
     drafts: count('draft'),
     pending: count('pending'),
+    scheduled: count('scheduled'),
     views: Number(views),
     media: await scalar(media, sitewide ? undefined : eq(media.uploadedBy, user.userId)),
   }

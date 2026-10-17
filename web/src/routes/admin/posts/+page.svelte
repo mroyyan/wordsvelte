@@ -7,6 +7,7 @@
   import Trash2Icon from '@lucide/svelte/icons/trash-2'
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis'
   import SendIcon from '@lucide/svelte/icons/send'
+  import ClockIcon from '@lucide/svelte/icons/clock'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import StarIcon from '@lucide/svelte/icons/star'
   import Loader2Icon from '@lucide/svelte/icons/loader-2'
@@ -28,16 +29,18 @@
   import { api, errorMessage, fetchAll, runBulk } from '$lib/client/admin-api'
   import { formatDate } from '$lib/utils'
 
-  interface PostRow { id: number; title: string; slug: string; status: 'draft' | 'pending' | 'publish'; isFeatured: boolean; viewCount: number; createdAt: string; publishedAt: string | null }
+  interface PostRow { id: number; title: string; slug: string; status: 'draft' | 'pending' | 'scheduled' | 'publish'; isFeatured: boolean; viewCount: number; createdAt: string; publishedAt: string | null }
 
   const statusOptions = [
     { label: 'Published', value: 'publish' },
+    { label: 'Scheduled', value: 'scheduled' },
     { label: 'Pending review', value: 'pending' },
     { label: 'Draft', value: 'draft' },
   ]
   const statusLabel = (s: string) => statusOptions.find(o => o.value === s)?.label ?? s
   const statusColors: Record<string, string> = {
     publish: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900',
+    scheduled: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-900',
     pending: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-900',
     draft: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-900',
   }
@@ -140,7 +143,7 @@
                     {#if post.isFeatured}<StarIcon class="mr-1 -mt-0.5 inline-block size-4 fill-yellow-500 text-yellow-500" />{/if}
                     <a href={`/admin/posts/${post.id}`} class="hover:underline">{post.title}</a>
                   {:else if c.id === 'status'}
-                    <Badge variant="outline" class={statusColors[post.status] ?? ''}>{statusLabel(post.status)}</Badge>
+                    <Badge variant="outline" class={statusColors[post.status] ?? ''}>{#if post.status === 'scheduled'}<ClockIcon class="me-1 size-3" />{/if}{statusLabel(post.status)}</Badge>
                   {:else if c.id === 'viewCount'}
                     <span class="text-sm text-muted-foreground">{post.viewCount}</span>
                   {:else}
@@ -158,8 +161,9 @@
                   <DropdownMenuContent align="end" class="w-44">
                     <DropdownMenuItem onclick={() => goto(`/admin/posts/${post.id}`)}><PencilIcon /> Edit</DropdownMenuItem>
                     {#if post.status !== 'publish'}
-                      <DropdownMenuItem onclick={() => setStatus(post, 'publish')}><SendIcon /> Publish</DropdownMenuItem>
-                    {:else}
+                      <DropdownMenuItem onclick={() => setStatus(post, 'publish')}><SendIcon /> {post.status === 'scheduled' ? 'Publish now' : 'Publish'}</DropdownMenuItem>
+                    {/if}
+                    {#if post.status !== 'draft'}
                       <DropdownMenuItem onclick={() => setStatus(post, 'draft')}><FileTextIcon /> Back to Draft</DropdownMenuItem>
                     {/if}
                     <DropdownMenuSeparator />

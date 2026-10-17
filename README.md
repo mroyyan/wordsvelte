@@ -14,7 +14,7 @@ A modern, full-featured News CMS. Deploy to Cloudflare with one command.
 
 ## Features
 
-- Posts with categories, tags, featured images
+- Posts with categories, tags, featured images, and **scheduled publishing** (pick a date and time in the site timezone)
 - Static pages (About, Contact, Editorial Guidelines, ...) served at `/<slug>`, addable to any menu, with WordPress page import
 - Rich text editor (CKEditor 5)
 - Comments with moderation
@@ -154,6 +154,13 @@ After deploying, submit `https://your-site/sitemap.xml` (and the news sitemap) i
 
 There is no public registration; admins create accounts (`Admin > Users`). The role is always read from the database, so demoting or
 deleting a user takes effect immediately, even for tokens that have not expired yet.
+
+## Scheduled posts
+
+Set a post to *Scheduled* and choose when it goes live (the time is read in the timezone from Settings). Cloudflare Pages has no cron triggers, so
+due posts are published by the first request that arrives after their time: a post goes live within about 30 seconds of its time as soon as anyone
+visits the site or the admin (see `services/content/scheduler.service.ts`). Until then it is invisible everywhere: pages, search, sitemaps and RSS.
+Moving the app to Workers with a Cron Trigger would only need a call to `publishDuePosts()` from the `scheduled` handler.
 
 ## Security Notes
 

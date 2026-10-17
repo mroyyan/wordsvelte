@@ -3,7 +3,7 @@ import { sqliteTable, text, integer, uniqueIndex, primaryKey, index, type AnySQL
 
 export const ROLES = ['admin', 'editor', 'author'] as const
 export type Role = (typeof ROLES)[number]
-export const POST_STATUSES = ['draft', 'pending', 'publish'] as const
+export const POST_STATUSES = ['draft', 'pending', 'scheduled', 'publish'] as const
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),

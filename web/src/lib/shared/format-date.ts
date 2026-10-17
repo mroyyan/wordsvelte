@@ -71,3 +71,45 @@ export function formatDateWith(value: string | null | undefined, settings: DateS
   }
   return [...format].map(ch => (tokens[ch] ? tokens[ch]() : ch)).join('')
 }
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
+/** Wall-clock parts of an instant in a timezone. */
+function zonedParts(date: Date, timeZone: string) {
+  const parts: Record<string, number> = {}
+  const fmt = new Intl.DateTimeFormat('en-GB', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' })
+  for (const p of fmt.formatToParts(date)) if (p.type !== 'literal') parts[p.type] = Number(p.value)
+  return parts
+}
+
+/** An instant as "YYYY-MM-DDTHH:mm" on the wall clock of `timeZone` (the value format of <input type="datetime-local">). */
+export function utcToZonedLocal(value: string | null | undefined, timeZone: string): string {
+  const date = parseStoredDate(value)
+  if (!date) return ''
+  const tz = isValidTimeZone(timeZone) ? timeZone : DEFAULT_TIMEZONE
+  const p = zonedParts(date, tz)
+  return `${p.year}-${pad2(p.month)}-${pad2(p.day)}T${pad2(p.hour)}:${pad2(p.minute)}`
+}
+
+/**
+ * The instant (ISO, UTC) at which the wall clock of `timeZone` reads `local` ("YYYY-MM-DDTHH:mm"), or null if it is
+ * not a valid date. The offset is found by asking what the zone's clock shows for a first guess and correcting once
+ * (twice around a daylight-saving change), which needs no timezone database of our own.
+ */
+export function zonedLocalToUtc(local: string | null | undefined, timeZone: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(String(local ?? '').trim())
+  if (!m) return null
+  const [y, mo, d, h, mi] = m.slice(1).map(Number)
+  const wanted = Date.UTC(y, mo - 1, d, h, mi)
+  if (new Date(wanted).getUTCMonth() !== mo - 1 || new Date(wanted).getUTCDate() !== d) return null // e.g. 31 February
+  const tz = isValidTimeZone(timeZone) ? timeZone : DEFAULT_TIMEZONE
+
+  let guess = wanted
+  for (let i = 0; i < 3; i++) {
+    const p = zonedParts(new Date(guess), tz)
+    const shown = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute)
+    if (shown === wanted) break
+    guess += wanted - shown
+  }
+  return new Date(guess).toISOString()
+}
