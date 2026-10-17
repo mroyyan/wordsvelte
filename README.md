@@ -26,8 +26,18 @@ widgets, and get the SEO a news site needs (sitemaps, Google News sitemap, JSON-
 npx wordsvelte
 ```
 
-The CLI walks you through the Cloudflare setup (login, D1 database, R2 bucket, migrations). Then open `http://localhost:5173/admin`:
-the setup page creates the first administrator.
+The CLI clones the project, installs it, and, if you log in to Cloudflare, creates the D1 database and R2 bucket, applies the migrations, sets a
+random session secret and deploys. When it finishes, open `/admin/setup` on your new address to create the first administrator.
+
+To update a site later, run this inside its directory:
+
+```bash
+npx wordsvelte upgrade     # pulls the new version, runs only the new migrations, deploys
+npx wordsvelte migrate     # only the migrations
+```
+
+The applied migrations are recorded in the `_wordsvelte_migrations` table of your D1 database. If you set the database up by hand before,
+tell it where you were once: `npx wordsvelte migrate --applied 0005_ads.sql` (the last file you ran).
 
 ## Manual install
 
@@ -68,8 +78,7 @@ npx wrangler pages secret put JWT_SECRET --project-name wordsvelte-web
 npm run deploy
 ```
 
-**Upgrading**: pull the new version, run the migration files that are new since your last deploy (the changelog lists them; they are the new files
-in `web/drizzle/`), then deploy again. Migrations only ever add; the database is never changed by code at runtime.
+**Upgrading**: `npx wordsvelte upgrade` in your project directory (see Quick start). By hand: pull the new version, run the migration files that are new since your last deploy (the changelog lists them; they are the new files in `web/drizzle/`), then deploy again. Migrations only ever add; the database is never changed by code at runtime.
 
 ## Configuration
 

@@ -1,15 +1,34 @@
 {
   "name": "wordsvelte",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "Scaffold a WordSvelte news CMS and deploy to Cloudflare",
   "type": "module",
   "bin": {
     "wordsvelte": "./index.js"
   },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mroyyan/wordsvelte.git",
+    "directory": "packages/wordsvelte"
+  },
+  "homepage": "https://github.com/mroyyan/wordsvelte#readme",
   "scripts": {
     "start": "node index.js",
     "prepublishOnly": "node -e \"require('fs').copyFileSync('../../README.md','./README.md')\""
   },
-  "keywords": ["cms", "sveltekit", "cloudflare", "news", "blog"],
+  "keywords": [
+    "cms",
+    "sveltekit",
+    "cloudflare",
+    "news",
+    "blog"
+  ],
   "license": "MIT"
 }

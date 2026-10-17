@@ -1,220 +1,249 @@
 #!/usr/bin/env node
+// npx wordsvelte            create a site and (optionally) put it online on Cloudflare
+// npx wordsvelte upgrade    in a site directory: pull the new version, run new migrations, deploy
+// npx wordsvelte migrate    in a site directory: run only the migrations that are new on the remote database
 import { createInterface } from 'node:readline'
-import { execSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'
 
-const C = { reset: '\x1b[0m', bold: '\x1b[1m', dim: '\x1b[2m', cyan: '\x1b[36m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m', blue: '\x1b[34m', magenta: '\x1b[35m' }
 const REPO = 'https://github.com/mroyyan/wordsvelte.git'
+const C = { reset: '\x1b[0m', bold: '\x1b[1m', dim: '\x1b[2m', cyan: '\x1b[36m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m', underline: '\x1b[4m' }
+const c = (color, text) => `${color}${text}${C.reset}`
+const header = text => console.log(`\n${c(C.bold + C.cyan, '◆')} ${c(C.bold, text)}`)
+const step = text => console.log(`  ${c(C.dim, '○')} ${text}`)
+const good = text => console.log(`  ${c(C.green, '✔')} ${text}`)
+const warn = text => console.log(`  ${c(C.yellow, '⚠')} ${text}`)
+const fail = text => console.log(`  ${c(C.red, '✖')} ${text}`)
 
-function c(color, text) { return `${color}${text}${C.reset}` }
-function header(text) { console.log(`\n${c(C.bold + C.cyan, '◆')} ${c(C.bold, text)}`) }
-function step(text) { console.log(`  ${c(C.dim, '○')} ${text}`) }
-function ok(text) { console.log(`  ${c(C.green, '✔')} ${text}`) }
-function warn(text) { console.log(`  ${c(C.yellow, '⚠')} ${text}`) }
-function err(text) { console.log(`  ${c(C.red, '✖')} ${text}`) }
-function nl() { console.log('') }
+const ask = q => new Promise(done => {
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  rl.question(`  ${c(C.dim, '?')} ${q} `, a => { rl.close(); done(a.trim()) })
+})
+const yes = async q => /^y(es)?$/i.test(await ask(`${q} (y/n):`))
 
-function ask(q) {
-  return new Promise(resolve => {
-    const rl = createInterface({ input: process.stdin, output: process.stdout })
-    rl.question(`  ${c(C.dim, '?')} ${q} `, a => { rl.close(); resolve(a.trim()) })
-  })
+/** Runs a command through the shell (so `npx` works on Windows too). `silent` captures the output instead of showing it. */
+function sh(cmd, { cwd, silent = false, input } = {}) {
+  const r = spawnSync(cmd, { cwd, shell: true, input, encoding: 'utf8', stdio: silent || input !== undefined ? ['pipe', 'pipe', 'pipe'] : 'inherit' })
+  const out = `${r.stdout ?? ''}${r.stderr ?? ''}`
+  return { ok: r.status === 0, out }
 }
+const why = out => out.trim().split('\n').slice(-4).join('\n    ')
 
-function run(cmd, opts = {}) {
-  try {
-    return execSync(cmd, { stdio: opts.silent ? 'pipe' : 'inherit', ...opts })
-  } catch { return null }
-}
+/** Names for the Cloudflare resources, from the project directory name: "My News" -> my-news */
+const slugOf = name => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'wordsvelte'
 
-function spawnWait(cmd, args) {
-  return new Promise(resolve => {
-    const p = spawn(cmd, args, { stdio: 'inherit', shell: true })
-    p.on('close', code => resolve(code === 0))
-  })
-}
-
-function hasCmd(cmd) {
-  try { execSync(`where ${cmd}`, { stdio: 'pipe' }); return true } catch { return false }
-}
-
-// ---- MAIN ----
-
-console.clear()
-console.log(c(C.bold + C.cyan, `
- __      __                .____________            .__   __          
-/  \\    /  \\___________  __| _/   _____/__  __ ____ |  |_/  |_  ____  
-\\   \\/\\/   /  _ \\_  __ \\/ __ |\\_____  \\\\  \\/ // __ \\|  |\\   __\\/ __ \\ 
- \\        (  <_> )  | \\/ /_/ |/        \\\\   /\\  ___/|  |_|  | \\  ___/ 
-  \\__/\\  / \\____/|__|  \\____ /_______  / \\_/  \\___  >____/__|  \\___  >
-       \\/                   \\/       \\/           \\/               \\/ 
-
-  A modern CMS for news, blogs & magazines.
-  Deploy to Cloudflare in one command. Free Forever.
-`))
-
-console.log(c(C.dim, '  Build a news site, blog, or magazine — deploy to Cloudflare in minutes.\n'))
-
-// ---- Step 1: Project name ----
-
-header('Project Setup')
-
-const defaultName = 'my-wordsvelte'
-const projectName = (await ask(`Project directory (${c(C.dim, defaultName)}):`)) || defaultName
-const projectPath = join(process.cwd(), projectName)
-
-if (existsSync(projectPath)) {
-  err(`Directory "${projectName}" already exists.`)
-  process.exit(1)
-}
-
-const siteName = (await ask(`Site name (${c(C.dim, 'My News Site')}):`)) || 'My News Site'
-ok(`Project: ${c(C.bold, projectName)} — "${siteName}"`)
-
-// ---- Step 2: Cloudflare auth ----
-
-header('Cloudflare Setup')
-console.log(`  ${c(C.dim, 'Choose how to authenticate with Cloudflare:')}\n`)
-console.log(`  ${c(C.bold, '1')}. ${c(C.cyan, 'wrangler login')}  — OAuth via browser (recommended)`)
-console.log(`  ${c(C.bold, '2')}. API Token       — Enter Cloudflare API token manually`)
-console.log(`  ${c(C.bold, '3')}. Skip            — Set up Cloudflare later\n`)
-
-const authChoice = await ask('Choose (1/2/3):')
-let cfToken = '', cfAccountId = ''
-
-if (authChoice === '1') {
-  step('Opening browser for Cloudflare login...')
-  const ok = await spawnWait('npx', ['wrangler', 'login'])
-  if (!ok) {
-    warn('wrangler login failed. You can set up Cloudflare later with: npx wrangler login')
-  } else {
-    ok('Cloudflare logged in via OAuth')
-  }
-} else if (authChoice === '2') {
-  cfAccountId = await ask('Cloudflare Account ID:')
-  cfToken = await ask('Cloudflare API Token:')
-  ok('API credentials saved')
-} else {
-  warn('Skipping Cloudflare setup — you can deploy later')
-}
-
-// ---- Step 3: Clone repo ----
-
-header('Scaffolding')
-step(`Cloning ${c(C.dim, REPO)}...`)
-
-const gitOk = run(`git clone ${REPO} "${projectPath}"`, { silent: true })
-if (!gitOk) {
-  err('Failed to clone repository. Check your internet connection.')
-  process.exit(1)
-}
-
-// Remove git history so user starts fresh
-const gitDir = join(projectPath, '.git')
-if (existsSync(gitDir)) {
-  run(`rmdir /s /q "${gitDir}"`, { silent: true })
-  run(`rm -rf "${gitDir}"`, { silent: true })
-}
-
-ok('Repository cloned')
-
-// ---- Step 4: Write wrangler.toml ----
-
-const isWin = process.platform === 'win32'
-const migrationFiles = () => readdirSync(join(projectPath, 'web', 'drizzle')).filter(f => f.endsWith('.sql')).sort().map(f => 'web/drizzle/' + f)
-// Generate a random JWT secret
-const jwtSecret = randomBytes(32).toString('hex')
-
-const wranglerContent = `name = "wordsvelte-web"
+const wranglerToml = ({ slug, databaseId }) => `name = "${slug}"
 compatibility_date = "${new Date().toISOString().split('T')[0]}"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".svelte-kit/cloudflare"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "wordsvelte-db"
-database_id = "wordsvelte-db-prod"
+database_name = "${slug}-db"
+database_id = "${databaseId}"
 
 [[r2_buckets]]
 binding = "R2"
-bucket_name = "wordsvelte-media"
+bucket_name = "${slug}-media"
 
-# Required in production: npx wrangler pages secret put JWT_SECRET --project-name wordsvelte-web
-# In local dev, a random secret is auto-generated and persisted in the local DB.
+# JWT_SECRET is a Pages secret (npx wrangler pages secret put JWT_SECRET --project-name ${slug}); create sets it for you.
+# In local development a random secret is generated and kept in the local database.
 `
 
-writeFileSync(join(projectPath, 'web', 'wrangler.toml'), wranglerContent)
-ok('wrangler.toml configured')
-
-// ---- Step 5: npm install ----
-
-step('Installing dependencies...')
-const installOk = run('npm install', { cwd: projectPath, silent: true })
-if (!installOk) {
-  warn('npm install had issues. Run "npm install" manually.')
-} else {
-  ok('Dependencies installed')
+/** What the site's wrangler.toml says: the Pages project and the D1 database. */
+function readSite(dir) {
+  const file = join(dir, 'web', 'wrangler.toml')
+  if (!existsSync(file)) return null
+  const toml = readFileSync(file, 'utf8')
+  const slug = /^name\s*=\s*"([^"]+)"/m.exec(toml)?.[1]
+  const db = /database_name\s*=\s*"([^"]+)"/m.exec(toml)?.[1]
+  const id = /database_id\s*=\s*"([^"]+)"/m.exec(toml)?.[1]
+  return slug && db ? { slug, db, id } : null
 }
 
-// ---- Step 6: Setup D1 & R2 (if authenticated) ----
+const webDir = dir => join(dir, 'web')
+const migrationFiles = dir => readdirSync(join(webDir(dir), 'drizzle')).filter(f => f.endsWith('.sql')).sort()
 
-let dbCreated = false, r2Created = false, migrationApplied = false
+/** `wrangler d1 execute --json` prints the result array, maybe after a few lines of noise. */
+function parseRows(out) {
+  const start = out.indexOf('[')
+  if (start < 0) return null
+  try { return JSON.parse(out.slice(start))[0]?.results ?? [] } catch { return null }
+}
+const query = (dir, db, sql) => sh(`npx wrangler d1 execute ${db} --remote --json --command "${sql}"`, { cwd: webDir(dir), silent: true })
 
-if (authChoice === '1' || authChoice === '2') {
-  header('Cloudflare Resources')
-  const setupNow = (await ask('Create D1 database + R2 bucket now? (y/n):')).toLowerCase()
+/**
+ * Runs the migrations that are new on the remote database. What has run is recorded in a table of its own, so
+ * upgrading is the same command as installing. `alreadyApplied`: for a database that was set up by hand before this
+ * existed, the last migration file you ran (everything up to it is recorded without running).
+ */
+function migrate(dir, db, { alreadyApplied } = {}) {
+  const made = query(dir, db, 'CREATE TABLE IF NOT EXISTS _wordsvelte_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)')
+  if (!made.ok) { fail(`Could not reach the database "${db}":\n    ${why(made.out)}`); return false }
+  const done = parseRows(query(dir, db, 'SELECT name FROM _wordsvelte_migrations').out)
+  if (!done) { fail('Could not read which migrations have run.'); return false }
+  const files = migrationFiles(dir)
+  const record = f => query(dir, db, `INSERT OR IGNORE INTO _wordsvelte_migrations (name, applied_at) VALUES ('${f}', datetime('now'))`)
 
-  if (setupNow === 'y' || setupNow === 'yes') {
-    step('Creating D1 database...')
-    const dbResult = run('npx wrangler d1 create wordsvelte-db', { silent: true })
-    if (dbResult) { ok('D1 database: wordsvelte-db'); dbCreated = true }
-    else { warn('D1 creation skipped (may already exist)') }
-
-    step('Creating R2 bucket...')
-    const r2Result = run('npx wrangler r2 bucket create wordsvelte-media', { silent: true })
-    if (r2Result) { ok('R2 bucket: wordsvelte-media'); r2Created = true }
-    else { warn('R2 creation skipped (may already exist)') }
-
-    step('Applying database migrations...')
-    const files = migrationFiles()
-    migrationApplied = files.length > 0
-    for (const file of files) {
-      if (!run(`npx wrangler d1 execute wordsvelte-db --remote --file=${file}`, { cwd: projectPath, silent: true })) {
-        migrationApplied = false
-        warn(`Migration failed: ${file} — apply the files in web/drizzle manually, in order`)
-        break
-      }
+  const applied = new Set(done.map(r => r.name))
+  if (alreadyApplied) {
+    const upTo = files.indexOf(alreadyApplied)
+    if (upTo < 0) { fail(`No migration file named "${alreadyApplied}" in web/drizzle.`); return false }
+    for (const f of files.slice(0, upTo + 1)) if (!applied.has(f)) { record(f); applied.add(f) }
+  } else if (applied.size === 0) {
+    // a database that has the tables but no record: running everything again would fail halfway
+    const hasTables = parseRows(query(dir, db, "SELECT name FROM sqlite_master WHERE type='table' AND name='posts'").out)
+    if (hasTables?.length) {
+      fail(`The database already has tables but no migration record. Tell me the last migration you ran, for example:\n    npx wordsvelte migrate --applied ${files.at(-1)}`)
+      return false
     }
-    if (migrationApplied) ok('Migrations applied')
+  }
 
-    step(`Generated JWT secret: ${c(C.yellow, jwtSecret)}  ${c(C.dim, '(set it with: npx wrangler pages secret put JWT_SECRET --project-name wordsvelte-web)')}`)
+  const pending = files.filter(f => !applied.has(f))
+  if (!pending.length) { good('Database is up to date'); return true }
+  for (const f of pending) {
+    step(`Applying ${f}`)
+    const r = sh(`npx wrangler d1 execute ${db} --remote --yes --file=drizzle/${f}`, { cwd: webDir(dir), silent: true })
+    if (!r.ok) { fail(`${f} failed:\n    ${why(r.out)}`); return false }
+    record(f)
+  }
+  good(`${pending.length} migration${pending.length === 1 ? '' : 's'} applied`)
+  return true
+}
+
+function deploy(dir) {
+  step('Building and deploying...')
+  const r = sh('npm run deploy', { cwd: dir })
+  return r.ok
+}
+
+function useToken(token, accountId) {
+  process.env.CLOUDFLARE_API_TOKEN = token
+  if (accountId) process.env.CLOUDFLARE_ACCOUNT_ID = accountId
+}
+
+// ---- inside an existing site: upgrade / migrate ----
+
+async function inSite(command) {
+  const dir = process.cwd()
+  const site = readSite(dir)
+  if (!site) { fail('Run this inside a WordSvelte project (the directory that contains web/wrangler.toml).'); process.exit(1) }
+  const i = process.argv.indexOf('--applied')
+  const alreadyApplied = i > 0 ? process.argv[i + 1] : undefined
+
+  if (command === 'upgrade') {
+    header('Upgrading')
+    if (!existsSync(join(dir, '.git'))) { fail('This project has no git history to pull from. Re-clone it, or copy the new version over.'); process.exit(1) }
+    const remote = sh('git remote', { cwd: dir, silent: true }).out.split('\n').includes('upstream') ? 'upstream' : 'origin'
+    step(`Pulling the latest version from ${remote}...`)
+    if (!sh(`git pull ${remote} main`, { cwd: dir }).ok) { fail('git pull failed (uncommitted changes or a conflict?). Fix it and run this again.'); process.exit(1) }
+    step('Installing dependencies...')
+    if (!sh('npm install', { cwd: dir, silent: true }).ok) warn('npm install had issues. Run "npm install" yourself if the build fails.')
+  }
+  header('Database')
+  if (!migrate(dir, site.db, { alreadyApplied })) process.exit(1)
+  if (command === 'upgrade') {
+    header('Deploy')
+    if (!deploy(dir)) { fail('Deploy failed. Run "npm run deploy" to see why.'); process.exit(1) }
+    good('Deployed')
   }
 }
 
-// ---- Step 7: Success ----
+// ---- a new site ----
 
-console.log(c(C.bold + C.green, `
-  ╔══════════════════════════════════════════╗
-  ║     Build something awesome 🚀              ║
-  ╚══════════════════════════════════════════╝
-`))
+async function create() {
+  console.log(c(C.bold + C.cyan, '\n  WordSvelte') + c(C.dim, '  A news CMS that runs free on Cloudflare.\n'))
 
-console.log(c(C.bold, '\n  Next steps:\n'))
-console.log(`  ${c(C.cyan, '1')}. cd ${c(C.bold, projectName)}`)
-console.log(`  ${c(C.cyan, '2')}. ${c(C.bold, 'npm run dev -w web')}`)
-console.log(`     → Open ${c(C.underline, 'http://localhost:5173/admin')} to set up your first admin account`)
+  header('Project')
+  const projectName = (await ask(`Project directory (${c(C.dim, 'my-news')}):`)) || 'my-news'
+  const dir = resolve(process.cwd(), projectName)
+  if (existsSync(dir)) { fail(`Directory "${projectName}" already exists.`); process.exit(1) }
+  const slug = slugOf(projectName)
 
-if (!dbCreated || !r2Created) {
-  console.log(`\n  ${c(C.yellow, '⚠')}  Cloudflare resources need manual setup:`)
-  console.log(`     ${c(C.dim, 'npx wrangler d1 create wordsvelte-db')}`)
-  console.log(`     ${c(C.dim, 'npx wrangler r2 bucket create wordsvelte-media')}`)
-  console.log(`     ${c(C.dim, 'npx wrangler d1 execute wordsvelte-db --remote --file=web/drizzle/<each .sql file, in order>')}`)
+  header('Cloudflare')
+  console.log(`  ${c(C.bold, '1')}. wrangler login  ${c(C.dim, '(browser, recommended)')}`)
+  console.log(`  ${c(C.bold, '2')}. API token`)
+  console.log(`  ${c(C.bold, '3')}. Skip  ${c(C.dim, '(work locally, deploy later)')}\n`)
+  const choice = await ask('Choose (1/2/3):')
+  let online = false
+  if (choice === '1') {
+    online = sh('npx wrangler login').ok
+    if (online) good('Logged in'); else warn('Login failed. You can deploy later with: npx wrangler login')
+  } else if (choice === '2') {
+    const accountId = await ask('Account ID:')
+    const token = await ask('API token (needs Pages, D1 and R2 edit permissions):')
+    if (token && accountId) { useToken(token, accountId); online = true; good('Using the API token for this run') }
+    else warn('Both are needed. Skipping Cloudflare.')
+  }
+
+  header('Scaffolding')
+  step(`Cloning ${c(C.dim, REPO)}...`)
+  const cloned = sh(`git clone --depth 1 ${REPO} "${dir}"`, { silent: true })
+  if (!cloned.ok) { fail(`Could not clone the repository:\n    ${why(cloned.out)}`); process.exit(1) }
+  // the history is not yours: start a fresh one, and keep the original as "upstream" so `npx wordsvelte upgrade` can pull
+  rmSync(join(dir, '.git'), { recursive: true, force: true })
+  sh('git init -q -b main', { cwd: dir, silent: true })
+  sh(`git remote add upstream ${REPO}`, { cwd: dir, silent: true })
+  writeFileSync(join(webDir(dir), 'wrangler.toml'), wranglerToml({ slug, databaseId: 'local-dev' }))
+  good('Project created')
+
+  step('Installing dependencies (a minute or two)...')
+  if (sh('npm install', { cwd: dir, silent: true }).ok) good('Dependencies installed')
+  else warn('npm install had issues. Run "npm install" inside the project.')
+
+  let live = false
+  if (online && (await yes('Create the database and storage on Cloudflare and deploy now?'))) {
+    header('Cloudflare resources')
+    const db = `${slug}-db`
+    step(`Database ${db}`)
+    const created = sh(`npx wrangler d1 create ${db}`, { cwd: dir, silent: true })
+    let id = /database_id["\s:=]+"?([0-9a-f]{8}-[0-9a-f-]{27})/i.exec(created.out)?.[1]
+    if (!id) {
+      // it may exist already: ask for its id
+      const info = sh(`npx wrangler d1 info ${db} --json`, { cwd: dir, silent: true })
+      try { id = JSON.parse(info.out.slice(info.out.indexOf('{'))).uuid } catch { /* handled below */ }
+    }
+    if (!id) { fail(`Could not create or find the database:\n    ${why(created.out)}`); }
+    else {
+      writeFileSync(join(webDir(dir), 'wrangler.toml'), wranglerToml({ slug, databaseId: id }))
+      good(`Database ${db}`)
+
+      step(`Media bucket ${slug}-media`)
+      const bucket = sh(`npx wrangler r2 bucket create ${slug}-media`, { cwd: dir, silent: true })
+      if (bucket.ok || /already exists/i.test(bucket.out)) good('Media bucket ready')
+      else fail(`Could not create the bucket (is R2 enabled on your account?):\n    ${why(bucket.out)}`)
+
+      header('Database')
+      if (migrate(dir, db)) {
+        header('Site')
+        step('Creating the Pages project...')
+        const project = sh(`npx wrangler pages project create ${slug} --production-branch main`, { cwd: dir, silent: true })
+        if (!project.ok && !/already exists/i.test(project.out)) fail(`Could not create the Pages project:\n    ${why(project.out)}`)
+        else {
+          const secret = sh(`npx wrangler pages secret put JWT_SECRET --project-name ${slug}`, { cwd: dir, input: randomBytes(32).toString('hex') + '\n', silent: true })
+          if (secret.ok) good('Session secret set')
+          else fail(`Could not set JWT_SECRET:\n    ${why(secret.out)}\n    Set it yourself: npx wrangler pages secret put JWT_SECRET --project-name ${slug}`)
+          live = secret.ok && deploy(dir)
+        }
+      }
+    }
+  }
+
+  console.log(c(C.bold + C.green, '\n  Done.\n'))
+  console.log(`  ${c(C.cyan, '1')}. cd ${c(C.bold, projectName)}`)
+  if (live) {
+    console.log(`  ${c(C.cyan, '2')}. Open the address wrangler printed above, then ${c(C.bold, '/admin/setup')} to create the first administrator.`)
+    console.log(`  ${c(C.cyan, '3')}. Later: ${c(C.bold, 'npx wordsvelte upgrade')} pulls the new version, runs new migrations and deploys.`)
+  } else {
+    console.log(`  ${c(C.cyan, '2')}. ${c(C.bold, 'npm run dev')}  ->  ${c(C.underline, 'http://localhost:5173/admin/setup')}`)
+    console.log(`  ${c(C.cyan, '3')}. To publish, follow "Deploy to Cloudflare" in the README.`)
+  }
+  console.log(`\n  ${c(C.dim, 'Docs: https://github.com/mroyyan/wordsvelte')}\n`)
 }
 
-console.log(`\n  ${c(C.cyan, '3')}. Deploy to Cloudflare:`)
-console.log(`     ${c(C.dim, 'npx wrangler pages secret put JWT_SECRET --project-name wordsvelte-web')}`)
-console.log(`     ${c(C.dim, 'npm run deploy -w web')}`)
-
-console.log(`\n  ${c(C.dim, 'Docs: https://github.com/mroyyan/wordsvelte')}\n`)
+const command = process.argv[2]
+if (command === 'upgrade' || command === 'migrate') await inSite(command)
+else if (!command || command === 'create') await create()
+else { fail(`Unknown command "${command}". Use: npx wordsvelte [create | upgrade | migrate]`); process.exit(1) }
