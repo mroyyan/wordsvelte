@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { page } from '$app/stores'
   import { toast } from 'svelte-sonner'
   import Loader2Icon from '@lucide/svelte/icons/loader-2'
   import { Button } from '$lib/components/ui/button'
@@ -15,6 +16,9 @@
   import { buildSections, type Field } from '$lib/config/settings-sections'
 
   let { sectionId }: { sectionId: string } = $props()
+
+  // the address the "Insert default" button writes into generated files (e.g. the Sitemap lines of robots.txt)
+  const siteOrigin = $derived(($page.data.siteUrl as string | undefined) ?? '')
 
   let settings = $state<Record<string, string>>({})
   let initial = $state<Record<string, string>>({})
@@ -64,7 +68,7 @@
 {#if loading}
   <div class="space-y-8"><Skeleton class="h-16 w-full" /><Skeleton class="h-16 w-full" /><Skeleton class="h-16 w-full" /></div>
 {:else}
-  <form onsubmit={save} class="space-y-8">
+  <form onsubmit={save} class="space-y-5">
     {#each section.fields as field (field.key)}
       {#if field.type === 'switch'}
         <div class="flex flex-row items-center justify-between rounded-lg border p-4">
@@ -78,7 +82,10 @@
         <div class="space-y-2">
           <Label for={field.key}>{field.label}</Label>
           {#if field.type === 'textarea'}
-            <Textarea id={field.key} bind:value={settings[field.key]} placeholder={field.placeholder} class="resize-none" rows={4} />
+            <Textarea id={field.key} bind:value={settings[field.key]} placeholder={field.placeholder} class="resize-y {field.mono ? 'font-mono text-xs' : ''}" rows={field.rows ?? 4} />
+            {#if field.defaultText}
+              <Button type="button" variant="outline" size="sm" onclick={() => (settings[field.key] = field.defaultText!(siteOrigin))}>Insert default</Button>
+            {/if}
           {:else if field.type === 'select'}
             <Select.Root type="single" value={settings[field.key] ?? ''} onValueChange={(v) => (settings[field.key] = v)}>
               <Select.Trigger id={field.key} class="w-full">{labelOf(field)}</Select.Trigger>

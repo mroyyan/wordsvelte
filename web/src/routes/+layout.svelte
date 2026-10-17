@@ -2,6 +2,7 @@
   import { page } from '$app/stores'
   import '../app.css'
   import { Search, Menu, ChevronDown } from '@lucide/svelte'
+  import AdSlot from '$lib/components/site/ad-slot.svelte'
   import MobileMenu from '$lib/components/site/mobile-menu.svelte'
   import SearchDialog from '$lib/components/site/search-dialog.svelte'
   import WidgetRenderer from '$lib/components/site/widgets/widget-renderer.svelte'
@@ -131,7 +132,9 @@
   <!-- Main Content -->
   <main class="flex-1 bg-white md:bg-gray-50">
     <div class="max-w-6xl mx-auto px-4 py-6">
+      <AdSlot placement="header" class="mb-6" />
       {@render children()}
+      <AdSlot placement="footer" class="mt-8" />
     </div>
   </main>
 

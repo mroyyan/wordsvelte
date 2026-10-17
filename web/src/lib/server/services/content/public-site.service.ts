@@ -12,9 +12,10 @@ import { getPublishedPageBySlug } from '$lib/server/services/content/page.servic
 import { getFeaturedPosts, getPopularPosts } from '$lib/server/services/content/post.service'
 import { getPublicMenus } from '$lib/server/services/site/menu.service'
 import { getSettings } from '$lib/server/services/site/settings.service'
+import { getRunningAds } from '$lib/server/services/site/ads.service'
 
 /** What every public page needs: public settings, widgets, menus and the active theme. */
-export async function getSiteChrome(db: DbInstance, platform: App.Platform | undefined, requestOrigin: string) {
+export async function getSiteChrome(db: DbInstance, platform: App.Platform | undefined, requestOrigin: string, pathname = '/') {
   // Public scope only: this object is serialised into every page, so it must never contain secrets.
   const settings = await getSettings(db)
   const site = createPublicSiteRepository(db)
@@ -36,7 +37,11 @@ export async function getSiteChrome(db: DbInstance, platform: App.Platform | und
     popular: wants('popular_posts') ? slim(await site.popularPublished(WIDGET_POSTS)) : [],
   }
 
-  return { settings, siteUrl: siteOrigin(settings.site_url, requestOrigin), widgets, widgetPosts, menus, theme }
+  // Ads only for the public site, and only while the master switch is on.
+  const inAdmin = pathname === '/admin' || pathname.startsWith('/admin/')
+  const ads = !inAdmin && settings.ads_enabled !== 'false' ? await getRunningAds(db) : {}
+
+  return { settings, siteUrl: siteOrigin(settings.site_url, requestOrigin), widgets, widgetPosts, ads, menus, theme }
 }
 
 /** How many posts the recent / popular widgets can show (each widget has its own, smaller limit). */
@@ -123,6 +128,8 @@ export async function getRssFeed(db: DbInstance, requestOrigin: string): Promise
   const site = await getSite(db, requestOrigin)
   if (site.hidden) return rssXml(site, [])
 
+  // "summary" feeds carry only the short description, so readers have to come to the site for the article
+  const fullText = site.settings.rss_content !== 'summary'
   const repo = createPublicSiteRepository(db)
   const list = await repo.recentPublishedForFeed(FEED_LIMIT)
   const catsByPost = new Map<number, string[]>()
@@ -134,7 +141,7 @@ export async function getRssFeed(db: DbInstance, requestOrigin: string): Promise
     title: p.title,
     link: `${site.origin}/${p.slug}`,
     description: p.excerpt ? snippet(stripHtml(p.excerpt), 300) : snippet(p.content, 300),
-    contentHtml: sanitizeHtml(p.content),
+    contentHtml: fullText ? sanitizeHtml(p.content) : undefined,
     pubDate: parseStoredDate(p.publishedAt || p.createdAt),
     author: p.author,
     categories: catsByPost.get(p.id) ?? [],

@@ -209,3 +209,40 @@ export function jsonLdScript(data: object): string {
 }
 
 export const SOCIAL_KEYS = ['social_facebook', 'social_twitter', 'social_instagram', 'social_youtube'] as const
+
+/** The automatic robots.txt: block the admin, API and search results; point crawlers at the sitemaps. A hidden site blocks everything. */
+export const buildRobotsTxt = (origin: string, hidden: boolean) =>
+  hidden
+    ? 'User-agent: *\nDisallow: /\n'
+    : [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /admin',
+        'Disallow: /api/',
+        'Disallow: /search',
+        '',
+        `Sitemap: ${origin}/sitemap.xml`,
+        `Sitemap: ${origin}/sitemap-news.xml`,
+        '',
+      ].join('\n')
+
+/**
+ * What /robots.txt serves: the custom text from Settings when there is one, otherwise the automatic file.
+ * "Allow search engines" switched off always wins, so hiding the site can never be undone by an old custom file.
+ */
+export function resolveRobotsTxt(origin: string, hidden: boolean, custom: string | null | undefined): string {
+  if (hidden) return buildRobotsTxt(origin, true)
+  const text = String(custom ?? '').replace(/\r\n?/g, '\n').trim()
+  return text ? text + '\n' : buildRobotsTxt(origin, false)
+}
+
+/** The mistakes a person is likely to make in a hand-written robots.txt: lines a crawler would silently ignore. */
+export function robotsTxtProblem(text: string): string | null {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    if (!line || line.startsWith('#')) continue
+    if (!/^[A-Za-z][A-Za-z-]*\s*:/.test(line)) return `line ${i + 1} is not a directive such as "User-agent: *" or "Disallow: /private"`
+  }
+  return null
+}

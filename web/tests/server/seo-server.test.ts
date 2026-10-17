@@ -4,6 +4,7 @@ import { getDb } from '$lib/server/db'
 import { updateSettings } from '$lib/server/services/site/settings.service'
 import { xmlEscape, urlsetXml, sitemapIndexXml, newsSitemapXml, buildRobotsTxt, POSTS_PER_SITEMAP } from '$lib/server/seo/sitemap'
 import { cdata, rssXml } from '$lib/server/seo/rss'
+import { resolveRobotsTxt, robotsTxtProblem } from '$lib/shared/seo'
 import { handle } from '../../src/hooks.server'
 import { GET as sitemapIndex } from '../../src/routes/sitemap.xml/+server'
 import { GET as sitemapPages } from '../../src/routes/sitemap-pages.xml/+server'
@@ -292,5 +293,61 @@ describe('X-Robots-Tag on private areas (hooks)', () => {
 
   it.each(['/', '/berita-satu', '/kategori/nasional', '/administrasi', '/apiary', '/rss.xml', '/sitemap.xml'])('%s is left indexable', async p => {
     expect((await run(p)).headers.get('X-Robots-Tag')).toBeNull()
+  })
+})
+
+describe('RSS content setting', () => {
+  it('full text is the default and carries the article in content:encoded', async () => {
+    const u = await author()
+    await mkPost(u.id, { slug: 'lengkap', content: '<p>Isi artikel yang panjang.</p>' })
+    const text = (await get(rss)).text
+    expect(text).toContain('<content:encoded>')
+    expect(text).toContain('Isi artikel yang panjang.')
+  })
+
+  it('summary only sends the short description and no article body', async () => {
+    const u = await author()
+    await mkPost(u.id, { slug: 'ringkas', excerpt: '<p>Ringkasannya saja</p>', content: '<p>Paragraf rahasia yang hanya ada di artikel.</p>' })
+    await updateSettings(getDb(), { rss_content: 'summary' })
+    const text = (await get(rss)).text
+    expect(text).not.toContain('content:encoded')
+    expect(text).not.toContain('Paragraf rahasia')
+    expect(text).toContain('Ringkasannya saja')
+    expect(text).toContain('<link>')
+  })
+
+  it('accepts only the two known values', async () => {
+    await expect(updateSettings(getDb(), { rss_content: 'half' })).rejects.toThrow(/full or summary/)
+    await updateSettings(getDb(), { rss_content: 'full' })
+  })
+})
+
+describe('robots.txt editor', () => {
+  it('serves the automatic file until a custom one is saved, and again once it is emptied', async () => {
+    expect((await get(robots)).text).toContain('Disallow: /admin')
+    await updateSettings(getDb(), { robots_txt: 'User-agent: *\r\nDisallow: /rahasia\r\n\r\nUser-agent: GPTBot\r\nDisallow: /' })
+    const custom = (await get(robots)).text
+    expect(custom).toBe('User-agent: *\nDisallow: /rahasia\n\nUser-agent: GPTBot\nDisallow: /\n')
+    await updateSettings(getDb(), { robots_txt: '   \n  ' })
+    expect((await get(robots)).text).toContain('Disallow: /admin')
+  })
+
+  it('"Allow search engines" off still blocks everything, whatever the custom text says', async () => {
+    await updateSettings(getDb(), { robots_txt: 'User-agent: *\nAllow: /' })
+    await updateSettings(getDb(), { search_engine_visible: 'false' })
+    expect((await get(robots)).text).toBe('User-agent: *\nDisallow: /\n')
+  })
+
+  it('refuses lines a crawler would silently ignore, and anything too long', async () => {
+    await expect(updateSettings(getDb(), { robots_txt: 'User-agent: *\nblock the admin please' })).rejects.toThrow(/line 2 is not a directive/)
+    await expect(updateSettings(getDb(), { robots_txt: 'x'.repeat(5001) })).rejects.toThrow(/at most 5000/)
+    await updateSettings(getDb(), { robots_txt: '# comment\n\nUser-agent: *\nCrawl-delay: 5\nSitemap: https://x.test/sitemap.xml' })
+  })
+
+  it('the helpers behave', () => {
+    expect(resolveRobotsTxt('https://x.test', false, null)).toBe(buildRobotsTxt('https://x.test', false))
+    expect(resolveRobotsTxt('https://x.test', true, 'Allow: /')).toBe('User-agent: *\nDisallow: /\n')
+    expect(robotsTxtProblem('User-agent: *\nDisallow:')).toBeNull()
+    expect(robotsTxtProblem('Disallow /x')).toMatch(/line 1/)
   })
 })

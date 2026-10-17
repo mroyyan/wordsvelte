@@ -21,3 +21,6 @@ export const twoFactorSendByUser = createRateLimiter({ max: 5, windowMs: LOGIN_W
 
 /** Wrong "current password" answers on the account pages (a stolen session must not be able to guess it). */
 export const accountPasswordByUser = createRateLimiter({ max: 8, windowMs: LOGIN_WINDOW_MS })
+
+/** Banner clicks counted per client address (the redirect itself is never blocked). */
+export const adClickByIp = createRateLimiter({ max: 30, windowMs: 60 * 1000 })

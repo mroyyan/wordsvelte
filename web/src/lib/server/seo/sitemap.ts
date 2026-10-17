@@ -93,21 +93,7 @@ export async function getNewsEntries(db: DbInstance, origin: string, now = new D
     .map((r: any) => ({ loc: r.loc, title: r.title, publishedAt: r.date.toISOString() }))
 }
 
-/** robots.txt: block the admin, API and search results; point crawlers at the sitemaps. A hidden site blocks everything. */
-export const buildRobotsTxt = (origin: string, hidden: boolean) =>
-  hidden
-    ? 'User-agent: *\nDisallow: /\n'
-    : [
-        'User-agent: *',
-        'Allow: /',
-        'Disallow: /admin',
-        'Disallow: /api/',
-        'Disallow: /search',
-        '',
-        `Sitemap: ${origin}/sitemap.xml`,
-        `Sitemap: ${origin}/sitemap-news.xml`,
-        '',
-      ].join('\n')
+export { buildRobotsTxt } from '$lib/shared/seo'
 
 export const XML_HEADERS = {
   'Content-Type': 'application/xml; charset=utf-8',

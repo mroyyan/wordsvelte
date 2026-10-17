@@ -75,7 +75,7 @@
 {#if loading}
   <div class="space-y-8"><Skeleton class="h-16 w-full" /><Skeleton class="h-16 w-full" /><Skeleton class="h-16 w-full" /></div>
 {:else}
-  <form onsubmit={(e) => { e.preventDefault(); save() }} class="space-y-8">
+  <form onsubmit={(e) => { e.preventDefault(); save() }} class="space-y-5">
     <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
       <div class="space-y-2">
         <Label for="smtp_host">SMTP host</Label>

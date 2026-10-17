@@ -2,6 +2,7 @@ import type { DbInstance } from '$lib/server/db'
 import { ValidationError } from '$lib/server/core/errors'
 import { DATE_FORMAT_RE, LANGUAGES, isValidTimeZone } from '$lib/shared/format-date'
 import { EMAIL_RE } from '$lib/server/core/validators'
+import { robotsTxtProblem } from '$lib/shared/seo'
 import { createSettingsRepository } from '$lib/server/repositories/settings.repository'
 
 /** Never returned by any API or page, and never writable through the settings API. */
@@ -51,6 +52,10 @@ export const SETTING_RULES: Record<string, Rule> = {
   posts_per_page: intBetween(1, 100),
   comments_close_after_days: intBetween(0, 3650),
   search_engine_visible: bool,
+  ads_enabled: bool,
+  rss_content: v => (v === 'full' || v === 'summary' ? null : 'must be full or summary'),
+  robots_txt: v => maxLen(5000)(v) ?? robotsTxtProblem(v),
+  ads_txt: maxLen(5000),
   sticky_sidebar: bool,
   comments_enabled: bool,
   comments_auto_approve: bool,

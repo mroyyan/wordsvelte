@@ -10,6 +10,7 @@ import PaletteIcon from '@lucide/svelte/icons/palette'
 import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template'
 import MenuIcon from '@lucide/svelte/icons/menu'
 import WrenchIcon from '@lucide/svelte/icons/wrench'
+import MegaphoneIcon from '@lucide/svelte/icons/megaphone'
 import type { Role } from '@wordsvelte/shared'
 
 export interface NavLink {
@@ -74,6 +75,7 @@ export const adminNav: NavGroupConfig[] = [
   {
     title: 'Administration',
     items: [
+      { title: 'Ads', href: '/admin/ads', icon: MegaphoneIcon, minRole: 'admin' },
       { title: 'Users', href: '/admin/users', icon: UsersIcon, minRole: 'admin' },
       { title: 'Migrate', href: '/admin/tools/migrate', icon: WrenchIcon, minRole: 'admin' },
       { title: 'Settings', href: '/admin/settings', icon: SettingsIcon, minRole: 'admin' },

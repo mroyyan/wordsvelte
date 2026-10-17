@@ -4,6 +4,8 @@
   import { formatDate } from '$lib/shared/format'
   import Seo from '$lib/components/site/seo.svelte'
   import { snippet } from '$lib/shared/seo'
+  import { splitAfterParagraph } from '$lib/shared/ads'
+  import AdSlot from '$lib/components/site/ad-slot.svelte'
   import { page } from '$app/stores'
   import { Clock, Eye, MessageSquare, Share2, Tag, ChevronRight } from '@lucide/svelte'
   import WidgetRenderer from '$lib/components/site/widgets/widget-renderer.svelte'
@@ -14,6 +16,8 @@
   let allTags = $derived(data.tags || [])
   let sidebarWidgets = $derived($page.data.widgets?.filter((w: any) => w.sidebarArea === 'sidebar-1') || [])
   let stickySidebar = $derived($page.data.settings?.sticky_sidebar === 'true')
+  // an ad inside the article, after its second paragraph (only when such an ad is running and the article is long enough)
+  let inArticle = $derived($page.data.ads?.['in-article']?.length && post?.content ? splitAfterParagraph(post.content, 2) : null)
 
   let commentText = $state('')
   let requireIdentity = $derived($page.data.settings?.comments_require_name_email !== 'false')
@@ -102,11 +106,13 @@
       </article>
     </div>
     <aside class="space-y-6 max-md:border-t max-md:pt-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
+      <AdSlot placement="sidebar-top" />
       {#each sidebarWidgets as widget (widget.id)}
         <div class="panel md:p-4">
           <WidgetRenderer {widget} categories={data.categories || []} tags={data.tags || []} />
         </div>
       {/each}
+      <AdSlot placement="sidebar-bottom" />
     </aside>
   </div>
 {:else}
@@ -135,9 +141,17 @@
       {/if}
 
       <div class="md:px-6 py-6">
+        <AdSlot placement="article-top" class="mb-6" />
         <div class="post-content text-gray-800 leading-relaxed text-[14px] md:text-[15px] space-y-4">
-          {@html post.content}
+          {#if inArticle}
+            {@html inArticle.head}
+            <AdSlot placement="in-article" class="my-6" />
+            {@html inArticle.tail}
+          {:else}
+            {@html post.content}
+          {/if}
         </div>
+        <AdSlot placement="article-bottom" class="mt-8" />
 
         <div class="flex items-center gap-2 mt-8 pt-4 border-t">
           <Tag class="h-3.5 w-3.5 text-gray-400" />
@@ -243,11 +257,13 @@
     </section>
   </div>
   <aside class="space-y-6 max-md:border-t max-md:pt-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
+    <AdSlot placement="sidebar-top" />
     {#each sidebarWidgets as widget (widget.id)}
       <div class="panel md:p-4">
         <WidgetRenderer {widget} categories={data.categories || []} tags={data.tags || []} />
       </div>
     {/each}
+    <AdSlot placement="sidebar-bottom" />
   </aside>
 </div>
 {/if}

@@ -1,6 +1,6 @@
 {
   "name": "@wordsvelte/web",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "vite dev",
@@ -51,5 +51,6 @@
     "vitest": "^3.2.7",
     "wrangler": "^4.99.0"
   },
-  "type": "module"
+  "type": "module",
+  "license": "MIT"
 }

@@ -27,6 +27,8 @@ import * as accountRoute from '../../src/routes/api/account/+server'
 import * as account2fa from '../../src/routes/api/account/2fa/+server'
 import * as smtpRoute from '../../src/routes/api/settings/smtp/+server'
 import * as smtpTest from '../../src/routes/api/settings/smtp/test/+server'
+import * as adsRoute from '../../src/routes/api/ads/+server'
+import * as adRoute from '../../src/routes/api/ads/[id]/+server'
 import * as pagesRoute from '../../src/routes/api/pages/+server'
 import * as pageRoute from '../../src/routes/api/pages/[id]/+server'
 import { call, makeEvent, seedUser, withR2 } from '../helpers/harness'
@@ -65,6 +67,12 @@ const CASES: Case[] = [
   { name: 'GET /api/settings/smtp', min: 'admin', run: t => call(smtpRoute.GET, ev(t)) },
   { name: 'PUT /api/settings/smtp', min: 'admin', run: t => call(smtpRoute.PUT, json('PUT', t, {}, { host: '' })) },
   { name: 'POST /api/settings/smtp/test', min: 'admin', run: t => call(smtpTest.POST, json('POST', t, {}, {})) },
+
+  { name: 'GET /api/ads', min: 'admin', run: t => call(adsRoute.GET, ev(t)) },
+  { name: 'POST /api/ads', min: 'admin', run: t => call(adsRoute.POST, json('POST', t, {}, { name: 'Ad', placement: 'footer', type: 'code', code: '<b>x</b>' })) },
+  { name: 'GET /api/ads/:id', min: 'admin', run: t => call(adRoute.GET, ev(t, { params: { id: '1' } })) },
+  { name: 'PATCH /api/ads/:id', min: 'admin', run: t => call(adRoute.PATCH, json('PATCH', t, { id: '1' }, { name: 'Renamed' })) },
+  { name: 'DELETE /api/ads/:id', min: 'admin', run: t => call(adRoute.DELETE, json('DELETE', t, { id: '1' })) },
 
   { name: 'POST /api/categories', min: 'editor', run: t => call(categories.POST, json('POST', t, {}, { name: `c${Math.random()}` })) },
   { name: 'PUT /api/categories/:id', min: 'editor', run: (t, i) => call(category.PUT, json('PUT', t, { id: String(i.cat) }, { name: 'renamed' })) },
@@ -120,7 +128,7 @@ describe('authorization matrix', () => {
 
     // Routes whose auth is exercised in their own dedicated test files.
     const covered = [
-      'auth/login', 'auth/logout', 'auth/setup', 'auth/me', 'auth/forgot-password', 'auth/reset-password', 'auth/2fa', 'account', 'users', 'settings', 'comments', 'media', 'posts', 'posts-admin', 'themes',
+      'auth/login', 'auth/logout', 'auth/setup', 'auth/me', 'auth/forgot-password', 'auth/reset-password', 'auth/2fa', 'account', 'ads', 'users', 'settings', 'comments', 'media', 'posts', 'posts-admin', 'themes',
       'categories', 'tags', 'menus', 'menu-items', 'widgets', 'migrate', 'pages', 'dashboard',
     ]
     for (const f of files) {

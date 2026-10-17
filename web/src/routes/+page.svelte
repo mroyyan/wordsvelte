@@ -4,6 +4,7 @@
   import Seo from '$lib/components/site/seo.svelte'
   import { page } from '$app/stores'
   import { Clock, Eye, ChevronRight, ChevronLeft } from '@lucide/svelte'
+  import AdSlot from '$lib/components/site/ad-slot.svelte'
   import WidgetRenderer from '$lib/components/site/widgets/widget-renderer.svelte'
 
   let { data } = $props()
@@ -129,7 +130,7 @@
       </div>
 
       <div class="divide-y md:px-5">
-        {#each rest as post}
+        {#each rest as post, i}
             <article class="flex gap-5 py-5">
               <a href="/{post.slug}" class="shrink-0 w-28 sm:w-36 md:w-44 self-start aspect-square md:aspect-[4/3] overflow-hidden rounded-md bg-gray-100 flex items-center justify-center text-gray-400">
                 {#if post.featuredImageUrl}
@@ -151,6 +152,10 @@
                 <p class="text-[13px] text-gray-600 leading-relaxed line-clamp-2 md:text-sm">{formatExcerpt(post.excerpt || post.content, 150)}</p>
               </div>
           </article>
+          <!-- an ad after every fifth story (not at the very end of the list) -->
+          {#if (i + 1) % 5 === 0 && i < rest.length - 1}
+            <div class="py-5"><AdSlot placement="between-posts" /></div>
+          {/if}
         {/each}
       </div>
 
@@ -187,11 +192,13 @@
 
   <!-- Sidebar -->
   <aside class="space-y-6 max-md:border-t max-md:pt-6 {stickySidebar ? 'lg:sticky lg:top-20 lg:self-start' : ''}">
+    <AdSlot placement="sidebar-top" />
     {#each sidebarWidgets as widget (widget.id)}
       <div class="panel md:p-4">
         <WidgetRenderer {widget} {categories} {tags} />
       </div>
     {/each}
+    <AdSlot placement="sidebar-bottom" />
     {#if sidebarWidgets.length === 0}
       <div class="panel text-center text-sm text-muted-foreground md:p-4">
         No widgets configured. Add widgets in admin Appearance &rarr; Widgets.

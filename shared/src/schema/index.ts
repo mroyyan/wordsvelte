@@ -207,3 +207,35 @@ export const recoveryCodes = sqliteTable('recovery_codes', {
 }, (table) => ({
   userIdx: index('idx_recovery_codes_user').on(table.userId),
 }))
+
+/** Where an ad can appear on the public site. */
+export const AD_PLACEMENTS = ['header', 'sidebar-top', 'sidebar-bottom', 'article-top', 'in-article', 'article-bottom', 'between-posts', 'footer'] as const
+export type AdPlacement = (typeof AD_PLACEMENTS)[number]
+/** 'banner' is an image with a link; 'code' is pasted HTML/JavaScript from an ad network (e.g. AdSense). */
+export const AD_TYPES = ['banner', 'code'] as const
+export type AdType = (typeof AD_TYPES)[number]
+export const AD_DEVICES = ['all', 'desktop', 'mobile'] as const
+export type AdDevice = (typeof AD_DEVICES)[number]
+
+export const ads = sqliteTable('ads', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  placement: text('placement').notNull(),
+  type: text('type').notNull().default('banner'),
+  imageUrl: text('image_url'),
+  linkUrl: text('link_url'),
+  altText: text('alt_text'),
+  /** Raw markup for type 'code'. Only administrators can write it. */
+  code: text('code'),
+  devices: text('devices').notNull().default('all'),
+  /** Optional run window, ISO 8601 (UTC). Empty means no limit on that side. */
+  startsAt: text('starts_at'),
+  endsAt: text('ends_at'),
+  status: text('status').notNull().default('active'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  clicks: integer('clicks').notNull().default(0),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  placementIdx: index('idx_ads_placement_status').on(table.placement, table.status),
+}))
